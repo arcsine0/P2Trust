@@ -1,9 +1,12 @@
-import { Text, View, Image, StyleSheet, Platform } from 'react-native';
+import { Text, View, ScrollView, TouchableHighlight } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+import { Octicons } from "@expo/vector-icons";
 
 export default function SettingsScreen() {
 	return (
-		<View className="flex-1 items-center justify-center">
-			<Text className="text-lg font-semibold">Home</Text>
-		</View>
+		<SafeAreaView className="flex flex-col w-screen h-screen gap-5 p-5 items-start justify-start">
+			<Text className="font-bold text-slate-800 text-2xl">Settings</Text>
+		</SafeAreaView>
 	);
 }
