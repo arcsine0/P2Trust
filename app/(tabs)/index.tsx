@@ -1,6 +1,6 @@
-import { Text, View, ScrollView } from "react-native";
-
+import { Text, View, ScrollView, TouchableHighlight } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { router } from "expo-router";
 
 import { Octicons } from "@expo/vector-icons";
 
@@ -38,11 +38,12 @@ export default function HomeScreen() {
 								<Text className="font-bold text-slate-800 text-lg">₱100</Text>
 							</View>
 						</View>
-						
 					</ScrollView>
-					<View className="flex flex-row p-[2px] items-center justify-center bg-blue-500 rounded-b-lg">
-						<Text className="font-semibold text-white text-sm">View Full History</Text>
-					</View>
+					<TouchableHighlight onPress={() => router.push("/(tabs)/history")}>
+						<View className="flex flex-row p-[2px] items-center justify-center bg-blue-500 rounded-b-lg">
+							<Text className="font-semibold text-white text-sm">View Full History</Text>
+						</View>
+					</TouchableHighlight>
 				</View>
 			</View>
 			<View className="flex flex-col w-full">
