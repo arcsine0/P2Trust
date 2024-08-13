@@ -1,4 +1,4 @@
-import { Text, View, ScrollView, TouchableHighlight } from "react-native";
+import { Text, View, ScrollView, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 
@@ -39,11 +39,11 @@ export default function HomeScreen() {
 							</View>
 						</View>
 					</ScrollView>
-					<TouchableHighlight onPress={() => router.push("/(tabs)/history")}>
+					<TouchableOpacity onPress={() => router.push("/(tabs)/history")}>
 						<View className="flex flex-row p-[2px] items-center justify-center bg-blue-500 rounded-b-lg">
 							<Text className="font-semibold text-white text-sm">View Full History</Text>
 						</View>
-					</TouchableHighlight>
+					</TouchableOpacity>
 				</View>
 			</View>
 			<View className="flex flex-col w-full">
