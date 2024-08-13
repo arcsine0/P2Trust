@@ -44,7 +44,7 @@ export default function TabLayout() {
 				}}
 			/>
 			<Tabs.Screen
-				name="send"
+				name="(transaction)"
 				options={{
 					title: 'Send',
 					tabBarIcon: ({ color, focused }) => (
