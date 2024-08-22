@@ -9,7 +9,7 @@ export default function HistoryScreen() {
 	const [inputSearch, setInputSearch] = useState("")
 
 	return (
-		<SafeAreaView className="flex flex-col w-screen h-screen gap-2 p-5 items-start justify-start">
+		<SafeAreaView className="flex flex-col w-screen h-screen gap-2 p-2 items-start justify-start">
 			
 		</SafeAreaView>
 	);

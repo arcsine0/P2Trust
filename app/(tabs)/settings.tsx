@@ -6,7 +6,7 @@ import { Octicons } from "@expo/vector-icons";
 export default function SettingsScreen() {
 	return (
 		<SafeAreaView className="flex flex-col w-screen h-screen gap-5 p-5 items-start justify-start">
-			<Text className="font-bold text-slate-800 text-2xl">Settings</Text>
+			
 		</SafeAreaView>
 	);
 }

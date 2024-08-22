@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { View, ScrollView } from "react-native";
+import { useIsFocused } from "@react-navigation/native";
 import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme, Text, Card, Avatar, Chip, IconButton } from "react-native-paper";
+import { useTheme, Text, Card, Avatar, Chip, IconButton, FAB, Portal } from "react-native-paper";
 
 import { MaterialCommunityIcons as MCI } from "@expo/vector-icons";
 
@@ -18,17 +19,20 @@ type Props = {
 };
 
 export default function HomeScreen({ navigation }: Props) {
+	const [fabState, setFabState] = useState({ open: false });
+
+	const isFocused = useIsFocused();
 	const theme = useTheme();
 
 	useEffect(() => {
 		navigation.setOptions({
 			headerRight: () => (
 				<View className="flex flex-row">
-					<IconButton 
+					<IconButton
 						icon="sort-variant"
 						onPress={() => console.log("Sort Pressed")}
 					/>
-					<IconButton 
+					<IconButton
 						icon="dots-vertical"
 						onPress={() => console.log("Dots Pressed")}
 					/>
@@ -38,8 +42,30 @@ export default function HomeScreen({ navigation }: Props) {
 	}, [navigation]);
 
 	return (
-		<SafeAreaView className="flex flex-col w-screen h-screen gap-2 p-5 items-start justify-start">
-			{/* <Text variant="labelLarge" style={{ color: theme.colors.secondary }}>Completed transactions and their status in real-time</Text> */}
+		<SafeAreaView className="flex flex-col w-screen h-screen gap-2 p-2 items-start justify-start">
+			{isFocused ?
+				<Portal>
+					<FAB.Group
+						open={fabState.open}
+						visible
+						icon={fabState.open ? "close" : "send"}
+						actions={[
+							{ 
+								icon: "tray-arrow-up", 
+								label: "Send Payment",
+								onPress: () => console.log("Pressed add") 
+							},
+							{ 
+								icon: "tray-arrow-down", 
+								label: "Receive Payment",
+								onPress: () => console.log("Pressed add") 
+							}
+						]}
+						onStateChange={({ open }) => setFabState({ open })}
+						style={{ paddingBottom: 80 }}
+					/>
+				</Portal>
+			: null}
 			<ScrollView className="w-full">
 				<View className="flex flex-col p-2 gap-4">
 					<Card>
