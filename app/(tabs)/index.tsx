@@ -5,6 +5,8 @@ import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme, Text, Card, Avatar, Chip, IconButton, FAB, Portal } from "react-native-paper";
 
+import { router } from "expo-router";
+
 import { MaterialCommunityIcons as MCI } from "@expo/vector-icons";
 
 type TabParamList = {
@@ -53,12 +55,12 @@ export default function HomeScreen({ navigation }: Props) {
 							{ 
 								icon: "tray-arrow-up", 
 								label: "Send Payment",
-								onPress: () => console.log("Pressed add") 
+								onPress: () => router.push("/(tabs)/(transaction)") 
 							},
 							{ 
 								icon: "tray-arrow-down", 
 								label: "Receive Payment",
-								onPress: () => console.log("Pressed add") 
+								onPress: () => router.push("/(tabs)/(transaction)") 
 							}
 						]}
 						onStateChange={({ open }) => setFabState({ open })}
