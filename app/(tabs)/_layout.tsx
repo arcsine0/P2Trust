@@ -1,8 +1,9 @@
 import React from "react";
 
+import { View } from "react-native";
 import { CommonActions } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { BottomNavigation } from "react-native-paper";
+import { BottomNavigation, useTheme, Text, IconButton } from "react-native-paper";
 
 import { TabBarIcon } from "@/components/navigation/TabBarIcon";
 
@@ -10,13 +11,24 @@ import HomeScreen  from "./index";
 import HistoryScreen from "./history";
 import SettingsScreen from "./settings";
 
-const Tab = createBottomTabNavigator();
+type TabParamList = {
+	Home: undefined;
+	History: { name: string };
+	Settings: { name: string };
+};
+
+const Tab = createBottomTabNavigator<TabParamList>();
 
 export default function TabLayout() {
+	const theme = useTheme();
+
 	return (
 		<Tab.Navigator
 			screenOptions={{
-				headerShown: false,
+				headerShown: true,
+				headerStyle: {
+					backgroundColor: theme.colors.surface,
+				},
 			}}
 			tabBar={({ navigation, state, descriptors, insets }) => (
 				<BottomNavigation.Bar
@@ -53,12 +65,23 @@ export default function TabLayout() {
 			<Tab.Screen
 				name="Home"
 				component={HomeScreen}
-				options={{
+				options={({ navigation }) => ({
 					tabBarLabel: 'Home',
 					tabBarIcon: ({ color, size }) => {
 						return <TabBarIcon name="home" color={color} size={size} />;
 					},
-				}}
+					headerTitle: () => <Text variant="headlineSmall" className="font-semibold">Live Feed</Text>,
+					headerRight: () => (
+						<View className="flex flex-row">
+							<IconButton 
+								icon="sort-variant"
+							/>
+							<IconButton 
+								icon="dots-vertical"
+							/>
+						</View>
+					)
+				})}
 			/>
 			<Tab.Screen
 				name="History"
@@ -68,6 +91,7 @@ export default function TabLayout() {
 					tabBarIcon: ({ color, size }) => {
 						return <TabBarIcon name="history" color={color} size={size} />;
 					},
+					headerTitle: () => <Text variant="headlineSmall" className="font-semibold">History</Text>,
 				}}
 			/>
 			<Tab.Screen
@@ -78,6 +102,7 @@ export default function TabLayout() {
 					tabBarIcon: ({ color, size }) => {
 						return <TabBarIcon name="gear" color={color} size={size} />;
 					},
+					headerTitle: () => <Text variant="headlineSmall" className="font-semibold">Settings</Text>,
 				}}
 			/>
 		</Tab.Navigator>

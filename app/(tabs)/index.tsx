@@ -1,17 +1,44 @@
+import { useState, useEffect } from "react";
 import { View, ScrollView } from "react-native";
+import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
-
-import { useTheme, Text, Card, Avatar, Chip, Icon } from "react-native-paper";
+import { useTheme, Text, Card, Avatar, Chip, IconButton } from "react-native-paper";
 
 import { MaterialCommunityIcons as MCI } from "@expo/vector-icons";
 
-export default function HomeScreen() {
+type TabParamList = {
+	Home: undefined;
+	History: { name: string };
+	Settings: { name: string };
+};
+
+type HomeScreenNavigationProp = BottomTabNavigationProp<TabParamList, "Home">;
+type Props = {
+	navigation: HomeScreenNavigationProp;
+};
+
+export default function HomeScreen({ navigation }: Props) {
 	const theme = useTheme();
+
+	useEffect(() => {
+		navigation.setOptions({
+			headerRight: () => (
+				<View className="flex flex-row">
+					<IconButton 
+						icon="sort-variant"
+						onPress={() => console.log("Sort Pressed")}
+					/>
+					<IconButton 
+						icon="dots-vertical"
+						onPress={() => console.log("Dots Pressed")}
+					/>
+				</View>
+			)
+		});
+	}, [navigation]);
 
 	return (
 		<SafeAreaView className="flex flex-col w-screen h-screen gap-2 p-5 items-start justify-start">
-			<Text variant="headlineLarge" className="font-bold">Live Feed</Text>
 			{/* <Text variant="labelLarge" style={{ color: theme.colors.secondary }}>Completed transactions and their status in real-time</Text> */}
 			<ScrollView className="w-full">
 				<View className="flex flex-col p-2 gap-4">
