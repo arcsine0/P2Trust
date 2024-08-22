@@ -1,38 +1,25 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { PaperProvider } from 'react-native-paper';
+import { Stack } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
 
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
+import { useColorScheme } from "react-native";
+import { MD3LightTheme, MD3DarkTheme, PaperProvider } from "react-native-paper";
+import { Colors } from "@/constants/Colors";
 
-import { useEffect } from 'react';
-import 'react-native-reanimated';
-
-import { useColorScheme } from '@/hooks/useColorScheme';
-
+import "react-native-reanimated";
 import "../global.css";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
+const customDarkTheme = { ...MD3DarkTheme, colors: Colors.dark }
+const customLightTheme = { ...MD3LightTheme, colors: Colors.light }
+
 export default function RootLayout() {
-	const colorScheme = useColorScheme();
-	const [loaded] = useFonts({
-		SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-	});
-
-	useEffect(() => {
-		if (loaded) {
-			SplashScreen.hideAsync();
-		}
-	}, [loaded]);
-
-	if (!loaded) {
-		return null;
-	}
+	const colorScheme = useColorScheme()
+	const paperTheme = colorScheme === "dark" ? customDarkTheme : customLightTheme;
 
 	return (
-		<PaperProvider>
+		<PaperProvider theme={customLightTheme}>
 			<Stack>
 				<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 				<Stack.Screen name="+not-found" />
