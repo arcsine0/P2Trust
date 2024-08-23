@@ -9,10 +9,12 @@ import "react-native-reanimated";
 import "../global.css";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
+// SplashScreen.preventAutoHideAsync();
 
 const customDarkTheme = { ...MD3DarkTheme, colors: Colors.dark }
 const customLightTheme = { ...MD3LightTheme, colors: Colors.light }
+
+console.log("root layout running!")
 
 export default function RootLayout() {
 	const colorScheme = useColorScheme()

@@ -7,10 +7,10 @@ export default function TransactionScreens() {
                 name="index" 
                 options={{ title: "Start Transaction" }}  
             />
-            <Stack.Screen 
+            {/* <Stack.Screen 
                 name="info" 
                 options={{ title: "Start Transaction" }}  
-            />
+            /> */}
         </Stack>
      )
 }

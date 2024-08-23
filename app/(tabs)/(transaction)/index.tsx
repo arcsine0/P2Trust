@@ -3,7 +3,7 @@ import { View, TextInput, ScrollView, TouchableHighlight } from "react-native";
 import { useTheme, Text, Card, Avatar, Chip, IconButton, FAB, Portal } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-export default function MerchantsListScreen() {
+export default function TransactionStartScreen() {
     const [inputSearch, setInputSearch] = useState("")
 
     return (
