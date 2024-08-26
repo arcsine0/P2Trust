@@ -14,10 +14,10 @@ import "../global.css";
 const customDarkTheme = { ...MD3DarkTheme, colors: Colors.dark }
 const customLightTheme = { ...MD3LightTheme, colors: Colors.light }
 
-console.log("root layout running!")
+console.log("root layout running!");
 
 export default function RootLayout() {
-	const colorScheme = useColorScheme()
+	const colorScheme = useColorScheme();
 	const paperTheme = colorScheme === "dark" ? customDarkTheme : customLightTheme;
 
 	return (

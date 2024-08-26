@@ -7,7 +7,7 @@ import { BottomNavigation, useTheme, Text, IconButton } from "react-native-paper
 
 import { TabBarIcon } from "@/components/navigation/TabBarIcon";
 
-import HomeScreen  from "./index";
+import HomeScreenLayout from "./(home)/_layout";
 import HistoryScreen from "./history";
 import SettingsScreen from "./settings";
 
@@ -36,7 +36,7 @@ export default function TabLayout() {
 					safeAreaInsets={insets}
 					onTabPress={({ route, preventDefault }) => {
 						const event = navigation.emit({
-							type: 'tabPress',
+							type: "tabPress",
 							target: route.key,
 							canPreventDefault: true,
 						});
@@ -64,30 +64,20 @@ export default function TabLayout() {
 		>
 			<Tab.Screen
 				name="Home"
-				component={HomeScreen}
-				options={({ navigation }) => ({
-					tabBarLabel: 'Home',
+				component={HomeScreenLayout}
+				options={{ 
+					headerShown: false,
+					tabBarLabel: "Home",
 					tabBarIcon: ({ color, size }) => {
 						return <TabBarIcon name="home" color={color} size={size} />;
 					},
-					headerTitle: () => <Text variant="headlineSmall" className="font-semibold">Live Feed</Text>,
-					headerRight: () => (
-						<View className="flex flex-row">
-							<IconButton 
-								icon="sort-variant"
-							/>
-							<IconButton 
-								icon="dots-vertical"
-							/>
-						</View>
-					)
-				})}
+				}}
 			/>
 			<Tab.Screen
 				name="History"
 				component={HistoryScreen}
 				options={{
-					tabBarLabel: 'Settings',
+					tabBarLabel: "Settings",
 					tabBarIcon: ({ color, size }) => {
 						return <TabBarIcon name="history" color={color} size={size} />;
 					},
@@ -98,7 +88,7 @@ export default function TabLayout() {
 				name="Settings"
 				component={SettingsScreen}
 				options={{
-					tabBarLabel: 'Settings',
+					tabBarLabel: "Settings",
 					tabBarIcon: ({ color, size }) => {
 						return <TabBarIcon name="gear" color={color} size={size} />;
 					},

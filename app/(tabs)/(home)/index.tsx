@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { View, ScrollView } from "react-native";
-import { useIsFocused } from "@react-navigation/native";
-import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme, Text, Card, Avatar, Chip, IconButton, FAB, Portal } from "react-native-paper";
+
+import { useIsFocused, RouteProp } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import { router } from "expo-router";
 
@@ -12,13 +13,12 @@ import { db, fs } from "@/firebase/config";
 
 import { MaterialCommunityIcons as MCI } from "@expo/vector-icons";
 
-type TabParamList = {
-	Home: undefined;
-	History: { name: string };
-	Settings: { name: string };
-};
+type HomeParamList = {
+    HomeScreen: undefined;
+    Transaction: undefined;
+}
 
-type HomeScreenNavigationProp = BottomTabNavigationProp<TabParamList, "Home">;
+type HomeScreenNavigationProp = NativeStackNavigationProp<HomeParamList, "HomeScreen">;
 type Props = {
 	navigation: HomeScreenNavigationProp;
 };
@@ -53,8 +53,8 @@ export default function HomeScreen({ navigation }: Props) {
 	const theme = useTheme();
 
 	const getInitials = (name: string) => {
-		const words = name.trim().split(' ');
-		let initials = '';
+		const words = name.trim().split(" ");
+		let initials = "";
 
 		for (let i = 0; i < Math.min(words.length, 2); i++) {
 			if (words[i].length > 0) {
@@ -99,7 +99,7 @@ export default function HomeScreen({ navigation }: Props) {
 			if (data) {
 				const transactionEntries = Object.entries(data);
 				const transactionArray = transactionEntries.map(([transactionId, transactionData]) => {
-					if (typeof transactionData === 'object' && transactionData !== null) {
+					if (typeof transactionData === "object" && transactionData !== null) {
 						return {
 							id: transactionId,
 							...transactionData,
@@ -149,28 +149,11 @@ export default function HomeScreen({ navigation }: Props) {
 	return (
 		<SafeAreaView className="flex flex-col w-screen h-screen gap-2 p-2 items-start justify-start">
 			{isFocused ?
-				<Portal>
-					<FAB.Group
-						open={fabState.open}
-						visible
-						icon={fabState.open ? "close" : "send"}
-						actions={[
-							{
-								icon: "tray-arrow-up",
-								label: "Send Payment",
-								onPress: () => testSendTransaction()
-							},
-							{
-								icon: "tray-arrow-down",
-								label: "Receive Payment",
-								onPress: () => console.log("open receive payment page")
-							}
-						]}
-						onStateChange={({ open }) => setFabState({ open })}
-						onPress={() => setFabState({ open: !fabState.open })}
-						style={{ paddingBottom: 80 }}
-					/>
-				</Portal>
+				<FAB
+					icon={"send"}
+					onPress={() => navigation.push("Transaction")}
+					className="absolute right-0 bottom-0 mb-36 mr-2 z-50"
+				/>
 				: null}
 			<ScrollView className="w-full">
 				<View className="flex flex-col p-2 gap-4">
