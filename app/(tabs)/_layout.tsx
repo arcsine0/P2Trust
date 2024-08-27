@@ -7,14 +7,14 @@ import { BottomNavigation, useTheme, Text, IconButton } from "react-native-paper
 
 import { TabBarIcon } from "@/components/navigation/TabBarIcon";
 
-import HomeScreenLayout from "./(home)/_layout";
+import HomeScreen from "./index";
 import HistoryScreen from "./history";
 import SettingsScreen from "./settings";
 
 type TabParamList = {
 	Home: undefined;
-	History: { name: string };
-	Settings: { name: string };
+	History: undefined;
+	Settings: undefined;
 };
 
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -64,14 +64,24 @@ export default function TabLayout() {
 		>
 			<Tab.Screen
 				name="Home"
-				component={HomeScreenLayout}
-				options={{ 
-					headerShown: false,
-					tabBarLabel: "Home",
+				component={HomeScreen}
+				options={({ navigation }) => ({
+					tabBarLabel: "Settings",
 					tabBarIcon: ({ color, size }) => {
 						return <TabBarIcon name="home" color={color} size={size} />;
 					},
-				}}
+					headerTitle: () => <Text variant="headlineSmall" className="font-semibold">Live Feed</Text>,
+					headerRight: () => (
+						<View className="flex flex-row">
+							<IconButton
+								icon="sort-variant"
+							/>
+							<IconButton
+								icon="dots-vertical"
+							/>
+						</View>
+					)
+				})}
 			/>
 			<Tab.Screen
 				name="History"

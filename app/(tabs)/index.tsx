@@ -3,7 +3,7 @@ import { View, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme, Text, Card, Avatar, Chip, IconButton, FAB, Portal } from "react-native-paper";
 
-import { useIsFocused, RouteProp } from "@react-navigation/native";
+import { useIsFocused } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import { router } from "expo-router";
@@ -13,12 +13,13 @@ import { db, fs } from "@/firebase/config";
 
 import { MaterialCommunityIcons as MCI } from "@expo/vector-icons";
 
-type HomeParamList = {
-    HomeScreen: undefined;
-    Transaction: undefined;
-}
+type TabParamList = {
+	Home: undefined;
+	History: { name: string };
+	Settings: { name: string };
+};
 
-type HomeScreenNavigationProp = NativeStackNavigationProp<HomeParamList, "HomeScreen">;
+type HomeScreenNavigationProp = NativeStackNavigationProp<TabParamList, "Home">;
 type Props = {
 	navigation: HomeScreenNavigationProp;
 };
@@ -151,7 +152,7 @@ export default function HomeScreen({ navigation }: Props) {
 			{isFocused ?
 				<FAB
 					icon={"send"}
-					onPress={() => navigation.push("Transaction")}
+					onPress={() => router.navigate("/(transaction)")}
 					className="absolute right-0 bottom-0 mb-36 mr-2 z-50"
 				/>
 				: null}

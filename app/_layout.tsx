@@ -24,6 +24,7 @@ export default function RootLayout() {
 		<PaperProvider theme={customLightTheme}>
 			<Stack>
 				<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+				<Stack.Screen name="(transaction)" options={{ headerShown: false }} />
 				<Stack.Screen name="+not-found" />
 			</Stack>
 		</PaperProvider>
