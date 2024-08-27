@@ -23,6 +23,7 @@ export default function RootLayout() {
 	return (
 		<PaperProvider theme={customLightTheme}>
 			<Stack>
+				<Stack.Screen name="(login)" options={{ headerShown: false }} />
 				<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 				<Stack.Screen name="(transaction)" options={{ headerShown: false }} />
 				<Stack.Screen name="+not-found" />
