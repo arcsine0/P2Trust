@@ -12,6 +12,7 @@ import { ref, push, set, onValue } from "firebase/database";
 import { db, fs } from "@/firebase/config";
 
 import { MaterialCommunityIcons as MCI } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type TabParamList = {
 	Home: undefined;
@@ -118,6 +119,11 @@ export default function HomeScreen({ navigation }: Props) {
 		})
 	}
 
+	const redirectToTransactions = () => {
+		AsyncStorage.setItem("roomState", "1");
+		router.navigate("/(transaction)");
+	}
+
 	useEffect(() => {
 		navigation.setOptions({
 			headerRight: () => (
@@ -139,6 +145,8 @@ export default function HomeScreen({ navigation }: Props) {
 		if (isFocused) {
 			setTransactions([]);
 			loadTransactions();
+
+			AsyncStorage.setItem("roomState", "0");
 		}
 
 		return () => {
@@ -152,7 +160,7 @@ export default function HomeScreen({ navigation }: Props) {
 			{isFocused ?
 				<FAB
 					icon={"send"}
-					onPress={() => router.navigate("/(transaction)")}
+					onPress={() => redirectToTransactions()}
 					className="absolute right-0 bottom-0 mb-36 mr-2 z-50"
 				/>
 				: null}

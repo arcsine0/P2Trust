@@ -12,7 +12,11 @@ export default function TransactionLayout() {
                     options={{ title: "Scan QR" }}
                 />
                 <Stack.Screen
-                    name="connected"
+                    name="lobby"
+                    options={{ title: "Merchant Info" }}
+                />
+                <Stack.Screen
+                    name="room"
                     options={{ title: "Transaction Info" }}
                 />
                 {/* Add more Stack.Screen components for other transaction screens */}

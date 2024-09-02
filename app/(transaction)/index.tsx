@@ -11,8 +11,11 @@ import { ref, push, set, remove, onValue } from "firebase/database";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import QRCode from "react-qr-code";
+
 export default function TransactionHomeScreen() {
     const [roomID, setRoomID] = useState("");
+    const [roomState, setRoomState] = useState(true);
 
     const isFocused = useIsFocused();
     const wasFocused = useRef(false);
@@ -30,6 +33,13 @@ export default function TransactionHomeScreen() {
         return initials;
     }
 
+    const getRoomState = async () => {
+        const roomStateAsync = await AsyncStorage.getItem("roomState");
+        if (roomStateAsync) {
+            setRoomState(Boolean(roomStateAsync));
+        }
+    }
+
     const createRoom = async () => {
         const uid = await AsyncStorage.getItem("UID");
 
@@ -39,13 +49,14 @@ export default function TransactionHomeScreen() {
                 const id = roomRef.key;
 
                 if (id) {
+                    console.log(id);
                     setRoomID(id);
 
                     await set(roomRef, {
                         merchant: "",
                         client: ""
                     }).then(async () => {
-                        await set(ref(db, `rooms/${id}/users`), {
+                        await push(ref(db, `rooms/${id}/users`), {
                             uid: uid
                         });
                     });
@@ -61,20 +72,45 @@ export default function TransactionHomeScreen() {
         await remove(ref(db, `rooms/${roomID}`));
     }
 
-    useFocusEffect(
-        useCallback(() => {
-          let isScreenFocused = true;
-    
-          if (isScreenFocused) {
-            createRoom();
-          }
-    
-          return () => {
-            isScreenFocused = false; 
-            deleteRoom();
-          };
-        }, []) 
-      );
+    const listenForConnections = async () => {
+        const connectedRef = ref(db, `rooms/${roomID}/users`);
+        onValue(connectedRef, (snapshot) => {
+            const data = snapshot.val();
+            console.log(data);
+        })
+    }
+
+    // useFocusEffect(
+    //     useCallback(() => {
+    //         let isScreenFocused = true;
+    //         const roomLive = AsyncStorage.getItem("roomLive")
+
+    //         if (isScreenFocused) {
+    //             createRoom();
+    //             listenForConnections();
+    //         }
+
+    //         return () => {
+    //             isScreenFocused = false;
+    //             deleteRoom();
+
+    //             onValue(ref(db, `rooms/${roomID}/users`), () => null);
+    //         };
+    //     }, [])
+    // );
+    useEffect(() => {
+        getRoomState();
+    }, []);
+
+    useEffect(() => {
+        // if (roomState === true) {
+        //     createRoom();
+        //     listenForConnections();
+        // } else {
+        //     deleteRoom();
+        //     onValue(ref(db, `rooms/${roomID}/users`), () => null);
+        // }
+    }, [roomState]);
     return (
         <SafeAreaView className="flex flex-col w-screen h-screen gap-2 px-4 items-start justify-start">
             <Card className="w-full">
@@ -89,9 +125,15 @@ export default function TransactionHomeScreen() {
                 </Card.Content>
             </Card>
             <Card className="w-full">
-                <Card.Content className="flex flex-col gap-2">
-                    <View>
-
+                <Card.Content className="flex flex-col gap-3">
+                    <View className="flex justify-center items-center border-2 rounded-lg p-5">
+                        {roomID ? 
+                            <QRCode 
+                                size={256}
+                                className="h-auto w-full"
+                                value={roomID}
+                            />
+                        : null}
                     </View>
                     <Button
                         icon={"qrcode-scan"}
