@@ -22,6 +22,7 @@ export default function LoginScreen() {
                 const user = userCredentials.user;
 
                 await AsyncStorage.setItem("UID", user.uid).then(() => {
+                    console.log(user.uid);
                     router.push("/(tabs)");
                 });
             })

@@ -15,6 +15,7 @@ import QRCode from "react-qr-code";
 
 export default function TransactionHomeScreen() {
     const [roomID, setRoomID] = useState("");
+    const [UID, setUID] = useState("");
     const [roomState, setRoomState] = useState(true);
 
     const isFocused = useIsFocused();
@@ -98,19 +99,18 @@ export default function TransactionHomeScreen() {
     //         };
     //     }, [])
     // );
-    useEffect(() => {
-        getRoomState();
-    }, []);
+
+    const getUID = async () => {
+        const uidAsync = await AsyncStorage.getItem("UID");
+        if (uidAsync) {
+            setUID(uidAsync);
+        }
+    }
 
     useEffect(() => {
-        // if (roomState === true) {
-        //     createRoom();
-        //     listenForConnections();
-        // } else {
-        //     deleteRoom();
-        //     onValue(ref(db, `rooms/${roomID}/users`), () => null);
-        // }
-    }, [roomState]);
+        getUID();
+    }, []);
+
     return (
         <SafeAreaView className="flex flex-col w-screen h-screen gap-2 px-4 items-start justify-start">
             <Card className="w-full">
@@ -127,13 +127,13 @@ export default function TransactionHomeScreen() {
             <Card className="w-full">
                 <Card.Content className="flex flex-col gap-3">
                     <View className="flex justify-center items-center border-2 rounded-lg p-5">
-                        {roomID ? 
-                            <QRCode 
+                        {UID ?
+                            <QRCode
                                 size={256}
                                 className="h-auto w-full"
-                                value={roomID}
+                                value={UID}
                             />
-                        : null}
+                            : null}
                     </View>
                     <Button
                         icon={"qrcode-scan"}

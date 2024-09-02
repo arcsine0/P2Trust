@@ -3,10 +3,10 @@ import { View, ScrollView, TouchableHighlight } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme, Button, IconButton, Dialog, Portal, Text } from "react-native-paper";
 
+import { router } from "expo-router";
 import { CameraView, CameraType, useCameraPermissions, BarcodeScanningResult } from "expo-camera";
 
-import { db } from "@/firebase/config";
-import { ref, push, set, remove, onValue } from "firebase/database";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function TransactionScanScreen() {
 	const [facing, setFacing] = useState<CameraType>("back");
@@ -16,18 +16,18 @@ export default function TransactionScanScreen() {
 	const [permission, requestPermission] = useCameraPermissions();
 	const theme = useTheme();
 
-	const joinRoom = async (key: string) => {
-
-	}
-
 	const toggleCameraFacing = () => {
 		setFacing(current => (current === 'back' ? 'front' : 'back'));
 	}
 
-	const barcodeScanned = (data: BarcodeScanningResult) => {
+	const barcodeScanned = async (data: BarcodeScanningResult) => {
 		if (data.data && hasScanned === false) {
 			setHasScanned(true);
 
+			await AsyncStorage.setItem("merchantID", data.data)
+				.then(() => {
+					router.navigate("/(transaction)/lobby")
+				});
 			
 		}
 	}
