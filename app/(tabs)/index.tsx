@@ -9,6 +9,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { router } from "expo-router";
 
 import { ref, push, set, onValue } from "firebase/database";
+import { doc, getDoc } from "firebase/firestore";
 import { db, fs } from "@/firebase/config";
 
 import { MaterialCommunityIcons as MCI } from "@expo/vector-icons";
@@ -48,25 +49,24 @@ type Transaction = {
 	verdict: string;
 }
 
+const getInitials = (name: string) => {
+	const words = name.trim().split(" ");
+	let initials = "";
+
+	for (let i = 0; i < Math.min(words.length, 2); i++) {
+		if (words[i].length > 0) {
+			initials += words[i][0].toUpperCase();
+		}
+	}
+
+	return initials;
+}
+
 export default function HomeScreen({ navigation }: Props) {
-	const [fabState, setFabState] = useState({ open: false });
 	const [transactions, setTransactions] = useState<Transaction[]>([]);
 
 	const isFocused = useIsFocused();
 	const theme = useTheme();
-
-	const getInitials = (name: string) => {
-		const words = name.trim().split(" ");
-		let initials = "";
-
-		for (let i = 0; i < Math.min(words.length, 2); i++) {
-			if (words[i].length > 0) {
-				initials += words[i][0].toUpperCase();
-			}
-		}
-
-		return initials;
-	}
 
 	const addTransactionToLive = async (transactionData: TransactionInput) => {
 		try {

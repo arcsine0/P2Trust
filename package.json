@@ -48,7 +48,9 @@
     "react-native-web": "~0.19.10",
     "react-qr-code": "^2.0.15",
     "expo-camera": "~15.0.15",
-    "expo-barcode-scanner": "~13.0.1"
+    "expo-barcode-scanner": "~13.0.1",
+    "expo-notifications": "~0.28.16",
+    "expo-device": "~6.0.2"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

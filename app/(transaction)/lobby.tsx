@@ -1,38 +1,86 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { View, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Text, Avatar, Chip, IconButton, Card, Button } from "react-native-paper";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import * as Notifications from "expo-notifications";
+
 import { db, fs } from "@/firebase/config";
 import { ref, push, set, remove, onValue } from "firebase/database";
 import { doc, getDoc, DocumentData } from "firebase/firestore";
 
-type MerchantData = {
-    id: string;
+type UserData = {
+    uid: string;
     userName: string;
+    pushToken: string;
+    [key: string]: any;
+}
+
+type RoomData = {
+    id: string;
     [key: string]: any;
 }
 
 export default function TransactionLobbyScreen() {
+    const [userData, setUserData] = useState<UserData | undefined>(undefined);
+
     const [roomID, setRoomID] = useState("");
+    const [roomData, setRoomData] = useState<RoomData | undefined>(undefined);
+
     const [merchantID, setMerchantID] = useState("");
-    const [merchantData, setMerchantData] = useState<MerchantData>({ id: "", userName: "" });
+    const [merchantData, setMerchantData] = useState<UserData | undefined>(undefined);
+
+    const notificationsListener = useRef<Notifications.Subscription>();
+    const responseListener = useRef<Notifications.Subscription>();
+
+    const getUserData = async () => {
+        console.log("loading user data...");
+
+        try {
+            await AsyncStorage.getItem("userData").then((userDataAsync) => {
+                if (userDataAsync) {
+                    const userData = JSON.parse(userDataAsync);
+                    setUserData(userData)
+                }
+            });
+        } catch (err) {
+            console.log(err);
+        }
+    }
 
     const getMerchantID = async () => {
         const merchantIDAsync = await AsyncStorage.getItem("merchantID");
         if (merchantIDAsync) {
             setMerchantID(merchantIDAsync);
-            console.log(merchantIDAsync);
 
             getDoc(doc(fs, "Accounts", merchantIDAsync))
                 .then((sn) => {
-                    if (sn.data) {
-                        setMerchantData(curr => ({ ...curr, id: sn.id, ...sn.data() }));
+                    if (sn) {
+                        setMerchantData({ ...sn.data(), uid: sn.id } as UserData);
                     }
                 })
         }
+    }
+
+    const sendPushNotification = async (pushToken: string, name: string) => {
+        const message = {
+            to: pushToken,
+            sound: "default",
+            title: `${name} would like to start a transaction with you`,
+            body: "Accept or Reject the request in the Transactions Page!",
+        };
+
+        await fetch("https://exp.host/--/api/v2/push/send", {
+            method: "POST",
+            headers: {
+                Accept: "application/json",
+                "Accept-encoding": "gzip, deflate",
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(message),
+        });
     }
 
     const getInitials = (name: string) => {
@@ -48,30 +96,74 @@ export default function TransactionLobbyScreen() {
         return initials;
     }
 
+    const pingMerchant = async () => {
+
+    }
+
+    const createRoom = async () => {
+
+    }
+
+    const queueClient = async () => {
+        if (userData && merchantData) {
+            sendPushNotification(merchantData.pushToken, userData.userName);
+        }
+    }
+
     useEffect(() => {
         getMerchantID();
+
+        notificationsListener.current = Notifications.addNotificationReceivedListener((notification) => {
+            console.log(notification.request.content.title)
+        });
+
+        responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
+            console.log(response);
+        });
+
+        return () => {
+            notificationsListener.current &&
+                Notifications.removeNotificationSubscription(notificationsListener.current);
+            responseListener.current &&
+                Notifications.removeNotificationSubscription(responseListener.current);
+        };
     }, []);
 
     return (
         <SafeAreaView className="flex flex-col w-screen h-screen p-2 items-start justify-start">
-            {merchantData.id ?
+            {merchantData ?
                 <View className="flex flex-col w-full h-full items-center justify-start">
-                    <Card className="w-full">
+                    <Card className="w-full mb-2">
                         <Card.Content className="flex flex-row w-full justify-between items-center">
                             <View className="flex flex-row items-center gap-5">
                                 <Avatar.Text label={getInitials(merchantData.userName)} size={35} />
                                 <View className="flex">
                                     <Text variant="titleLarge" className="font-bold">{merchantData.userName}</Text>
-                                    <Text variant="titleSmall" className="font-semibold text-ellipsis">{merchantData.id}</Text>
+                                    <Text variant="titleSmall" className="font-semibold text-ellipsis">Recently Online</Text>
                                 </View>
                             </View>
                         </Card.Content>
                     </Card>
-                    <Card>
+                    <View className="flex flex-row w-full mb-4">
+                        <Card className="mr-2">
+                            <Card.Content className="flex items-center justify-center">
+                                <Text variant="bodyMedium">Queue: 0</Text>
+                            </Card.Content>
+                        </Card>
+                        <Button
+                            className="grow"
+                            icon={"account-arrow-up"}
+                            mode="contained"
+                            onPress={() => queueClient()}
+                        >
+                            Transact
+                        </Button>
+                    </View>
+                    {/* <Card>
                         <Card.Content>
                             <Text variant="bodyMedium">data to be placed here</Text>
                         </Card.Content>
-                    </Card>
+                    </Card> */}
 
                 </View>
                 : null}

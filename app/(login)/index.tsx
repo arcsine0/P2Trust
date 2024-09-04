@@ -7,6 +7,7 @@ import { router } from "expo-router";
 
 import { fs, auth } from "@/firebase/config";
 import { signInWithEmailAndPassword } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -21,10 +22,20 @@ export default function LoginScreen() {
             .then(async (userCredentials) => {
                 const user = userCredentials.user;
 
-                await AsyncStorage.setItem("UID", user.uid).then(() => {
-                    console.log(user.uid);
-                    router.push("/(tabs)");
-                });
+                getDoc(doc(fs, "Accounts", user.uid))
+                    .then(async (sn) => {
+                        if (sn) {
+                            const userData = {
+                                ...sn.data(),
+                                uid: user.uid,
+                            }
+                            
+                            await AsyncStorage.setItem("userData", JSON.stringify(userData))
+                                .then(() => {
+                                    router.push("/(tabs)");
+                                });
+                        }
+                    });
             })
             .catch((error) => {
                 const errorCode = error.code;
@@ -32,7 +43,7 @@ export default function LoginScreen() {
 
                 console.log(errorCode, errorMessage);
             });
-    }   
+    }
 
     return (
         <SafeAreaView className="flex flex-col w-screen h-screen gap-3 px-4 items-start justify-center">
