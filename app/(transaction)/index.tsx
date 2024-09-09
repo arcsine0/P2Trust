@@ -16,9 +16,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import QRCode from "react-qr-code";
 
 type UserData = {
-    uid: string;
-    userName: string;
-    pushToken: string;
+    id: string;
+    username: string;
+    push_token: string;
     [key: string]: any;
 }
 
@@ -26,6 +26,8 @@ export default function TransactionHomeScreen() {
     const [roomID, setRoomID] = useState("");
     const [userData, setUserData] = useState<UserData | undefined>(undefined);
 
+    const [invites, setInvites] = useState([]);
+ 
     const isFocused = useIsFocused();
     const wasFocused = useRef(false);
 
@@ -156,8 +158,8 @@ export default function TransactionHomeScreen() {
                             <View className="flex flex-row items-center gap-5">
                                 <Avatar.Text label={getInitials("test merchant")} size={35} />
                                 <View className="flex">
-                                    <Text variant="titleLarge" className="font-bold">{userData.userName}</Text>
-                                    <Text variant="titleSmall" className="font-semibold">{userData.uid}</Text>
+                                    <Text variant="titleLarge" className="font-bold">{userData.username}</Text>
+                                    <Text variant="titleSmall" className="font-semibold">{userData.id}</Text>
                                 </View>
                             </View>
                         </Card.Content>
@@ -168,7 +170,7 @@ export default function TransactionHomeScreen() {
                                 <QRCode
                                     size={256}
                                     className="h-auto w-full"
-                                    value={userData.uid}
+                                    value={userData.id}
                                 />
                             </View>
                             <Button

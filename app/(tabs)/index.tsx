@@ -12,6 +12,8 @@ import { ref, push, set, onValue } from "firebase/database";
 import { doc, getDoc } from "firebase/firestore";
 import { db, fs } from "@/firebase/config";
 
+import { supabase } from "@/supabase/config";
+
 import { MaterialCommunityIcons as MCI } from "@expo/vector-icons";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -40,26 +42,30 @@ type TransactionInput = {
 
 type Transaction = {
 	id: string;
-	timestamp: string;
-	merchantName: string;
-	merchantAccNum: string;
-	clientName: string;
+	created_at: Date;
+	merchant: string;
+	client: string;
 	amount: number;
 	platform: string;
-	verdict: string;
+	status: string;
+	room_id: string;
 }
 
 const getInitials = (name: string) => {
-	const words = name.trim().split(" ");
-	let initials = "";
+	if (name) {
+		const words = name.trim().split(" ");
+		let initials = "";
 
-	for (let i = 0; i < Math.min(words.length, 2); i++) {
-		if (words[i].length > 0) {
-			initials += words[i][0].toUpperCase();
+		for (let i = 0; i < Math.min(words.length, 2); i++) {
+			if (words[i].length > 0) {
+				initials += words[i][0].toUpperCase();
+			}
 		}
-	}
 
-	return initials;
+		return initials;
+	} else {
+		return "N/A"
+	}
 }
 
 export default function HomeScreen({ navigation }: Props) {
@@ -94,30 +100,38 @@ export default function HomeScreen({ navigation }: Props) {
 		});
 	}
 
-	const loadTransactions = async () => {
-		const transactionsRef = ref(db, "transactions");
-		onValue(transactionsRef, (snapshot) => {
-			const data = snapshot.val();
+	const getTransactions = async () => {
+		// const transactionsRef = ref(db, "transactions");
+		// onValue(transactionsRef, (snapshot) => {
+		// 	const data = snapshot.val();
 
-			if (data) {
-				const transactionEntries = Object.entries(data);
-				const transactionArray = transactionEntries.map(([transactionId, transactionData]) => {
-					if (typeof transactionData === "object" && transactionData !== null) {
-						return {
-							id: transactionId,
-							...transactionData,
-						};
-					} else {
-						console.error(`Invalid transaction data for ID: ${transactionId}`, transactionData);
-						return null;
-					}
-				}).filter(Boolean) as Transaction[];
+		// 	if (data) {
+		// 		const transactionEntries = Object.entries(data);
+		// 		const transactionArray = transactionEntries.map(([transactionId, transactionData]) => {
+		// 			if (typeof transactionData === "object" && transactionData !== null) {
+		// 				return {
+		// 					id: transactionId,
+		// 					...transactionData,
+		// 				};
+		// 			} else {
+		// 				console.error(`Invalid transaction data for ID: ${transactionId}`, transactionData);
+		// 				return null;
+		// 			}
+		// 		}).filter(Boolean) as Transaction[];
 
-				setTransactions(transactionArray);
-			} else {
-				setTransactions([]);
-			}
-		})
+		// 		setTransactions(transactionArray);
+		// 	} else {
+		// 		setTransactions([]);
+		// 	}
+		// })
+		const { data, error } = await supabase
+			.from("transactions")
+			.select()
+			.order("created_at", { ascending: false });
+
+		if (!error) {
+			setTransactions(data);
+		}
 	}
 
 	const redirectToTransactions = () => {
@@ -142,17 +156,32 @@ export default function HomeScreen({ navigation }: Props) {
 		});
 	}, [navigation]);
 
-	useEffect(() => {
-		if (isFocused) {
-			setTransactions([]);
-			loadTransactions();
+	// useEffect(() => {
+	// 	if (isFocused) {
+	// 		setTransactions([]);
+	// 		loadTransactions();
 
-			AsyncStorage.setItem("roomState", "0");
-		}
+	// 		AsyncStorage.setItem("roomState", "0");
+	// 	}
+
+	// 	return () => {
+	// 		// const transactionsRef = ref(db, "transactions");
+	// 		// onValue(transactionsRef, () => null);
+
+	// 		supabase.removeChannel("live-feed");
+	// 	}
+	// }, [isFocused]);
+	useEffect(() => {
+		getTransactions();
+
+		const liveFeedChannel = supabase
+			.channel("live-feed")
+			.on("postgres_changes", { event: "INSERT", schema: "public", table: "transactions" }, getTransactions)
+			.on("postgres_changes", { event: "DELETE", schema: "public", table: "transactions" }, getTransactions)
+			.subscribe();
 
 		return () => {
-			const transactionsRef = ref(db, "transactions");
-			onValue(transactionsRef, () => null);
+			supabase.removeChannel(liveFeedChannel);
 		}
 	}, [isFocused]);
 
@@ -172,24 +201,16 @@ export default function HomeScreen({ navigation }: Props) {
 							<Card.Content className="flex gap-2">
 								<View className="flex flex-row w-full justify-between items-center">
 									<View className="flex flex-row items-center gap-5">
-										<Avatar.Text label={getInitials(trans.merchantName)} size={35} />
+										<Avatar.Text label={getInitials(trans.merchant)} size={35} />
 										<View className="flex">
-											<Text variant="titleLarge" className="font-bold">{trans.merchantName}</Text>
-											<Text variant="titleSmall" className="font-semibold">{trans.merchantAccNum}</Text>
+											<Text variant="titleLarge" className="font-bold">{trans.merchant}</Text>
+											<Text variant="titleSmall" className="font-semibold">00000</Text>
 										</View>
 									</View>
-									{trans.verdict === "legit" ?
+									{trans.status === "complete" ?
 										<MCI name="check-decagram" size={35} color={theme.colors.primary} />
 										:
 										<MCI name="alert-decagram" size={35} color={theme.colors.primary} />
-									}
-								</View>
-								<View className="flex flex-row items-center gap-2">
-									<Chip icon={"cash"}>{trans.platform}</Chip>
-									{trans.verdict === "legit" ?
-										<Chip icon={"check-circle"}>Legit</Chip>
-										:
-										<Chip icon={"minus-circle"}>Possible Scam</Chip>
 									}
 								</View>
 							</Card.Content>

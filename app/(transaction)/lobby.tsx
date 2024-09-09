@@ -12,8 +12,8 @@ import { ref, push, set, remove, onValue } from "firebase/database";
 import { doc, getDoc, DocumentData } from "firebase/firestore";
 
 type UserData = {
-    uid: string;
-    userName: string;
+    id: string;
+    username: string;
     pushToken: string;
     [key: string]: any;
 }
@@ -58,7 +58,7 @@ export default function TransactionLobbyScreen() {
             getDoc(doc(fs, "Accounts", merchantIDAsync))
                 .then((sn) => {
                     if (sn) {
-                        setMerchantData({ ...sn.data(), uid: sn.id } as UserData);
+                        setMerchantData({ ...sn.data(), id: sn.id } as UserData);
                     }
                 })
         }
@@ -70,6 +70,10 @@ export default function TransactionLobbyScreen() {
             sound: "default",
             title: `${name} would like to start a transaction with you`,
             body: "Accept or Reject the request in the Transactions Page!",
+            data: {
+                uid: userData?.uid,
+                token: userData?.pushToken,
+            }
         };
 
         await fetch("https://exp.host/--/api/v2/push/send", {
@@ -80,7 +84,8 @@ export default function TransactionLobbyScreen() {
                 "Content-Type": "application/json",
             },
             body: JSON.stringify(message),
-        });
+        })
+        .catch(err => console.log(err));
     }
 
     const getInitials = (name: string) => {

@@ -9,6 +9,8 @@ import { fs, auth } from "@/firebase/config";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 
+import { supabase } from "@/supabase/config";
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function LoginScreen() {
@@ -17,32 +19,54 @@ export default function LoginScreen() {
 
     const theme = useTheme();
 
-    const userLogin = () => {
-        signInWithEmailAndPassword(auth, email, password)
-            .then(async (userCredentials) => {
-                const user = userCredentials.user;
+    const userLogin = async () => {
+        // signInWithEmailAndPassword(auth, email, password)
+        //     .then(async (userCredentials) => {
+        //         const user = userCredentials.user;
 
-                getDoc(doc(fs, "Accounts", user.uid))
-                    .then(async (sn) => {
-                        if (sn) {
-                            const userData = {
-                                ...sn.data(),
-                                uid: user.uid,
-                            }
-                            
-                            await AsyncStorage.setItem("userData", JSON.stringify(userData))
-                                .then(() => {
-                                    router.push("/(tabs)");
-                                });
-                        }
-                    });
-            })
-            .catch((error) => {
-                const errorCode = error.code;
-                const errorMessage = error.message;
+        //         getDoc(doc(fs, "Accounts", user.uid))
+        //             .then(async (sn) => {
+        //                 if (sn) {
+        //                     const userData = {
+        //                         ...sn.data(),
+        //                         uid: user.uid,
+        //                     }
 
-                console.log(errorCode, errorMessage);
-            });
+        //                     await AsyncStorage.setItem("userData", JSON.stringify(userData))
+        //                         .then(() => {
+        //                             router.push("/(tabs)");
+        //                         });
+        //                 }
+        //             });
+        //     })
+        //     .catch((error) => {
+        //         const errorCode = error.code;
+        //         const errorMessage = error.message;
+
+        //         console.log(errorCode, errorMessage);
+        //     });
+        const { data: { session }, error } = await supabase.auth.signInWithPassword({
+            email: email,
+            password: password,
+        });
+
+        if (!error) {
+            if (session) {
+                const { data, error } = await supabase
+                    .from("accounts")
+                    .select("*")
+                    .eq("id", session.user.id);
+
+                if (!error) {
+                    await AsyncStorage.setItem("userData", JSON.stringify(data[0]))
+                        .then(() => {
+                            router.push("/(tabs)");
+                        });
+                }
+            }
+        } else {
+            console.log(error.message);
+        }
     }
 
     return (
