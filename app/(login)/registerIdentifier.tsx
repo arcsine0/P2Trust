@@ -7,8 +7,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { router } from "expo-router";
 
-import { db, fs } from "@/firebase/config";
-
 export default function RegisterScreen() {
     const [email, setEmail] = useState("");
     const [name, setName] = useState("");

@@ -7,11 +7,7 @@ import { useIsFocused } from "@react-navigation/native";
 import { router, useFocusEffect } from "expo-router";
 import * as Notifications from "expo-notifications";
 
-import { db } from "@/firebase/config";
-import { ref, push, set, remove, onValue } from "firebase/database";
-
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
 
 import QRCode from "react-qr-code";
 
@@ -20,6 +16,23 @@ type UserData = {
     username: string;
     push_token: string;
     [key: string]: any;
+}
+
+const getInitials = (name: string) => {
+    if (name) {
+        const words = name.trim().split(" ");
+        let initials = "";
+
+        for (let i = 0; i < Math.min(words.length, 2); i++) {
+            if (words[i].length > 0) {
+                initials += words[i][0].toUpperCase();
+            }
+        }
+
+        return initials;
+    } else {
+        return "N/A"
+    }
 }
 
 export default function TransactionHomeScreen() {
@@ -33,87 +46,6 @@ export default function TransactionHomeScreen() {
 
     const notificationsListener = useRef<Notifications.Subscription>();
     const responseListener = useRef<Notifications.Subscription>();
-
-    const getInitials = (name: string) => {
-        const words = name.trim().split(" ");
-        let initials = "";
-
-        for (let i = 0; i < Math.min(words.length, 2); i++) {
-            if (words[i].length > 0) {
-                initials += words[i][0].toUpperCase();
-            }
-        }
-
-        return initials;
-    }
-
-    // const getRoomState = async () => {
-    //     const roomStateAsync = await AsyncStorage.getItem("roomState");
-    //     if (roomStateAsync) {
-    //         setRoomState(Boolean(roomStateAsync));
-    //     }
-    // }
-
-    const createRoom = async () => {
-        const userDataAsync = await AsyncStorage.getItem("userData");
-
-        if (userDataAsync) {
-            const userData = JSON.parse(userDataAsync);
-
-            try {
-                const roomRef = push(ref(db, "rooms"));
-                const id = roomRef.key;
-
-                if (id) {
-                    console.log(id);
-                    setRoomID(id);
-
-                    await set(roomRef, {
-                        merchant: "",
-                        client: ""
-                    }).then(async () => {
-                        await push(ref(db, `rooms/${id}/users`), {
-                            uid: userData.uid
-                        });
-                    });
-                }
-
-            } catch (err) {
-                console.log(err)
-            }
-        }
-    }
-
-    // const deleteRoom = async () => {
-    //     await remove(ref(db, `rooms/${roomID}`));
-    // }
-
-    // const listenForConnections = async () => {
-    //     const connectedRef = ref(db, `rooms/${roomID}/users`);
-    //     onValue(connectedRef, (snapshot) => {
-    //         const data = snapshot.val();
-    //         console.log(data);
-    //     })
-    // }
-
-    // useFocusEffect(
-    //     useCallback(() => {
-    //         let isScreenFocused = true;
-    //         const roomLive = AsyncStorage.getItem("roomLive")
-
-    //         if (isScreenFocused) {
-    //             createRoom();
-    //             listenForConnections();
-    //         }
-
-    //         return () => {
-    //             isScreenFocused = false;
-    //             deleteRoom();
-
-    //             onValue(ref(db, `rooms/${roomID}/users`), () => null);
-    //         };
-    //     }, [])
-    // );
 
     const getUserData = async () => {
         console.log("loading user data...");
@@ -156,7 +88,7 @@ export default function TransactionHomeScreen() {
                     <Card className="w-full mb-2">
                         <Card.Content className="flex flex-row w-full justify-between items-center">
                             <View className="flex flex-row items-center gap-5">
-                                <Avatar.Text label={getInitials("test merchant")} size={35} />
+                                <Avatar.Text label={getInitials(userData.username)} size={35} />
                                 <View className="flex">
                                     <Text variant="titleLarge" className="font-bold">{userData.username}</Text>
                                     <Text variant="titleSmall" className="font-semibold">{userData.id}</Text>

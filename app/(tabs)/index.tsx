@@ -8,10 +8,6 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import { router } from "expo-router";
 
-import { ref, push, set, onValue } from "firebase/database";
-import { doc, getDoc } from "firebase/firestore";
-import { db, fs } from "@/firebase/config";
-
 import { supabase } from "@/supabase/config";
 
 import { MaterialCommunityIcons as MCI } from "@expo/vector-icons";
@@ -28,17 +24,6 @@ type HomeScreenNavigationProp = NativeStackNavigationProp<TabParamList, "Home">;
 type Props = {
 	navigation: HomeScreenNavigationProp;
 };
-
-// this is just for testing
-type TransactionInput = {
-	timestamp: string;
-	merchantName: string;
-	merchantAccNum: string;
-	clientName: string;
-	amount: number;
-	platform: string;
-	verdict: string;
-}
 
 type Transaction = {
 	id: string;
@@ -74,56 +59,7 @@ export default function HomeScreen({ navigation }: Props) {
 	const isFocused = useIsFocused();
 	const theme = useTheme();
 
-	const addTransactionToLive = async (transactionData: TransactionInput) => {
-		try {
-			const transactionRef = push(ref(db, "transactions"));
-			await set(transactionRef, {
-				...transactionData,
-				timestamp: Date.now()
-			});
-		} catch (err) {
-			console.log(err)
-		}
-	}
-
-	const testSendTransaction = () => {
-		console.log("testing send transaction")
-
-		addTransactionToLive({
-			timestamp: Date.now().toString(),
-			merchantName: "test merchant",
-			merchantAccNum: "00000000",
-			clientName: "test client",
-			amount: 100,
-			platform: "GCash",
-			verdict: "legit"
-		});
-	}
-
 	const getTransactions = async () => {
-		// const transactionsRef = ref(db, "transactions");
-		// onValue(transactionsRef, (snapshot) => {
-		// 	const data = snapshot.val();
-
-		// 	if (data) {
-		// 		const transactionEntries = Object.entries(data);
-		// 		const transactionArray = transactionEntries.map(([transactionId, transactionData]) => {
-		// 			if (typeof transactionData === "object" && transactionData !== null) {
-		// 				return {
-		// 					id: transactionId,
-		// 					...transactionData,
-		// 				};
-		// 			} else {
-		// 				console.error(`Invalid transaction data for ID: ${transactionId}`, transactionData);
-		// 				return null;
-		// 			}
-		// 		}).filter(Boolean) as Transaction[];
-
-		// 		setTransactions(transactionArray);
-		// 	} else {
-		// 		setTransactions([]);
-		// 	}
-		// })
 		const { data, error } = await supabase
 			.from("transactions")
 			.select()
@@ -156,21 +92,6 @@ export default function HomeScreen({ navigation }: Props) {
 		});
 	}, [navigation]);
 
-	// useEffect(() => {
-	// 	if (isFocused) {
-	// 		setTransactions([]);
-	// 		loadTransactions();
-
-	// 		AsyncStorage.setItem("roomState", "0");
-	// 	}
-
-	// 	return () => {
-	// 		// const transactionsRef = ref(db, "transactions");
-	// 		// onValue(transactionsRef, () => null);
-
-	// 		supabase.removeChannel("live-feed");
-	// 	}
-	// }, [isFocused]);
 	useEffect(() => {
 		getTransactions();
 

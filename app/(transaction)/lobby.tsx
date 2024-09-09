@@ -7,14 +7,12 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import * as Notifications from "expo-notifications";
 
-import { db, fs } from "@/firebase/config";
-import { ref, push, set, remove, onValue } from "firebase/database";
-import { doc, getDoc, DocumentData } from "firebase/firestore";
+import { supabase } from "@/supabase/config";
 
 type UserData = {
     id: string;
     username: string;
-    pushToken: string;
+    push_token: string;
     [key: string]: any;
 }
 
@@ -22,6 +20,24 @@ type RoomData = {
     id: string;
     [key: string]: any;
 }
+
+const getInitials = (name: string) => {
+    if (name) {
+        const words = name.trim().split(" ");
+        let initials = "";
+
+        for (let i = 0; i < Math.min(words.length, 2); i++) {
+            if (words[i].length > 0) {
+                initials += words[i][0].toUpperCase();
+            }
+        }
+
+        return initials;
+    } else {
+        return "N/A"
+    }
+}
+
 
 export default function TransactionLobbyScreen() {
     const [userData, setUserData] = useState<UserData | undefined>(undefined);
@@ -55,12 +71,14 @@ export default function TransactionLobbyScreen() {
         if (merchantIDAsync) {
             setMerchantID(merchantIDAsync);
 
-            getDoc(doc(fs, "Accounts", merchantIDAsync))
-                .then((sn) => {
-                    if (sn) {
-                        setMerchantData({ ...sn.data(), id: sn.id } as UserData);
-                    }
-                })
+            const { data, error } = await supabase
+                .from("accounts")
+                .select()
+                .eq("id", merchantIDAsync)
+
+            if (!error) {
+                setMerchantData({ ...data[0] } as UserData);
+            }
         }
     }
 
@@ -71,7 +89,7 @@ export default function TransactionLobbyScreen() {
             title: `${name} would like to start a transaction with you`,
             body: "Accept or Reject the request in the Transactions Page!",
             data: {
-                uid: userData?.uid,
+                uid: userData?.id,
                 token: userData?.pushToken,
             }
         };
@@ -88,19 +106,6 @@ export default function TransactionLobbyScreen() {
         .catch(err => console.log(err));
     }
 
-    const getInitials = (name: string) => {
-        const words = name.trim().split(" ");
-        let initials = "";
-
-        for (let i = 0; i < Math.min(words.length, 2); i++) {
-            if (words[i].length > 0) {
-                initials += words[i][0].toUpperCase();
-            }
-        }
-
-        return initials;
-    }
-
     const pingMerchant = async () => {
 
     }
@@ -111,11 +116,12 @@ export default function TransactionLobbyScreen() {
 
     const queueClient = async () => {
         if (userData && merchantData) {
-            sendPushNotification(merchantData.pushToken, userData.userName);
+            sendPushNotification(merchantData.push_token, userData.username);
         }
     }
 
     useEffect(() => {
+        getUserData();
         getMerchantID();
 
         notificationsListener.current = Notifications.addNotificationReceivedListener((notification) => {
@@ -141,9 +147,9 @@ export default function TransactionLobbyScreen() {
                     <Card className="w-full mb-2">
                         <Card.Content className="flex flex-row w-full justify-between items-center">
                             <View className="flex flex-row items-center gap-5">
-                                <Avatar.Text label={getInitials(merchantData.userName)} size={35} />
+                                <Avatar.Text label={getInitials(merchantData.username)} size={35} />
                                 <View className="flex">
-                                    <Text variant="titleLarge" className="font-bold">{merchantData.userName}</Text>
+                                    <Text variant="titleLarge" className="font-bold">{merchantData.username}</Text>
                                     <Text variant="titleSmall" className="font-semibold text-ellipsis">Recently Online</Text>
                                 </View>
                             </View>

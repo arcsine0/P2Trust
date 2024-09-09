@@ -5,10 +5,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { router } from "expo-router";
 
-import { fs, auth } from "@/firebase/config";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-
 import { supabase } from "@/supabase/config";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
