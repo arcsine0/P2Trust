@@ -16,31 +16,6 @@ export default function LoginScreen() {
     const theme = useTheme();
 
     const userLogin = async () => {
-        // signInWithEmailAndPassword(auth, email, password)
-        //     .then(async (userCredentials) => {
-        //         const user = userCredentials.user;
-
-        //         getDoc(doc(fs, "Accounts", user.uid))
-        //             .then(async (sn) => {
-        //                 if (sn) {
-        //                     const userData = {
-        //                         ...sn.data(),
-        //                         uid: user.uid,
-        //                     }
-
-        //                     await AsyncStorage.setItem("userData", JSON.stringify(userData))
-        //                         .then(() => {
-        //                             router.push("/(tabs)");
-        //                         });
-        //                 }
-        //             });
-        //     })
-        //     .catch((error) => {
-        //         const errorCode = error.code;
-        //         const errorMessage = error.message;
-
-        //         console.log(errorCode, errorMessage);
-        //     });
         const { data: { session }, error } = await supabase.auth.signInWithPassword({
             email: email,
             password: password,

@@ -52,8 +52,6 @@ export default function TransactionLobbyScreen() {
     const responseListener = useRef<Notifications.Subscription>();
 
     const getUserData = async () => {
-        console.log("loading user data...");
-
         try {
             await AsyncStorage.getItem("userData").then((userDataAsync) => {
                 if (userDataAsync) {
@@ -90,7 +88,7 @@ export default function TransactionLobbyScreen() {
             body: "Accept or Reject the request in the Transactions Page!",
             data: {
                 uid: userData?.id,
-                token: userData?.pushToken,
+                token: userData?.push_token,
             }
         };
 
@@ -114,9 +112,39 @@ export default function TransactionLobbyScreen() {
 
     }
 
-    const queueClient = async () => {
+    const requestTransaction = async () => {
         if (userData && merchantData) {
-            sendPushNotification(merchantData.push_token, userData.username);
+            const { data, error } = await supabase 
+                .from("requests")
+                .insert({ 
+                    status: "sent",
+                    sender_id: userData.id,
+                    sender_name: userData.username,
+                    receiver_id: merchantData.id,
+                });
+            
+            if (!error) {
+                sendPushNotification(merchantData.push_token, userData.username);
+
+                const requestListener = supabase
+                    .channel("request_channel")
+                    .on("postgres_changes", { event: "*", schema: "public", table: "requests", filter: `sender_id = '${userData.id}'` }, async (payload) => {
+                        const { data, error } = await supabase
+                            .from("requests")
+                            .select("status")
+                            .eq("sender_id", userData.id)
+                        
+                        if (!error) {
+                            console.log(data);
+                        } else {
+                            console.log(error);
+                        }
+                    })
+                    // .on("postgres_changes", { event: "DELETE", schema: "public", table: "requests", filter: `sender_id = '${userData.id}'` }, async (payload) => {
+                        
+                    // })
+                    .subscribe()
+            }
         }
     }
 
@@ -165,7 +193,7 @@ export default function TransactionLobbyScreen() {
                             className="grow"
                             icon={"account-arrow-up"}
                             mode="contained"
-                            onPress={() => queueClient()}
+                            onPress={() => requestTransaction()}
                         >
                             Transact
                         </Button>

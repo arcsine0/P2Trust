@@ -102,7 +102,7 @@ export default function HomeScreen({ navigation }: Props) {
 			.subscribe();
 
 		return () => {
-			supabase.removeChannel(liveFeedChannel);
+			liveFeedChannel.unsubscribe();
 		}
 	}, [isFocused]);
 
