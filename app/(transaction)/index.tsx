@@ -64,6 +64,7 @@ export default function TransactionHomeScreen() {
     const theme = useTheme();
 
     const getUserData = async () => {
+        console.log("loading user data...")
         try {
             await AsyncStorage.getItem("userData").then((userDataAsync) => {
                 if (userDataAsync) {
@@ -77,6 +78,9 @@ export default function TransactionHomeScreen() {
     }
 
     const getRequests = async () => {
+        setRequests([]);
+        console.log("UID:", userData?.id);
+
         const { data, error } = await supabase
             .from("requests")
             .select()
@@ -86,6 +90,8 @@ export default function TransactionHomeScreen() {
         if (!error) {
             console.log(data);
             setRequests([...data] as Array<Request>)
+        } else {
+            console.log(error);
         }
     }
 
@@ -115,11 +121,10 @@ export default function TransactionHomeScreen() {
 
     useEffect(() => {
         getUserData();
-        getRequests();
 
         notificationsListener.current = Notifications.addNotificationReceivedListener((notification) => {
             console.log(notification.request.content.data)
-            getRequests();
+            getUserData();
         });
 
         responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
@@ -140,6 +145,12 @@ export default function TransactionHomeScreen() {
             // requestChannel.unsubscribe();
         };
     }, []);
+
+    useEffect(() => {
+        if (userData) {
+            getRequests();
+        }
+    }, [userData])
 
     return (
         <SafeAreaView className="flex flex-col w-screen h-screen gap-2 px-4 items-start justify-start">
@@ -261,62 +272,6 @@ export default function TransactionHomeScreen() {
                                 </View>
                             </Modal>
                         </Portal>
-                        {/* <Button 
-                            className="flex flex-col items-center justify-center rounded-lg"
-                            mode="contained"
-                            onPress={() => createRoom()}
-                        >
-                            <Text variant="bodySmall">Next Client</Text>
-                            <View className="flex flex-row items-center justify-around">
-                                <Text variant="titleLarge">
-                                    {requests && requests.filter((req) => req.status === "queued").length > 0 ?
-                                        requests.filter((req) => req.status === "queued").sort((a, b) => b.created_at.getTime() - a.created_at.getTime())[0].sender_name
-                                        :
-                                        "None"
-                                    }
-                                </Text>
-                                <Icon 
-                                    source="arrow-right-bold"
-                                    color={theme.colors.primary}
-                                    size={20}
-                                />
-                            </View>
-                        </Button> */}
-                        {/* {requests && requests.filter((req) => req.status === "sent").length > 0 ?
-                            <List.Accordion
-                                title="Invite Requests"
-                                left={props => <List.Icon {...props} icon="account-alert" />}
-                                expanded={expanded}
-                                onPress={() => setExpanded(!expanded)}
-                            >
-                                {requests.filter((req) => req.status === "sent").map((req, i) => (
-                                    <List.Item
-                                        key={i}
-                                        title={req.sender_name}
-                                        right={props => (
-                                            <View {...props} className="flex flex-row items-center justify-center">
-                                                <IconButton
-                                                    icon="check"
-                                                    mode="contained"
-                                                    iconColor={theme.colors.primary}
-                                                    size={20}
-                                                    onPress={() => acceptRequest(req.sender_id)}
-                                                />
-                                                <IconButton
-                                                    icon="trash-can"
-                                                    mode="contained"
-                                                    iconColor={theme.colors.primary}
-                                                    size={20}
-                                                    onPress={() => rejectRequest(req.sender_id)}
-                                                />
-                                            </View>
-                                        )}
-                                    />
-                                ))}
-                            </List.Accordion>
-                            :
-                            <Text variant="titleLarge">No Invite Requests</Text>
-                        } */}
                     </View>
                 </View>
                 : null}

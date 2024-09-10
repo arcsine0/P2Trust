@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { View, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Text, Avatar, Chip, IconButton, Card, Button } from "react-native-paper";
+import { Text, Avatar, Chip, IconButton, Card, Button, Snackbar } from "react-native-paper";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -47,6 +47,10 @@ export default function TransactionLobbyScreen() {
 
     const [merchantID, setMerchantID] = useState("");
     const [merchantData, setMerchantData] = useState<UserData | undefined>(undefined);
+
+    const [requestState, setRequestState] = useState("Transact");
+    const [requestDisabled, setRequestDisabled] = useState(false);
+    const [requestSnackVisible, setRequestSnackVisible] = useState(false);
 
     const notificationsListener = useRef<Notifications.Subscription>();
     const responseListener = useRef<Notifications.Subscription>();
@@ -101,7 +105,7 @@ export default function TransactionLobbyScreen() {
             },
             body: JSON.stringify(message),
         })
-        .catch(err => console.log(err));
+            .catch(err => console.log(err));
     }
 
     const pingMerchant = async () => {
@@ -114,35 +118,54 @@ export default function TransactionLobbyScreen() {
 
     const requestTransaction = async () => {
         if (userData && merchantData) {
-            const { data, error } = await supabase 
+            const { error } = await supabase
                 .from("requests")
-                .insert({ 
+                .insert({
                     status: "sent",
                     sender_id: userData.id,
                     sender_name: userData.username,
                     receiver_id: merchantData.id,
                 });
-            
+
             if (!error) {
                 sendPushNotification(merchantData.push_token, userData.username);
+                setRequestState("Request Sent");
+                setRequestDisabled(true);
 
                 const requestListener = supabase
                     .channel("request_channel")
-                    .on("postgres_changes", { event: "*", schema: "public", table: "requests", filter: `sender_id = '${userData.id}'` }, async (payload) => {
+                    .on("postgres_changes", { event: "UPDATE", schema: "public", table: "requests" }, async (payload) => {
                         const { data, error } = await supabase
                             .from("requests")
                             .select("status")
                             .eq("sender_id", userData.id)
-                        
+
                         if (!error) {
-                            console.log(data);
+                            if (data[0].status === "queued") {
+                                setRequestState("Request Accepted");
+                            }
                         } else {
                             console.log(error);
                         }
                     })
-                    // .on("postgres_changes", { event: "DELETE", schema: "public", table: "requests", filter: `sender_id = '${userData.id}'` }, async (payload) => {
-                        
-                    // })
+                    .on("postgres_changes", { event: "DELETE", schema: "public", table: "requests" }, async (payload) => {
+                        const { data, error } = await supabase
+                            .from("requests")
+                            .select("status")
+                            .eq("sender_id", userData.id)
+
+                        if (!error) {
+                            if (data.length === 0) {
+                                setRequestState("Transact");
+                                setRequestDisabled(false);
+                                setRequestSnackVisible(true);
+
+                                requestListener.unsubscribe();
+                            }
+                        } else {
+                            console.log(error);
+                        }
+                    })
                     .subscribe()
             }
         }
@@ -169,7 +192,7 @@ export default function TransactionLobbyScreen() {
     }, []);
 
     return (
-        <SafeAreaView className="flex flex-col w-screen h-screen p-2 items-start justify-start">
+        <SafeAreaView className="flex flex-col w-screen h-screen p-2 items-start justify-between">
             {merchantData ?
                 <View className="flex flex-col w-full h-full items-center justify-start">
                     <Card className="w-full mb-2">
@@ -194,8 +217,9 @@ export default function TransactionLobbyScreen() {
                             icon={"account-arrow-up"}
                             mode="contained"
                             onPress={() => requestTransaction()}
+                            disabled={requestDisabled}
                         >
-                            Transact
+                            {requestState}
                         </Button>
                     </View>
                     {/* <Card>
@@ -203,7 +227,16 @@ export default function TransactionLobbyScreen() {
                             <Text variant="bodyMedium">data to be placed here</Text>
                         </Card.Content>
                     </Card> */}
-
+                    <Snackbar
+                        visible={requestSnackVisible}
+                        onDismiss={() => setRequestSnackVisible(false)}
+                        action={{
+                            label: "Dismiss",
+                            onPress: () => setRequestSnackVisible(false),
+                        }}
+                    >
+                        Invite Request Rejected or Expired
+                    </Snackbar>
                 </View>
                 : null}
         </SafeAreaView>
