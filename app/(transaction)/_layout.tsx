@@ -17,7 +17,7 @@ export default function TransactionLayout() {
                 />
                 <Stack.Screen
                     name="room/[roomID]"
-                    options={{ title: "Transaction Info" }}
+                    options={{ title: "Transaction Info", headerBackVisible: false }}
                 />
                 {/* Add more Stack.Screen components for other transaction screens */}
             </Stack>
