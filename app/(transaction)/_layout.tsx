@@ -16,7 +16,7 @@ export default function TransactionLayout() {
                     options={{ title: "Merchant Info" }}
                 />
                 <Stack.Screen
-                    name="room"
+                    name="room/[roomID]"
                     options={{ title: "Transaction Info" }}
                 />
                 {/* Add more Stack.Screen components for other transaction screens */}

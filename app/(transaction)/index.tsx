@@ -27,6 +27,7 @@ type Request = {
     sender_id: string;
     sender_name: string;
     receiver_id: string;
+    sender_push_token: string;
 }
 
 const getInitials = (name: string) => {
@@ -46,6 +47,29 @@ const getInitials = (name: string) => {
     }
 }
 
+const sendPushNotification = async (pushToken: string, name: string, roomID: string) => {
+    const message = {
+        to: pushToken,
+        sound: "default",
+        title: `${name} has joined the room`,
+        body: "Join the room to start the transaction!",
+        data: {
+            roomID: roomID,
+        }
+    };
+
+    await fetch("https://exp.host/--/api/v2/push/send", {
+        method: "POST",
+        headers: {
+            Accept: "application/json",
+            "Accept-encoding": "gzip, deflate",
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(message),
+    })
+        .catch(err => console.log(err));
+}
+
 export default function TransactionHomeScreen() {
     const [roomID, setRoomID] = useState("");
     const [userData, setUserData] = useState<UserData | undefined>(undefined);
@@ -63,6 +87,24 @@ export default function TransactionHomeScreen() {
 
     const theme = useTheme();
 
+    const getRequests = async (ud: UserData | undefined = userData) => {
+        setRequests([]);
+        console.log("UID:", ud?.id);
+
+        const { data, error } = await supabase
+            .from("requests")
+            .select()
+            .order("created_at", { ascending: false })
+            .eq("receiver_id", ud?.id);
+
+        if (!error) {
+            console.log(data);
+            setRequests([...data] as Array<Request>)
+        } else {
+            console.log(error);
+        }
+    }
+
     const getUserData = async () => {
         console.log("loading user data...")
         try {
@@ -70,28 +112,11 @@ export default function TransactionHomeScreen() {
                 if (userDataAsync) {
                     const userData = JSON.parse(userDataAsync);
                     setUserData(userData);
+                    getRequests(userData);
                 }
             });
         } catch (err) {
             console.log(err);
-        }
-    }
-
-    const getRequests = async () => {
-        setRequests([]);
-        console.log("UID:", userData?.id);
-
-        const { data, error } = await supabase
-            .from("requests")
-            .select()
-            .order("created_at", { ascending: false })
-            .eq("receiver_id", userData?.id);
-
-        if (!error) {
-            console.log(data);
-            setRequests([...data] as Array<Request>)
-        } else {
-            console.log(error);
         }
     }
 
@@ -116,14 +141,40 @@ export default function TransactionHomeScreen() {
     }
 
     const createRoom = async () => {
+        if (requests) {
+            const currentRequest = requests.filter((req) => req.status === "queued").sort((a, b) => b.created_at.getTime() - a.created_at.getTime())[0];
+            const { error } = await supabase
+                .from("requests")
+                .update({ status: "room_hosted" })
+                .eq("sender_id", currentRequest.sender_id)
+            
+            if (!error) {
+                const { data, error } = await supabase
+                    .from("rooms")
+                    .insert({ 
+                        user_1_id: userData?.id,
+                        user_2_id: currentRequest.sender_id,
+                        user_1_name: userData?.username,
+                        user_2_name: currentRequest.sender_name,
+                    })
+                    .select();
 
+                if (!error && data && userData) {  
+                    sendPushNotification(currentRequest.sender_push_token, userData.username, data[0].id);
+                    await AsyncStorage.setItem("roomID", data[0].id)
+                        .then(() => {
+                            router.navigate(`/(transaction)/room/${data[0].id}`);
+                        });
+                }
+            }
+        }
     }
 
     useEffect(() => {
         getUserData();
 
         notificationsListener.current = Notifications.addNotificationReceivedListener((notification) => {
-            console.log(notification.request.content.data)
+            // console.log(notification.request.content.data)
             getUserData();
         });
 
@@ -146,11 +197,11 @@ export default function TransactionHomeScreen() {
         };
     }, []);
 
-    useEffect(() => {
-        if (userData) {
-            getRequests();
-        }
-    }, [userData])
+    // useEffect(() => {
+    //     if (userData) {
+    //         getRequests();
+    //     }
+    // }, [userData])
 
     return (
         <SafeAreaView className="flex flex-col w-screen h-screen gap-2 px-4 items-start justify-start">

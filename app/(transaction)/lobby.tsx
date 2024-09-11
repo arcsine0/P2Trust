@@ -6,6 +6,7 @@ import { Text, Avatar, Chip, IconButton, Card, Button, Snackbar } from "react-na
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import * as Notifications from "expo-notifications";
+import { router } from "expo-router";
 
 import { supabase } from "@/supabase/config";
 
@@ -38,12 +39,30 @@ const getInitials = (name: string) => {
     }
 }
 
+const sendPushNotification = async (pushToken: string, name: string) => {
+    const message = {
+        to: pushToken,
+        sound: "default",
+        title: `${name} would like to start a transaction with you`,
+        body: "Accept or Reject the request in the Transactions Page!",
+    };
+
+    await fetch("https://exp.host/--/api/v2/push/send", {
+        method: "POST",
+        headers: {
+            Accept: "application/json",
+            "Accept-encoding": "gzip, deflate",
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(message),
+    })
+        .catch(err => console.log(err));
+}
 
 export default function TransactionLobbyScreen() {
     const [userData, setUserData] = useState<UserData | undefined>(undefined);
 
     const [roomID, setRoomID] = useState("");
-    const [roomData, setRoomData] = useState<RoomData | undefined>(undefined);
 
     const [merchantID, setMerchantID] = useState("");
     const [merchantData, setMerchantData] = useState<UserData | undefined>(undefined);
@@ -51,6 +70,10 @@ export default function TransactionLobbyScreen() {
     const [requestState, setRequestState] = useState("Transact");
     const [requestDisabled, setRequestDisabled] = useState(false);
     const [requestSnackVisible, setRequestSnackVisible] = useState(false);
+
+    const [joinState, setJoinState] = useState("Waiting for Host...");
+    const [joinDisabled, setJoinDisabled] = useState(true);
+    const [joinVisible, setJoinVisible] = useState(false);
 
     const notificationsListener = useRef<Notifications.Subscription>();
     const responseListener = useRef<Notifications.Subscription>();
@@ -84,38 +107,6 @@ export default function TransactionLobbyScreen() {
         }
     }
 
-    const sendPushNotification = async (pushToken: string, name: string) => {
-        const message = {
-            to: pushToken,
-            sound: "default",
-            title: `${name} would like to start a transaction with you`,
-            body: "Accept or Reject the request in the Transactions Page!",
-            data: {
-                uid: userData?.id,
-                token: userData?.push_token,
-            }
-        };
-
-        await fetch("https://exp.host/--/api/v2/push/send", {
-            method: "POST",
-            headers: {
-                Accept: "application/json",
-                "Accept-encoding": "gzip, deflate",
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(message),
-        })
-            .catch(err => console.log(err));
-    }
-
-    const pingMerchant = async () => {
-
-    }
-
-    const createRoom = async () => {
-
-    }
-
     const requestTransaction = async () => {
         if (userData && merchantData) {
             const { error } = await supabase
@@ -125,6 +116,7 @@ export default function TransactionLobbyScreen() {
                     sender_id: userData.id,
                     sender_name: userData.username,
                     receiver_id: merchantData.id,
+                    sender_push_token: userData.push_token,
                 });
 
             if (!error) {
@@ -141,8 +133,19 @@ export default function TransactionLobbyScreen() {
                             .eq("sender_id", userData.id)
 
                         if (!error) {
-                            if (data[0].status === "queued") {
-                                setRequestState("Request Accepted");
+                            switch (data[0].status) {
+                                case "queued":
+                                    setRequestState("Queued");
+                                    setJoinVisible(true);
+
+                                    break;
+                                case "room_hosted":
+                                    setRequestState("Request Accepted");
+                                    setJoinState("Join Room");
+                                    
+                                    break;
+                                default:
+                                    break;
                             }
                         } else {
                             console.log(error);
@@ -160,7 +163,13 @@ export default function TransactionLobbyScreen() {
                                 setRequestDisabled(false);
                                 setRequestSnackVisible(true);
 
+                                setJoinVisible(false);
+                                setJoinState("Waiting for Host...");
+                                setJoinDisabled(true);
+
+
                                 requestListener.unsubscribe();
+                                supabase.removeChannel(requestListener);
                             }
                         } else {
                             console.log(error);
@@ -171,16 +180,31 @@ export default function TransactionLobbyScreen() {
         }
     }
 
+    const joinRoom = async () => {
+        if (userData) {
+            const { error } = await supabase
+                .from("requests")
+                .update({ status: "completed" })
+                .eq("sender_id", userData.id);
+
+            if (!error) {
+                router.navigate(`/(transaction)/room/${roomID}`);
+            }
+        }
+    }
+
     useEffect(() => {
         getUserData();
         getMerchantID();
 
         notificationsListener.current = Notifications.addNotificationReceivedListener((notification) => {
-            console.log(notification.request.content.title)
+            console.log(notification.request.content.data.roomID)
+            setRoomID(notification.request.content.data.roomID);
+            setJoinDisabled(false);
         });
 
         responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
-            console.log(response);
+            // console.log(response);
         });
 
         return () => {
@@ -206,14 +230,14 @@ export default function TransactionLobbyScreen() {
                             </View>
                         </Card.Content>
                     </Card>
-                    <View className="flex flex-row w-full mb-4">
-                        <Card className="mr-2">
+                    <View className="flex flex-row w-full mb-2">
+                        <Card className="mr-2 rounded-lg">
                             <Card.Content className="flex items-center justify-center">
                                 <Text variant="bodyMedium">Queue: 0</Text>
                             </Card.Content>
                         </Card>
                         <Button
-                            className="grow"
+                            className="grow rounded-lg"
                             icon={"account-arrow-up"}
                             mode="contained"
                             onPress={() => requestTransaction()}
@@ -222,6 +246,17 @@ export default function TransactionLobbyScreen() {
                             {requestState}
                         </Button>
                     </View>
+                    {joinVisible ?
+                        <Button
+                            className="w-full rounded-lg"
+                            icon={"account-arrow-up"}
+                            mode="contained"
+                            onPress={() => joinRoom()}
+                            disabled={joinDisabled}
+                        >
+                            {joinState}
+                        </Button>
+                    : null}
                     {/* <Card>
                         <Card.Content>
                             <Text variant="bodyMedium">data to be placed here</Text>
