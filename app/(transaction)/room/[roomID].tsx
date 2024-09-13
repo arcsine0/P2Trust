@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useWindowDimensions, Platform, View, KeyboardAvoidingView, FlatList } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Text, TextInput, Avatar, Chip, IconButton, Card, Button, Menu, Portal, Modal } from "react-native-paper";
+import { useTheme, Text, TextInput, Avatar, Chip, IconButton, Card, Button, List } from "react-native-paper";
 import { Dropdown } from "react-native-element-dropdown";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { TabView, SceneMap } from "react-native-tab-view";
+import { NativeViewGestureHandler } from "react-native-gesture-handler";
+import { TabView, SceneMap, TabBar } from "react-native-tab-view";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -97,12 +97,11 @@ export default function TransactionRoomScreen() {
 	const [merchantPaymentNumber, setMerchantPaymentNumber] = useState<string | undefined>(undefined);
 	const [merchantPaymentName, setMerchantPaymentName] = useState<string | undefined>(undefined);
 
-	const [actionsMenuVisible, setActionsMenuVisible] = useState(false);
-
-	const bottomSheetModalRef = useRef<BottomSheetModal>(null);
+	const [showActions, setShowActions] = useState(false);
 
 	const { roomID } = useLocalSearchParams<{ roomID: string }>();
 	const layout = useWindowDimensions();
+	const theme = useTheme();
 
 	const interactionsChannel = supabase.channel(`room_${roomID}`);
 
@@ -348,7 +347,7 @@ export default function TransactionRoomScreen() {
 						/>
 						: null}
 				</View>
-				<View className="flex flex-row gap-2 items-start justify-center">
+				<View className="flex flex-row gap-2 mb-2 items-start justify-center">
 					<TextInput
 						className="grow rounded-lg overflow-scroll"
 						label="Message"
@@ -371,30 +370,30 @@ export default function TransactionRoomScreen() {
 							className="rounded-lg w-full"
 							icon={"information"}
 							mode="contained"
-							onPress={() => bottomSheetModalRef.current?.present()}
+							onPress={() => setShowActions(!showActions)}
 						>
 							Actions
 						</Button>
 					</View>
 				</View>
-				<BottomSheetModal
-					ref={bottomSheetModalRef}
-					index={0}
-					snapPoints={["50%"]}
-				// onChange={}
-				>
-					<BottomSheetView className="flex flex-col w-full items-center justify-center">
-						<TabView 
-							navigationState={{ index: tabIndex, routes: tabRoutes }}
-							renderScene={SceneMap({
-								RequestPayment: RequestPaymentRoute,
-								SendPayment: SendPaymentRoute,
-							})}
-							onIndexChange={setTabIndex}
-							initialLayout={{ width: layout.width }}
-						/>
-					</BottomSheetView>
-				</BottomSheetModal>
+				{showActions &&
+					<TabView
+						navigationState={{ index: tabIndex, routes: tabRoutes }}
+						renderScene={SceneMap({
+							RequestPayment: RequestPaymentRoute,
+							SendPayment: SendPaymentRoute,
+						})}
+						onIndexChange={index => setTabIndex(index)}
+						initialLayout={{ width: layout.width }}
+						renderTabBar={props => <TabBar {...props} 
+							style={{ backgroundColor: theme.colors.primary, borderRadius: 8 }} 
+							indicatorStyle={{ backgroundColor: theme.colors.background }}
+							renderLabel={({ route }) => (
+								<Text style={{ color: theme.colors.background }}>{route.title}</Text>
+							)}
+						/>}
+					/>
+				}
 			</KeyboardAvoidingView>
 		</SafeAreaView>
 	);
