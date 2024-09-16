@@ -10,7 +10,7 @@ import * as Notifications from "expo-notifications";
 import { supabase } from "@/supabase/config";
 
 import { useUserData } from "@/lib/context/UserContext";
-import { Request } from "@/lib/types/types";
+import { Request } from "@/lib/helpers/types";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 

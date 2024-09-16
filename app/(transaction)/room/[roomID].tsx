@@ -15,66 +15,10 @@ import { BottomSheetModal, BottomSheetView, BottomSheetModalProvider } from "@go
 import { supabase } from "@/supabase/config";
 
 import { useUserData } from "@/lib/context/UserContext";
+import { Interaction } from "@/lib/helpers/types";
+import { Currencies, PaymentPlatforms } from "@/lib/helpers/collections";
 
 import { Float } from "react-native/Libraries/Types/CodegenTypes";
-
-type Interaction =
-	| {
-		timestamp: Date;
-		type: "user";
-		from: string;
-		data: {
-			eventType: "user_joined" | "user_left" | "user_disconnected" | "user_reconnected";
-		};
-	}
-	| {
-		timestamp: Date;
-		type: "payment";
-		from: string;
-		data: {
-			eventType: "payment_requested" | "payment_request_cancelled";
-			amount: Float;
-			currency: string;
-			platform: string;
-			merchantName: string;
-			merchantNumber: string;
-		};
-	}
-	| {
-		timestamp: Date;
-		type: "payment";
-		from: string;
-		data: {
-			eventType: "payment_sent" | "payment_received";
-		};
-	}
-	| {
-		timestamp: Date;
-		type: "message";
-		from: string;
-		data: {
-			message: string;
-		};
-	}
-	| {
-		timestamp: Date;
-		type: "submission";
-		from: string;
-		data: {
-			submissionId: string;
-		};
-	};
-
-const currencies = [
-	{ label: "PHP", value: "PHP" },
-	{ label: "USD", value: "USD" },
-	{ label: "EUR", value: "EUR" },
-];
-
-const platforms = [
-	{ label: "GCash", value: "GCash" },
-	{ label: "Paymaya", value: "Paymaya" },
-]
 
 const getInitials = (name: string) => {
 	if (name) {
@@ -258,7 +202,7 @@ export default function TransactionRoomScreen() {
 				<View className="flex flex-row w-full gap-2 items-center justify-center">
 					{/* <Dropdown
 						style={{ borderWidth: 0.5, borderRadius: 8 }}
-						data={currencies}
+						data={Currencies}
 						value={paymentCurrency}
 						onChange={value => setPaymentCurrency(value.value)}
 						labelField="label"
@@ -276,7 +220,7 @@ export default function TransactionRoomScreen() {
 				</View>
 				<Dropdown
 					style={{ borderWidth: 0.5, borderRadius: 8, padding: 10, backgroundColor: theme.colors.primaryContainer }}
-					data={platforms}
+					data={PaymentPlatforms}
 					value={paymentDetails.platform}
 					onChange={value => setPaymentDetails({ ...paymentDetails, platform: value.value })}
 					labelField="label"

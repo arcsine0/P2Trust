@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, FC, Dispatch, SetStateAction, ReactNode } from 'react';
-import { UserData } from "@/lib/types/types";
+import { UserData } from "@/lib/helpers/types";
 
 const UserContext = createContext<{
     userData: UserData | null;

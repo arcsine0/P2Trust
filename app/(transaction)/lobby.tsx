@@ -11,7 +11,7 @@ import { router } from "expo-router";
 import { supabase } from "@/supabase/config";
 
 import { useUserData } from "@/lib/context/UserContext";
-import { RoomData, UserData } from "@/lib/types/types"
+import { RoomData, UserData } from "@/lib/helpers/types"
 
 const getInitials = (name: string) => {
     if (name) {
