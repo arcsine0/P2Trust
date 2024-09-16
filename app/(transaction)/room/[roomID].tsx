@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useWindowDimensions, Platform, View, KeyboardAvoidingView, FlatList } from "react-native";
+import { useWindowDimensions, Platform, View, KeyboardAvoidingView, FlatList, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme, Text, TextInput, Avatar, Chip, IconButton, Card, Button, List } from "react-native-paper";
 import { Dropdown } from "react-native-element-dropdown";
@@ -36,9 +36,20 @@ type Interaction =
 		type: "payment";
 		from: string;
 		data: {
-			eventType: "payment_requested" | "payment_sent" | "payment_received" | "payment_request_cancelled";
+			eventType: "payment_requested" | "payment_request_cancelled";
 			amount: Float;
 			currency: string;
+			platform: string;
+			merchantName: string;
+			merchantNumber: string;
+		};
+	}
+	| {
+		timestamp: Date;
+		type: "payment";
+		from: string;
+		data: {
+			eventType: "payment_sent" | "payment_received";
 		};
 	}
 	| {
@@ -62,6 +73,11 @@ const currencies = [
 	{ label: "PHP", value: "PHP" },
 	{ label: "USD", value: "USD" },
 	{ label: "EUR", value: "EUR" },
+];
+
+const platforms = [
+	{ label: "GCash", value: "GCash" },
+	{ label: "Paymaya", value: "Paymaya" },
 ]
 
 const getInitials = (name: string) => {
@@ -88,14 +104,13 @@ export default function TransactionRoomScreen() {
 	// messages
 	const [message, setMessage] = useState("");
 
-	// payments
-	const [paymentAmount, setPaymentAmount] = useState<Float | undefined>(undefined);
-	const [paymentCurrency, setPaymentCurrency] = useState<string | undefined>(undefined);
-	const [paymentPlatform, setPaymentPlatform] = useState<string | undefined>(undefined);
-
-	// merchant payment info
-	const [merchantPaymentNumber, setMerchantPaymentNumber] = useState<string | undefined>(undefined);
-	const [merchantPaymentName, setMerchantPaymentName] = useState<string | undefined>(undefined);
+	const [paymentDetails, setPaymentDetails] = useState({
+		amount: undefined as Float | undefined,
+		currency: undefined as string | undefined,
+		platform: undefined as string | undefined,
+		merchantNumber: undefined as string | undefined,
+		merchantName: undefined as string | undefined,
+	});
 
 	const [showActions, setShowActions] = useState(false);
 
@@ -119,17 +134,31 @@ export default function TransactionRoomScreen() {
 		setMessage("");
 	}
 
-	const sendPaymentRequest = (sender: string, amount: Float, currency: string) => {
+	const sendPaymentRequest = () => {
 		interactionsChannel.send({
 			type: "broadcast",
 			event: "payment",
 			payload: {
 				data: {
-					from: sender,
-					amount: amount,
-					currency: currency,
+					eventType: "payment_requested",
+					from: userData?.username || "N/A",
+					amount: paymentDetails.amount,
+					currency: "PHP",
+					platform: paymentDetails.platform,
+					merchantName: paymentDetails.merchantName,
+					merchantNumber: paymentDetails.merchantNumber,
 				}
 			}
+		}).then(() => {
+			setPaymentDetails({
+				amount: 0,
+				currency: '',
+				platform: '',
+				merchantNumber: '',
+				merchantName: '',
+			});
+
+			setShowActions(false);
 		});
 	}
 
@@ -155,8 +184,7 @@ export default function TransactionRoomScreen() {
 										},
 									}]);
 									break;
-								default:
-									break;
+								default: break;
 							}
 						})
 						.on("broadcast", { event: "message" }, (payload) => {
@@ -174,16 +202,24 @@ export default function TransactionRoomScreen() {
 						.on("broadcast", { event: "payment" }, (payload) => {
 							const payloadData = payload.payload;
 
-							setInteractions(curr => [...(curr || []), {
-								timestamp: new Date(Date.now()),
-								type: "payment",
-								from: payloadData.data.from,
-								data: {
-									eventType: "payment_requested",
-									amount: payloadData.data.amount,
-									currency: payloadData.data.currency,
-								},
-							}]);
+							switch (payloadData.data.eventType) {
+								case "payment_requested":
+									setInteractions(curr => [...(curr || []), {
+										timestamp: new Date(Date.now()),
+										type: "payment",
+										from: payloadData.data.from,
+										data: {
+											eventType: "payment_requested",
+											amount: payloadData.data.amount,
+											currency: payloadData.data.currency,
+											merchantName: payloadData.data.merchantName,
+											merchantNumber: payloadData.data.merchantNumber,
+											platform: payloadData.data.platform,
+										},
+									}]);
+									break;
+								default: break;
+							}
 						})
 						.subscribe(async (status) => {
 							if (status === "SUBSCRIBED") {
@@ -219,26 +255,75 @@ export default function TransactionRoomScreen() {
 	}, []);
 
 	const RequestPaymentRoute = () => (
-		<View>
-			{/* <Dropdown
-				style={{ borderWidth: 0.5, borderRadius: 8 }}
-				data={currencies}
-				value={paymentCurrency}
-				onChange={value => setPaymentCurrency(value.value)}
-				labelField="label"
-				valueField="value"
-			/>
-			<TextInput
-				label="Amount"
-				value={paymentAmount?.toString()}
-				onChangeText={text => setPaymentAmount(parseFloat(text))}
-				keyboardType="numeric"
-			/> */}
-			<Text variant="titleLarge">Test</Text>
+		<View className="flex flex-col w-full p-2 items-center justify-start">
+			<ScrollView
+				className="w-full"
+				contentContainerStyle={{ flexGrow: 1, rowGap: 8 }}
+			>
+				<Text variant="titleMedium">Transaction Details</Text>
+				<View className="flex flex-row w-full gap-2 items-center justify-center">
+					{/* <Dropdown
+						style={{ borderWidth: 0.5, borderRadius: 8 }}
+						data={currencies}
+						value={paymentCurrency}
+						onChange={value => setPaymentCurrency(value.value)}
+						labelField="label"
+						valueField="value"
+					/> */}
+					<View className="w-full">
+						<TextInput
+							className="rounded-lg overflow-scroll"
+							label="Amount"
+							value={paymentDetails.amount?.toString()}
+							onChangeText={text => setPaymentDetails({ ...paymentDetails, amount: parseFloat(text) })}
+							keyboardType="numeric"
+						/>
+					</View>
+				</View>
+				<Dropdown
+					style={{ borderWidth: 0.5, borderRadius: 8, padding: 10, backgroundColor: theme.colors.primaryContainer }}
+					data={platforms}
+					value={paymentDetails.platform}
+					onChange={value => setPaymentDetails({ ...paymentDetails, platform: value.value })}
+					labelField="label"
+					valueField="value"
+					placeholder="Select Payment Platform"
+				/>
+				<Text variant="titleMedium">Your Account Details</Text>
+				<TextInput
+					className="rounded-lg overflow-scroll"
+					label="Name"
+					value={paymentDetails.merchantName}
+					onChangeText={text => setPaymentDetails({ ...paymentDetails, merchantName: text })}
+					keyboardType="default"
+				/>
+				<TextInput
+					className="rounded-lg overflow-scroll"
+					label="Account Number"
+					value={paymentDetails.merchantNumber}
+					onChangeText={text => setPaymentDetails({ ...paymentDetails, merchantNumber: text })}
+					keyboardType="default"
+				/>
+				<Button
+					className="rounded-lg w-full"
+					icon={"information"}
+					mode="contained"
+					onPress={() => sendPaymentRequest()}
+				>
+					Send Request
+				</Button>
+			</ScrollView>
+
 		</View>
 	)
 
 	const SendPaymentRoute = () => (
+		<View>
+			<Text variant="titleLarge">Test</Text>
+		</View>
+	)
+
+	const SendProofRoute = () => (
 		<View>
 			<Text variant="titleLarge">Test</Text>
 		</View>
@@ -249,48 +334,53 @@ export default function TransactionRoomScreen() {
 	const [tabRoutes] = useState([
 		{ key: "RequestPayment", title: "Request Payment" },
 		{ key: "SendPayment", title: "Send Payment" },
+		{ key: "SendProof", title: "Send Proof" },
 	]);
 
 	return (
-		<SafeAreaView className="flex flex-col w-screen h-full px-2 pb-2 items-start justify-start">
+
+		<SafeAreaView className="flex flex-col w-full h-full px-2 pb-2 items-start justify-start">
 			<KeyboardAvoidingView
 				behavior={Platform.OS === "ios" ? "padding" : "height"}
-				className="w-full h-full"
+				keyboardVerticalOffset={100}
+				className="flex w-full h-full"
 			>
-				<View className="flex w-full grow mb-2 items-center justify-center">
-					{interactions ?
-						<FlatList
-							className="w-full"
-							data={interactions.sort(
-								(a, b) => b.timestamp.getTime() - a.timestamp.getTime()
-							)}
-							inverted={true}
-							keyExtractor={(item, index) => index.toString()}
-							renderItem={({ item: inter }) => (
-								<View key={inter.timestamp.getTime()} className="mb-2">
-									{inter.type === ("user") && (
+				{interactions ?
+					<FlatList
+						className="w-full mb-2"
+						data={interactions.sort(
+							(a, b) => b.timestamp.getTime() - a.timestamp.getTime()
+						)}
+						inverted={true}
+						keyExtractor={(item, index) => index.toString()}
+						contentContainerStyle={{ flexGrow: 1 }}
+						renderItem={({ item: inter }) => (
+							<View key={inter.timestamp.getTime()} className="mb-2">
+								{inter.type === ("user") && (
+									<Chip
+										icon={(() => {
+											switch (inter.data.eventType) {
+												case "user_joined":
+													return "account-plus";
+												case "user_left":
+													return "account-minus";
+												default:
+													return "information";
+											}
+										})()}
+									>
+										{inter.data.eventType === "user_joined" && (
+											<Text>{inter.from} joined the room</Text>
+										)}
+										{inter.data.eventType === "user_left" && (
+											<Text>{inter.from} left the room</Text>
+										)}
+									</Chip>
+								)}
+								{inter.type === ("payment") && (
+									<View className="flex flex-col w-full">
 										<Chip
-											icon={(() => {
-												switch (inter.data.eventType) {
-													case "user_joined":
-														return "account-plus";
-													case "user_left":
-														return "account-minus";
-													default:
-														return "information";
-												}
-											})()}
-										>
-											{inter.data.eventType === "user_joined" && (
-												<Text>{inter.from} joined the room</Text>
-											)}
-											{inter.data.eventType === "user_left" && (
-												<Text>{inter.from} left the room</Text>
-											)}
-										</Chip>
-									)}
-									{inter.type === ("payment") && (
-										<Chip
+											className="mb-2"
 											icon={(() => {
 												switch (inter.data.eventType) {
 													case "payment_requested":
@@ -319,34 +409,61 @@ export default function TransactionRoomScreen() {
 												<Text>{inter.from} has received the payment</Text>
 											)}
 										</Chip>
-									)}
-									{inter.type === "message" && (
-										<View className="flex flex-row mb-2 gap-2 items-center justify-start">
-											<Avatar.Text label={getInitials(inter.from)} size={35} />
-											<View className="flex flex-col items-start justify-start">
-												<Text
-													variant="titleSmall"
-													className="w-full font-bold"
-												>
-													{inter.from}
-												</Text>
-												<Text
-													variant="bodyMedium"
-													className="w-full text-pretty"
-												>
-													{inter.data.message}
-												</Text>
-												<Text variant="bodySmall" className="text-slate-400">
-													{inter.timestamp.toLocaleString()}
-												</Text>
-											</View>
+										{inter.data.eventType === "payment_requested" && (
+											<Card 
+												className="w-2/3"
+												style={{ backgroundColor: theme.colors.background }}
+											>
+												<Card.Content className="flex flex-col p-2">
+													<Text className="mb-2">Amount</Text>
+													<Text className="mb-2 font-bold" variant="titleLarge">
+														{inter.data.currency} {inter.data.amount}
+													</Text>
+													<Text className="mb-2">Platform</Text>
+													<View className="flex flex-row mb-2 items-center justify-start">
+														<Chip icon="cash">
+															<Text>{inter.data.platform}</Text>
+														</Chip>
+													</View>
+													<Button
+														className="rounded-lg w-full"
+														icon={"information"}
+														mode="contained"
+														onPress={() => { }}
+													>
+														Pay
+													</Button>
+												</Card.Content>
+											</Card>
+										)}
+									</View>
+								)}
+								{inter.type === "message" && (
+									<View className="flex flex-row mb-2 gap-2 items-center justify-start">
+										<Avatar.Text label={getInitials(inter.from)} size={35} />
+										<View className="flex flex-col items-start justify-start">
+											<Text
+												variant="titleSmall"
+												className="w-full font-bold"
+											>
+												{inter.from}
+											</Text>
+											<Text
+												variant="bodyMedium"
+												className="w-full text-pretty"
+											>
+												{inter.data.message}
+											</Text>
+											<Text variant="bodySmall" className="text-slate-400">
+												{inter.timestamp.toLocaleString()}
+											</Text>
 										</View>
-									)}
-								</View>
-							)}
-						/>
-						: null}
-				</View>
+									</View>
+								)}
+							</View>
+						)}
+					/>
+					: null}
 				<View className="flex flex-row gap-2 mb-2 items-start justify-center">
 					<TextInput
 						className="grow rounded-lg overflow-scroll"
@@ -382,12 +499,14 @@ export default function TransactionRoomScreen() {
 						renderScene={SceneMap({
 							RequestPayment: RequestPaymentRoute,
 							SendPayment: SendPaymentRoute,
+							SendProof: SendProofRoute,
 						})}
 						onIndexChange={index => setTabIndex(index)}
 						initialLayout={{ width: layout.width }}
-						renderTabBar={props => <TabBar {...props} 
-							style={{ backgroundColor: theme.colors.primary, borderRadius: 8 }} 
+						renderTabBar={props => <TabBar {...props}
+							style={{ backgroundColor: theme.colors.primary, borderRadius: 8 }}
 							indicatorStyle={{ backgroundColor: theme.colors.background }}
+							scrollEnabled={true}
 							renderLabel={({ route }) => (
 								<Text style={{ color: theme.colors.background }}>{route.title}</Text>
 							)}

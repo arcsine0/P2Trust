@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Stack, useNavigation } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 
-import { useColorScheme } from "react-native";
+import { useColorScheme, KeyboardAvoidingView, Platform } from "react-native";
 import { MD3LightTheme, MD3DarkTheme, PaperProvider } from "react-native-paper";
 
 import { GestureHandlerRootView } from "react-native-gesture-handler";
