@@ -13,14 +13,10 @@ import { router, useLocalSearchParams } from "expo-router";
 import { BottomSheetModal, BottomSheetView, BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 
 import { supabase } from "@/supabase/config";
-import { Float } from "react-native/Libraries/Types/CodegenTypes";
 
-type UserData = {
-	id: string;
-	username: string;
-	push_token: string;
-	[key: string]: any;
-}
+import { useUserData } from "@/lib/context/UserContext";
+
+import { Float } from "react-native/Libraries/Types/CodegenTypes";
 
 type Interaction =
 	| {
@@ -98,7 +94,6 @@ const getInitials = (name: string) => {
 }
 
 export default function TransactionRoomScreen() {
-	const [userData, setUserData] = useState<UserData | undefined>(undefined);
 	const [interactions, setInteractions] = useState<Interaction[] | undefined>([]);
 
 	// messages
@@ -113,6 +108,10 @@ export default function TransactionRoomScreen() {
 	});
 
 	const [showActions, setShowActions] = useState(false);
+
+	const actionsModalRef = useRef<BottomSheetModal>(null);
+
+	const { userData } = useUserData();
 
 	const { roomID } = useLocalSearchParams<{ roomID: string }>();
 	const layout = useWindowDimensions();
@@ -164,79 +163,74 @@ export default function TransactionRoomScreen() {
 
 	const getRoomData = async () => {
 		try {
-			await AsyncStorage.getItem("userData").then(async (userDataAsync) => {
-				if (userDataAsync) {
-					const userDataTemp = JSON.parse(userDataAsync);
-					setUserData(userDataTemp);
+			if (userData) {
+				interactionsChannel
+					.on("broadcast", { event: "user" }, (payload) => {
+						const payloadData = payload.payload;
 
-					interactionsChannel
-						.on("broadcast", { event: "user" }, (payload) => {
-							const payloadData = payload.payload;
+						switch (payloadData.type) {
+							case "join":
+								setInteractions(curr => [...(curr || []), {
+									timestamp: new Date(Date.now()),
+									type: "user",
+									from: payloadData.from,
+									data: {
+										eventType: "user_joined",
+									},
+								}]);
+								break;
+							default: break;
+						}
+					})
+					.on("broadcast", { event: "message" }, (payload) => {
+						const payloadData = payload.payload;
 
-							switch (payloadData.type) {
-								case "join":
-									setInteractions(curr => [...(curr || []), {
-										timestamp: new Date(Date.now()),
-										type: "user",
-										from: payloadData.from,
-										data: {
-											eventType: "user_joined",
-										},
-									}]);
-									break;
-								default: break;
-							}
-						})
-						.on("broadcast", { event: "message" }, (payload) => {
-							const payloadData = payload.payload;
+						setInteractions(curr => [...(curr || []), {
+							timestamp: new Date(Date.now()),
+							type: "message",
+							from: payloadData.data.from,
+							data: {
+								message: payloadData.data.message,
+							},
+						}]);
+					})
+					.on("broadcast", { event: "payment" }, (payload) => {
+						const payloadData = payload.payload;
 
-							setInteractions(curr => [...(curr || []), {
-								timestamp: new Date(Date.now()),
-								type: "message",
-								from: payloadData.data.from,
-								data: {
-									message: payloadData.data.message,
-								},
-							}]);
-						})
-						.on("broadcast", { event: "payment" }, (payload) => {
-							const payloadData = payload.payload;
+						switch (payloadData.data.eventType) {
+							case "payment_requested":
+								setInteractions(curr => [...(curr || []), {
+									timestamp: new Date(Date.now()),
+									type: "payment",
+									from: payloadData.data.from,
+									data: {
+										eventType: "payment_requested",
+										amount: payloadData.data.amount,
+										currency: payloadData.data.currency,
+										merchantName: payloadData.data.merchantName,
+										merchantNumber: payloadData.data.merchantNumber,
+										platform: payloadData.data.platform,
+									},
+								}]);
+								break;
+							default: break;
+						}
+					})
+					.subscribe(async (status) => {
+						if (status === "SUBSCRIBED") {
+							await interactionsChannel.track({ online_at: new Date().toISOString() });
 
-							switch (payloadData.data.eventType) {
-								case "payment_requested":
-									setInteractions(curr => [...(curr || []), {
-										timestamp: new Date(Date.now()),
-										type: "payment",
-										from: payloadData.data.from,
-										data: {
-											eventType: "payment_requested",
-											amount: payloadData.data.amount,
-											currency: payloadData.data.currency,
-											merchantName: payloadData.data.merchantName,
-											merchantNumber: payloadData.data.merchantNumber,
-											platform: payloadData.data.platform,
-										},
-									}]);
-									break;
-								default: break;
-							}
-						})
-						.subscribe(async (status) => {
-							if (status === "SUBSCRIBED") {
-								await interactionsChannel.track({ online_at: new Date().toISOString() });
-
-								interactionsChannel.send({
-									type: "broadcast",
-									event: "user",
-									payload: {
-										from: userDataTemp.username,
-										type: "join"
-									}
-								});
-							}
-						});
-				}
-			});
+							interactionsChannel.send({
+								type: "broadcast",
+								event: "user",
+								payload: {
+									from: userData.username,
+									type: "join"
+								}
+							});
+						}
+					});
+			}
 		} catch (err) {
 			console.log(err);
 		}
@@ -313,7 +307,6 @@ export default function TransactionRoomScreen() {
 					Send Request
 				</Button>
 			</ScrollView>
-
 		</View>
 	)
 
@@ -410,7 +403,7 @@ export default function TransactionRoomScreen() {
 											)}
 										</Chip>
 										{inter.data.eventType === "payment_requested" && (
-											<Card 
+											<Card
 												className="w-2/3"
 												style={{ backgroundColor: theme.colors.background }}
 											>
@@ -487,13 +480,13 @@ export default function TransactionRoomScreen() {
 							className="rounded-lg w-full"
 							icon={"information"}
 							mode="contained"
-							onPress={() => setShowActions(!showActions)}
+							onPress={() => actionsModalRef.current?.present()}
 						>
 							Actions
 						</Button>
 					</View>
 				</View>
-				{showActions &&
+				{/* {showActions &&
 					<TabView
 						navigationState={{ index: tabIndex, routes: tabRoutes }}
 						renderScene={SceneMap({
@@ -512,7 +505,35 @@ export default function TransactionRoomScreen() {
 							)}
 						/>}
 					/>
-				}
+				} */}
+				<BottomSheetModal
+					ref={actionsModalRef}
+					index={0}
+					snapPoints={["50%"]}
+					enablePanDownToClose={true}
+				>
+					<BottomSheetView>
+						<Text>Test</Text>
+						<TabView
+							navigationState={{ index: tabIndex, routes: tabRoutes }}
+							renderScene={SceneMap({
+								RequestPayment: RequestPaymentRoute,
+								SendPayment: SendPaymentRoute,
+								SendProof: SendProofRoute,
+							})}
+							onIndexChange={index => setTabIndex(index)}
+							initialLayout={{ width: layout.width }}
+							renderTabBar={props => <TabBar {...props}
+								style={{ backgroundColor: theme.colors.primary, borderRadius: 8 }}
+								indicatorStyle={{ backgroundColor: theme.colors.background }}
+								scrollEnabled={true}
+								renderLabel={({ route }) => (
+									<Text style={{ color: theme.colors.background }}>{route.title}</Text>
+								)}
+							/>}
+						/>
+					</BottomSheetView>
+				</BottomSheetModal>
 			</KeyboardAvoidingView>
 		</SafeAreaView>
 	);

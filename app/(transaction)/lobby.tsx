@@ -10,17 +10,8 @@ import { router } from "expo-router";
 
 import { supabase } from "@/supabase/config";
 
-type UserData = {
-    id: string;
-    username: string;
-    push_token: string;
-    [key: string]: any;
-}
-
-type RoomData = {
-    id: string;
-    [key: string]: any;
-}
+import { useUserData } from "@/lib/context/UserContext";
+import { RoomData, UserData } from "@/lib/types/types"
 
 const getInitials = (name: string) => {
     if (name) {
@@ -60,8 +51,6 @@ const sendPushNotification = async (pushToken: string, name: string) => {
 }
 
 export default function TransactionLobbyScreen() {
-    const [userData, setUserData] = useState<UserData | undefined>(undefined);
-
     const [roomID, setRoomID] = useState("");
 
     const [merchantID, setMerchantID] = useState("");
@@ -75,21 +64,10 @@ export default function TransactionLobbyScreen() {
     const [joinDisabled, setJoinDisabled] = useState(true);
     const [joinVisible, setJoinVisible] = useState(false);
 
+    const { userData } = useUserData();
+
     const notificationsListener = useRef<Notifications.Subscription>();
     const responseListener = useRef<Notifications.Subscription>();
-
-    const getUserData = async () => {
-        try {
-            await AsyncStorage.getItem("userData").then((userDataAsync) => {
-                if (userDataAsync) {
-                    const userData = JSON.parse(userDataAsync);
-                    setUserData(userData)
-                }
-            });
-        } catch (err) {
-            console.log(err);
-        }
-    }
 
     const getMerchantID = async () => {
         const merchantIDAsync = await AsyncStorage.getItem("merchantID");
@@ -109,74 +87,92 @@ export default function TransactionLobbyScreen() {
 
     const requestTransaction = async () => {
         if (userData && merchantData) {
-            const { error } = await supabase
-                .from("requests")
-                .insert({
-                    status: "sent",
-                    sender_id: userData.id,
-                    sender_name: userData.username,
-                    receiver_id: merchantData.id,
-                    sender_push_token: userData.push_token,
-                });
+            // const { error } = await supabase
+            //     .from("requests")
+            //     .insert({
+            //         status: "sent",
+            //         sender_id: userData.id,
+            //         sender_name: userData.username,
+            //         receiver_id: merchantData.id,
+            //         sender_push_token: userData.push_token,
+            //     });
 
-            if (!error) {
-                sendPushNotification(merchantData.push_token, userData.username);
-                setRequestState("Request Sent");
-                setRequestDisabled(true);
+            // if (!error) {
+            //     sendPushNotification(merchantData.push_token, userData.username);
+            //     setRequestState("Request Sent");
+            //     setRequestDisabled(true);
 
-                const requestListener = supabase
-                    .channel("request_channel")
-                    .on("postgres_changes", { event: "UPDATE", schema: "public", table: "requests" }, async (payload) => {
-                        const { data, error } = await supabase
-                            .from("requests")
-                            .select("status")
-                            .eq("sender_id", userData.id)
+            //     const requestListener = supabase
+            //         .channel("request_channel")
+            //         .on("postgres_changes", { event: "UPDATE", schema: "public", table: "requests" }, async (payload) => {
+            //             const { data, error } = await supabase
+            //                 .from("requests")
+            //                 .select("status")
+            //                 .eq("sender_id", userData.id)
 
-                        if (!error) {
-                            switch (data[0].status) {
-                                case "queued":
-                                    setRequestState("Queued");
-                                    setJoinVisible(true);
+            //             if (!error) {
+            //                 switch (data[0].status) {
+            //                     case "queued":
+            //                         setRequestState("Queued");
+            //                         setJoinVisible(true);
 
-                                    break;
-                                case "room_hosted":
-                                    setRequestState("Request Accepted");
-                                    setJoinState("Join Room");
+            //                         break;
+            //                     case "room_hosted":
+            //                         setRequestState("Request Accepted");
+            //                         setJoinState("Join Room");
                                     
-                                    break;
-                                default:
-                                    break;
+            //                         break;
+            //                     default:
+            //                         break;
+            //                 }
+            //             } else {
+            //                 console.log(error);
+            //             }
+            //         })
+            //         .on("postgres_changes", { event: "DELETE", schema: "public", table: "requests" }, async (payload) => {
+            //             const { data, error } = await supabase
+            //                 .from("requests")
+            //                 .select("status")
+            //                 .eq("sender_id", userData.id)
+
+            //             if (!error) {
+            //                 if (data.length === 0) {
+            //                     setRequestState("Transact");
+            //                     setRequestDisabled(false);
+            //                     setRequestSnackVisible(true);
+
+            //                     setJoinVisible(false);
+            //                     setJoinState("Waiting for Host...");
+            //                     setJoinDisabled(true);
+
+
+            //                     requestListener.unsubscribe();
+            //                     supabase.removeChannel(requestListener);
+            //                 }
+            //             } else {
+            //                 console.log(error);
+            //             }
+            //         })
+            //         .subscribe()
+            // }
+            const requestChannel = supabase.channel(`request_channel_${merchantData.id}`);
+            
+            requestChannel
+                .on("broadcast", { event: "request" }, (payload) => {
+                    
+                })
+                .subscribe((status) => {
+                    if (status === "SUBSCRIBED") {
+                        requestChannel.send({
+                            type: "broadcast",
+                            event: "request",
+                            payload: {
+                                sender_id: userData.id,
+                                sender_name: userData.username,
                             }
-                        } else {
-                            console.log(error);
-                        }
-                    })
-                    .on("postgres_changes", { event: "DELETE", schema: "public", table: "requests" }, async (payload) => {
-                        const { data, error } = await supabase
-                            .from("requests")
-                            .select("status")
-                            .eq("sender_id", userData.id)
-
-                        if (!error) {
-                            if (data.length === 0) {
-                                setRequestState("Transact");
-                                setRequestDisabled(false);
-                                setRequestSnackVisible(true);
-
-                                setJoinVisible(false);
-                                setJoinState("Waiting for Host...");
-                                setJoinDisabled(true);
-
-
-                                requestListener.unsubscribe();
-                                supabase.removeChannel(requestListener);
-                            }
-                        } else {
-                            console.log(error);
-                        }
-                    })
-                    .subscribe()
-            }
+                        })
+                    }
+                });
         }
     }
 
@@ -194,7 +190,6 @@ export default function TransactionLobbyScreen() {
     }
 
     useEffect(() => {
-        getUserData();
         getMerchantID();
 
         notificationsListener.current = Notifications.addNotificationReceivedListener((notification) => {

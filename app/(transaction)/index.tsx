@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useContext } from "react";
 import { View, ScrollView } from "react-native";
 import { useTheme, Text, Avatar, Portal, Modal, Icon, IconButton, Card, Button, TouchableRipple } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -9,26 +9,12 @@ import * as Notifications from "expo-notifications";
 
 import { supabase } from "@/supabase/config";
 
+import { useUserData } from "@/lib/context/UserContext";
+import { Request } from "@/lib/types/types";
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import QRCode from "react-qr-code";
-
-type UserData = {
-    id: string;
-    username: string;
-    push_token: string;
-    [key: string]: any;
-}
-
-type Request = {
-    id: string;
-    created_at: Date;
-    status: string;
-    sender_id: string;
-    sender_name: string;
-    receiver_id: string;
-    sender_push_token: string;
-}
 
 const getInitials = (name: string) => {
     if (name) {
@@ -72,12 +58,13 @@ const sendPushNotification = async (pushToken: string, name: string, roomID: str
 
 export default function TransactionHomeScreen() {
     const [roomID, setRoomID] = useState("");
-    const [userData, setUserData] = useState<UserData | undefined>(undefined);
 
     const [requests, setRequests] = useState<Request[] | undefined>(undefined);
 
     const [expanded, setExpanded] = useState(false);
     const [showRequests, setShowRequests] = useState(false);
+
+    const { userData } = useUserData();
 
     const isFocused = useIsFocused();
     const wasFocused = useRef(false);
@@ -87,36 +74,21 @@ export default function TransactionHomeScreen() {
 
     const theme = useTheme();
 
-    const getRequests = async (ud: UserData | undefined = userData) => {
+    const getRequests = async () => {
         setRequests([]);
-        console.log("UID:", ud?.id);
+        console.log("UID:", userData?.id);
 
         const { data, error } = await supabase
             .from("requests")
             .select()
             .order("created_at", { ascending: false })
-            .eq("receiver_id", ud?.id);
+            .eq("receiver_id", userData?.id);
 
         if (!error) {
             console.log(data);
             setRequests([...data] as Array<Request>)
         } else {
             console.log(error);
-        }
-    }
-
-    const getUserData = async () => {
-        console.log("loading user data...")
-        try {
-            await AsyncStorage.getItem("userData").then((userDataAsync) => {
-                if (userDataAsync) {
-                    const userData = JSON.parse(userDataAsync);
-                    setUserData(userData);
-                    getRequests(userData);
-                }
-            });
-        } catch (err) {
-            console.log(err);
         }
     }
 
@@ -171,11 +143,9 @@ export default function TransactionHomeScreen() {
     }
 
     useEffect(() => {
-        getUserData();
 
         notificationsListener.current = Notifications.addNotificationReceivedListener((notification) => {
             // console.log(notification.request.content.data)
-            getUserData();
         });
 
         responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {

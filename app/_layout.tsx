@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { createContext, useContext, useState, Dispatch, SetStateAction } from "react";
 import { Stack, useNavigation } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 
@@ -7,6 +7,8 @@ import { MD3LightTheme, MD3DarkTheme, PaperProvider } from "react-native-paper";
 
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+
+import { UserProvider } from "@/lib/context/UserContext"
 
 import { Colors } from "@/constants/Colors";
 
@@ -29,12 +31,15 @@ export default function RootLayout() {
 		<PaperProvider theme={customLightTheme}>
 			<GestureHandlerRootView>
 				<BottomSheetModalProvider>
-					<Stack>
-						<Stack.Screen name="(login)" options={{ headerShown: false }} />
-						<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-						<Stack.Screen name="(transaction)" options={{ headerShown: false }} />
-						<Stack.Screen name="+not-found" />
-					</Stack>
+					<UserProvider>
+						<Stack>
+							<Stack.Screen name="(login)" options={{ headerShown: false }} />
+							<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+							<Stack.Screen name="(transaction)" options={{ headerShown: false }} />
+							<Stack.Screen name="+not-found" />
+						</Stack>
+					</UserProvider>
+
 				</BottomSheetModalProvider>
 			</GestureHandlerRootView>
 		</PaperProvider>

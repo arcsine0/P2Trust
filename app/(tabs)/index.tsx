@@ -10,6 +10,8 @@ import { router } from "expo-router";
 
 import { supabase } from "@/supabase/config";
 
+import { useUserData } from "@/lib/context/UserContext";
+
 import { MaterialCommunityIcons as MCI } from "@expo/vector-icons";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -55,6 +57,8 @@ const getInitials = (name: string) => {
 
 export default function HomeScreen({ navigation }: Props) {
 	const [transactions, setTransactions] = useState<Transaction[]>([]);
+
+	const { userData } = useUserData();
 
 	const isFocused = useIsFocused();
 	const theme = useTheme();

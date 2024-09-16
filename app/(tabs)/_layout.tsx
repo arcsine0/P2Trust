@@ -1,4 +1,4 @@
-import React from "react";
+import React, { createContext, useContext } from "react";
 
 import { View } from "react-native";
 import { CommonActions } from "@react-navigation/native";
@@ -18,6 +18,8 @@ type TabParamList = {
 };
 
 const Tab = createBottomTabNavigator<TabParamList>();
+
+const UserContext = createContext(null);
 
 export default function TabLayout() {
 	const theme = useTheme();

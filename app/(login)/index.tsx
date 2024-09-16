@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { View, ScrollView, TouchableHighlight } from "react-native";
 import { useTheme, Text, TextInput, Button, Divider } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -7,11 +7,15 @@ import { router } from "expo-router";
 
 import { supabase } from "@/supabase/config";
 
+import { useUserData } from "@/lib/context/UserContext";
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function LoginScreen() {
     const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
+    const [password, setPassword] = useState("test1234");
+
+    const { userData, setUserData } = useUserData();
 
     const theme = useTheme();
 
@@ -29,10 +33,9 @@ export default function LoginScreen() {
                     .eq("id", session.user.id);
 
                 if (!error) {
-                    await AsyncStorage.setItem("userData", JSON.stringify(data[0]))
-                        .then(() => {
-                            router.push("/(tabs)");
-                        });
+                    setUserData(data[0]);
+                    
+                    router.push("/(tabs)");
                 }
             }
         } else {
