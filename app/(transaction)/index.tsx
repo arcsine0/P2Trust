@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useContext } from "react";
 import { View, ScrollView } from "react-native";
-import { useTheme, Text, Avatar, Portal, Modal, Icon, IconButton, Card, Button, TouchableRipple } from "react-native-paper";
+import { useTheme, Text, Avatar, Portal, Modal, Icon, IconButton, Card, Button, TouchableRipple, Badge } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useIsFocused } from "@react-navigation/native";
 
@@ -59,12 +59,11 @@ const sendPushNotification = async (pushToken: string, name: string, roomID: str
 export default function TransactionHomeScreen() {
     const [roomID, setRoomID] = useState("");
 
-    const [requests, setRequests] = useState<Request[] | undefined>(undefined);
-
     const [expanded, setExpanded] = useState(false);
     const [showRequests, setShowRequests] = useState(false);
+    const [showBadge, setShowBadge] = useState(false);
 
-    const { userData } = useUserData();
+    const { userData, requests, setRequests, queue, setQueue } = useUserData();
 
     const isFocused = useIsFocused();
     const wasFocused = useRef(false);
@@ -74,56 +73,69 @@ export default function TransactionHomeScreen() {
 
     const theme = useTheme();
 
-    const getRequests = async () => {
-        setRequests([]);
-        console.log("UID:", userData?.id);
-
-        const { data, error } = await supabase
-            .from("requests")
-            .select()
-            .order("created_at", { ascending: false })
-            .eq("receiver_id", userData?.id);
-
-        if (!error) {
-            console.log(data);
-            setRequests([...data] as Array<Request>)
-        } else {
-            console.log(error);
-        }
-    }
+    const requestsChannel = supabase.channel(`requests_channel_${userData?.id}`);
 
     const acceptRequest = async (sender: string) => {
-        console.log("Accepting request of", sender);
-        const { error } = await supabase
-            .from("requests")
-            .update({ status: "queued" })
-            .eq("sender_id", sender);
+        if (requests) {
+            console.log("Accepting request of", sender);
+        
+            requestsChannel.send({
+                type: "broadcast",
+                event: "queued",
+                payload: {
+                    sender_id: sender,
+                }
+            });
 
-        getRequests();
+            const acceptedRequest = requests.find(req => req.sender_id === sender);
+
+            if (acceptedRequest) {
+                setQueue(prevQueue => {
+                    if (prevQueue) {
+                        return [acceptedRequest, ...prevQueue.filter(req => req.sender_id !== sender)];
+                    } else {
+                        return [acceptedRequest];
+                    }
+                });
+
+                setRequests(prevRequests => {
+                    if (prevRequests) {
+                        return prevRequests.filter(req => req.sender_id !== sender)
+                    } else {
+                        return [];
+                    }
+                });
+            }
+        }
+
     }
 
     const rejectRequest = async (sender: string) => {
         console.log("Rejecting request of", sender);
-        const { error } = await supabase
-            .from("requests")
-            .delete()
-            .eq("sender_id", sender);
 
-        getRequests();
+        requestsChannel.send({
+            type: "broadcast",
+            event: "rejected",
+            payload: {
+                sender_id: sender,
+            }
+        });
+
+        setRequests([...requests?.filter(req => req.sender_id !== sender) as Request[]]);
     }
 
     const createRoom = async () => {
-        if (requests) {
-            const currentRequest = requests.filter((req) => req.status === "queued").sort((a, b) => b.created_at.getTime() - a.created_at.getTime())[0];
+        if (requests && queue) {
+            const currentRequest = queue.sort((a, b) => b.created_at.getTime() - a.created_at.getTime())[0];
             const { error } = await supabase
                 .from("requests")
                 .update({ status: "room_hosted" })
                 .eq("sender_id", currentRequest.sender_id)
-            
+
             if (!error) {
                 const { data, error } = await supabase
                     .from("rooms")
-                    .insert({ 
+                    .insert({
                         user_1_id: userData?.id,
                         user_2_id: currentRequest.sender_id,
                         user_1_name: userData?.username,
@@ -131,18 +143,36 @@ export default function TransactionHomeScreen() {
                     })
                     .select();
 
-                if (!error && data && userData) {  
-                    sendPushNotification(currentRequest.sender_push_token, userData.username, data[0].id);
-                    await AsyncStorage.setItem("roomID", data[0].id)
-                        .then(() => {
-                            router.navigate(`/(transaction)/room/${data[0].id}`);
-                        });
+                if (!error && data && userData) {
+                    requestsChannel.send({
+                        type: "broadcast",
+                        event: "accepted",
+                        payload: {
+                            sender_id: currentRequest.sender_id,
+                            room_id: data[0].id,
+                        }
+                    })
+
+                    router.navigate(`/(transaction)/room/${data[0].id}`);
                 }
             }
         }
     }
 
     useEffect(() => {
+        requestsChannel
+            .on("broadcast", { event: "request" }, (payload) => {
+                const payloadData = payload.payload;
+
+                if (requests) {
+                    setRequests([...requests?.filter(req => req.sender_id !== payload.data.sender_id) as Request[], payloadData])
+                } else {
+                    setRequests([payloadData]);
+                }
+
+                setShowBadge(true);
+            })
+            .subscribe();
 
         notificationsListener.current = Notifications.addNotificationReceivedListener((notification) => {
             // console.log(notification.request.content.data)
@@ -151,11 +181,6 @@ export default function TransactionHomeScreen() {
         responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
             console.log(response);
         });
-
-        // const requestChannel = supabase
-        //     .channel("request_channel")
-        //     .on("postgres_changes", { event: "*", schema: "public", table: "requests", filter: `receiver_id = '${userData?.id}'` }, getRequests)
-        //     .subscribe();
 
         return () => {
             notificationsListener.current &&
@@ -166,13 +191,7 @@ export default function TransactionHomeScreen() {
             // requestChannel.unsubscribe();
         };
     }, []);
-
-    // useEffect(() => {
-    //     if (userData) {
-    //         getRequests();
-    //     }
-    // }, [userData])
-
+    
     return (
         <SafeAreaView className="flex flex-col w-screen h-screen gap-2 px-4 items-start justify-start">
             {userData ?
@@ -210,18 +229,26 @@ export default function TransactionHomeScreen() {
                         <TouchableRipple
                             className="flex p-4 items-center justify-center rounded-lg"
                             style={{ backgroundColor: theme.colors.primary }}
-                            onPress={() => setShowRequests(!showRequests)}
+                            onPress={() => {
+                                setShowRequests(!showRequests);
+                                setShowBadge(false);
+                            }}
                         >
-                            <Icon
-                                source="bell"
-                                color={theme.colors.background}
-                                size={25}
-                            />
+                            <View>
+                                <Icon
+                                    source="bell"
+                                    color={theme.colors.background}
+                                    size={25}
+                                />
+                                {showBadge ?
+                                    <Badge></Badge>
+                                    : null}
+                            </View>
                         </TouchableRipple>
                         <TouchableRipple
                             className="flex flex-col p-2 items-center justify-center rounded-lg shadows-md grow"
-                            style={{ backgroundColor: theme.colors.primary, opacity: requests && requests.filter((req) => req.status === "queued").length > 0 ? 1 : 0.75 }}
-                            disabled={requests && requests.filter((req) => req.status === "queued").length > 0 ? false : true}
+                            style={{ backgroundColor: theme.colors.primary, opacity: queue && queue.length > 0 ? 1 : 0.75 }}
+                            disabled={queue && queue.length > 0 ? false : true}
                             onPress={() => createRoom()}
                         >
                             <View className="flex flex-row w-full items-center justify-stretch">
@@ -236,8 +263,8 @@ export default function TransactionHomeScreen() {
                                         variant="titleMedium"
                                         style={{ color: theme.colors.background, padding: 0 }}
                                     >
-                                        {requests && requests.filter((req) => req.status === "queued").length > 0 ?
-                                            requests.filter((req) => req.status === "queued").sort((a, b) => b.created_at.getTime() - a.created_at.getTime())[0].sender_name
+                                        {queue && queue.length > 0 ?
+                                            queue.sort((a, b) => b.created_at.getTime() - a.created_at.getTime())[0].sender_name
                                             :
                                             "None"
                                         }
@@ -258,9 +285,9 @@ export default function TransactionHomeScreen() {
                             >
                                 <View className="flex flex-col items-start justify-start">
                                     <Text variant="titleLarge">Invite Requests</Text>
-                                    {requests && requests.filter((req) => req.status === "sent").length > 0 ?
+                                    {requests && requests.length > 0 ?
                                         <ScrollView>
-                                            {requests.filter((req) => req.status === "sent").map((req, i) => (
+                                            {requests.sort((a, b) => b.created_at.getTime() - a.created_at.getTime()).map((req, i) => (
                                                 <Card key={i}>
                                                     <Card.Content className="flex flex-row w-full justify-between items-center">
                                                         <View className="flex flex-row items-center gap-5">

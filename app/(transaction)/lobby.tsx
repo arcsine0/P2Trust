@@ -11,7 +11,8 @@ import { router } from "expo-router";
 import { supabase } from "@/supabase/config";
 
 import { useUserData } from "@/lib/context/UserContext";
-import { RoomData, UserData } from "@/lib/helpers/types"
+import { useMerchantData } from "@/lib/context/MerchantContext";
+import { RoomData, UserData } from "@/lib/helpers/types";
 
 const getInitials = (name: string) => {
     if (name) {
@@ -53,9 +54,6 @@ const sendPushNotification = async (pushToken: string, name: string) => {
 export default function TransactionLobbyScreen() {
     const [roomID, setRoomID] = useState("");
 
-    const [merchantID, setMerchantID] = useState("");
-    const [merchantData, setMerchantData] = useState<UserData | undefined>(undefined);
-
     const [requestState, setRequestState] = useState("Transact");
     const [requestDisabled, setRequestDisabled] = useState(false);
     const [requestSnackVisible, setRequestSnackVisible] = useState(false);
@@ -65,108 +63,57 @@ export default function TransactionLobbyScreen() {
     const [joinVisible, setJoinVisible] = useState(false);
 
     const { userData } = useUserData();
+    const { merchantData } = useMerchantData();
 
     const notificationsListener = useRef<Notifications.Subscription>();
     const responseListener = useRef<Notifications.Subscription>();
 
-    const getMerchantID = async () => {
-        const merchantIDAsync = await AsyncStorage.getItem("merchantID");
-        if (merchantIDAsync) {
-            setMerchantID(merchantIDAsync);
-
-            const { data, error } = await supabase
-                .from("accounts")
-                .select()
-                .eq("id", merchantIDAsync)
-
-            if (!error) {
-                setMerchantData({ ...data[0] } as UserData);
-            }
-        }
-    }
+    const requestsChannel = supabase.channel(`requests_channel_${merchantData?.id}`);
 
     const requestTransaction = async () => {
         if (userData && merchantData) {
-            // const { error } = await supabase
-            //     .from("requests")
-            //     .insert({
-            //         status: "sent",
-            //         sender_id: userData.id,
-            //         sender_name: userData.username,
-            //         receiver_id: merchantData.id,
-            //         sender_push_token: userData.push_token,
-            //     });
+            requestsChannel
+                .on("broadcast", { event: "queued" }, (payload) => {
+                    const payloadData = payload.payload;
 
-            // if (!error) {
-            //     sendPushNotification(merchantData.push_token, userData.username);
-            //     setRequestState("Request Sent");
-            //     setRequestDisabled(true);
+                    if (payloadData.sender_id === userData.id) {
+                        setRequestState("Queued");
+                        setRequestDisabled(true);
 
-            //     const requestListener = supabase
-            //         .channel("request_channel")
-            //         .on("postgres_changes", { event: "UPDATE", schema: "public", table: "requests" }, async (payload) => {
-            //             const { data, error } = await supabase
-            //                 .from("requests")
-            //                 .select("status")
-            //                 .eq("sender_id", userData.id)
+                        setJoinVisible(true);
+                    }
+                })
+                .on("broadcast", { event: "accepted" }, (payload) => {
+                    const payloadData = payload.payload;
 
-            //             if (!error) {
-            //                 switch (data[0].status) {
-            //                     case "queued":
-            //                         setRequestState("Queued");
-            //                         setJoinVisible(true);
+                    if (payloadData.sender_id === userData.id) {
+                        setRequestState("Request Accepted");
+                        setJoinState("Join Room");
+                        setJoinDisabled(false);
 
-            //                         break;
-            //                     case "room_hosted":
-            //                         setRequestState("Request Accepted");
-            //                         setJoinState("Join Room");
-                                    
-            //                         break;
-            //                     default:
-            //                         break;
-            //                 }
-            //             } else {
-            //                 console.log(error);
-            //             }
-            //         })
-            //         .on("postgres_changes", { event: "DELETE", schema: "public", table: "requests" }, async (payload) => {
-            //             const { data, error } = await supabase
-            //                 .from("requests")
-            //                 .select("status")
-            //                 .eq("sender_id", userData.id)
+                        setRoomID(payloadData.room_id);
+                    }
+                })
+                .on("broadcast", { event: "rejected" }, (payload) => {
+                    const payloadData = payload.payload;
 
-            //             if (!error) {
-            //                 if (data.length === 0) {
-            //                     setRequestState("Transact");
-            //                     setRequestDisabled(false);
-            //                     setRequestSnackVisible(true);
+                    if (payloadData.sender_id === userData.id) {
+                        setRequestState("Transact");
+                        setRequestDisabled(false);
+                        setRequestSnackVisible(true);
 
-            //                     setJoinVisible(false);
-            //                     setJoinState("Waiting for Host...");
-            //                     setJoinDisabled(true);
-
-
-            //                     requestListener.unsubscribe();
-            //                     supabase.removeChannel(requestListener);
-            //                 }
-            //             } else {
-            //                 console.log(error);
-            //             }
-            //         })
-            //         .subscribe()
-            // }
-            const requestChannel = supabase.channel(`request_channel_${merchantData.id}`);
-            
-            requestChannel
-                .on("broadcast", { event: "request" }, (payload) => {
-                    
+                        setJoinVisible(false);
+                        setJoinState("Waiting for Host...");
+                        setJoinDisabled(true);
+                    }
                 })
                 .subscribe((status) => {
                     if (status === "SUBSCRIBED") {
-                        requestChannel.send({
+                        requestsChannel.send({
                             type: "broadcast",
                             event: "request",
                             payload: {
+                                created_at: Date,
                                 sender_id: userData.id,
                                 sender_name: userData.username,
                             }
@@ -190,16 +137,12 @@ export default function TransactionLobbyScreen() {
     }
 
     useEffect(() => {
-        getMerchantID();
-
         notificationsListener.current = Notifications.addNotificationReceivedListener((notification) => {
-            console.log(notification.request.content.data.roomID)
-            setRoomID(notification.request.content.data.roomID);
-            setJoinDisabled(false);
+            
         });
 
         responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
-            // console.log(response);
+           
         });
 
         return () => {
@@ -251,7 +194,7 @@ export default function TransactionLobbyScreen() {
                         >
                             {joinState}
                         </Button>
-                    : null}
+                        : null}
                     {/* <Card>
                         <Card.Content>
                             <Text variant="bodyMedium">data to be placed here</Text>

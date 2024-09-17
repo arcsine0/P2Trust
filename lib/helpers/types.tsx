@@ -13,13 +13,9 @@ export type RoomData = {
 }
 
 export type Request = {
-    id: string;
     created_at: Date;
-    status: string;
     sender_id: string;
     sender_name: string;
-    receiver_id: string;
-    sender_push_token: string;
 }
 
 export type Interaction =

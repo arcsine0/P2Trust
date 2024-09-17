@@ -1,7 +1,9 @@
 import { Stack } from "expo-router";
+import { MerchantProvider } from "@/lib/context/MerchantContext";
 
 export default function TransactionLayout() {
     return (
+        <MerchantProvider>
             <Stack screenOptions={{ headerShown: true }}>
                 <Stack.Screen
                     name="index"
@@ -21,5 +23,6 @@ export default function TransactionLayout() {
                 />
                 {/* Add more Stack.Screen components for other transaction screens */}
             </Stack>
+        </MerchantProvider>
     );
 }
