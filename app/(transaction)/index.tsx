@@ -10,51 +10,14 @@ import * as Notifications from "expo-notifications";
 import { supabase } from "@/supabase/config";
 
 import { useUserData } from "@/lib/context/UserContext";
+import { useMerchantData } from "@/lib/context/MerchantContext";
+
 import { Request } from "@/lib/helpers/types";
+import { getInitials } from "@/lib/helpers/functions";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import QRCode from "react-qr-code";
-
-const getInitials = (name: string) => {
-    if (name) {
-        const words = name.trim().split(" ");
-        let initials = "";
-
-        for (let i = 0; i < Math.min(words.length, 2); i++) {
-            if (words[i].length > 0) {
-                initials += words[i][0].toUpperCase();
-            }
-        }
-
-        return initials;
-    } else {
-        return "N/A"
-    }
-}
-
-const sendPushNotification = async (pushToken: string, name: string, roomID: string) => {
-    const message = {
-        to: pushToken,
-        sound: "default",
-        title: `${name} has joined the room`,
-        body: "Join the room to start the transaction!",
-        data: {
-            roomID: roomID,
-        }
-    };
-
-    await fetch("https://exp.host/--/api/v2/push/send", {
-        method: "POST",
-        headers: {
-            Accept: "application/json",
-            "Accept-encoding": "gzip, deflate",
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(message),
-    })
-        .catch(err => console.log(err));
-}
 
 export default function TransactionHomeScreen() {
     const [roomID, setRoomID] = useState("");
@@ -64,6 +27,7 @@ export default function TransactionHomeScreen() {
     const [showBadge, setShowBadge] = useState(false);
 
     const { userData, requests, setRequests, queue, setQueue } = useUserData();
+    const { setMerchantData } = useMerchantData();
 
     const isFocused = useIsFocused();
     const wasFocused = useRef(false);
@@ -125,36 +89,28 @@ export default function TransactionHomeScreen() {
     }
 
     const createRoom = async () => {
-        if (requests && queue) {
+        if (requests && queue && userData) {
             const currentRequest = queue.sort((a, b) => b.created_at.getTime() - a.created_at.getTime())[0];
-            const { error } = await supabase
-                .from("requests")
-                .update({ status: "room_hosted" })
-                .eq("sender_id", currentRequest.sender_id)
+            const roomID = `H:${userData.id}_C:${currentRequest.sender_id}`;
 
-            if (!error) {
-                const { data, error } = await supabase
-                    .from("rooms")
-                    .insert({
-                        user_1_id: userData?.id,
-                        user_2_id: currentRequest.sender_id,
-                        user_1_name: userData?.username,
-                        user_2_name: currentRequest.sender_name,
-                    })
-                    .select();
+            const { data, error } = await supabase
+                .from("accounts")
+                .select("*")
+                .eq("id", currentRequest.sender_id);
 
-                if (!error && data && userData) {
-                    requestsChannel.send({
-                        type: "broadcast",
-                        event: "accepted",
-                        payload: {
-                            sender_id: currentRequest.sender_id,
-                            room_id: data[0].id,
-                        }
-                    })
+            if (!error && data) {
+                setMerchantData(data[0]);
 
-                    router.navigate(`/(transaction)/room/${data[0].id}`);
-                }
+                requestsChannel.send({
+                    type: "broadcast",
+                    event: "accepted",
+                    payload: {
+                        sender_id: currentRequest.sender_id,
+                        room_id: roomID,
+                    }
+                }).then(() => {
+                    router.navigate(`/(transaction)/room/${roomID}`);
+                });
             }
         }
     }
@@ -174,20 +130,7 @@ export default function TransactionHomeScreen() {
             })
             .subscribe();
 
-        notificationsListener.current = Notifications.addNotificationReceivedListener((notification) => {
-            // console.log(notification.request.content.data)
-        });
-
-        responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
-            console.log(response);
-        });
-
         return () => {
-            notificationsListener.current &&
-                Notifications.removeNotificationSubscription(notificationsListener.current);
-            responseListener.current &&
-                Notifications.removeNotificationSubscription(responseListener.current);
-
             // requestChannel.unsubscribe();
         };
     }, []);

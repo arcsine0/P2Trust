@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useWindowDimensions, Platform, View, KeyboardAvoidingView, FlatList, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme, Text, TextInput, Avatar, Chip, IconButton, Card, Button, List } from "react-native-paper";
+import { useTheme, Text, TextInput, Avatar, Chip, IconButton, Card, Button, Menu } from "react-native-paper";
 import { Dropdown } from "react-native-element-dropdown";
 import { NativeViewGestureHandler } from "react-native-gesture-handler";
 import { TabView, SceneMap, TabBar } from "react-native-tab-view";
@@ -10,7 +10,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { router, useLocalSearchParams } from "expo-router";
 
-import { BottomSheetModal, BottomSheetView, BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+import { BottomSheetModal, BottomSheetView, BottomSheetBackdrop, BottomSheetBackdropProps } from "@gorhom/bottom-sheet";
 
 import { supabase } from "@/supabase/config";
 
@@ -51,8 +51,9 @@ export default function TransactionRoomScreen() {
 		merchantName: undefined as string | undefined,
 	});
 
-	const [showActions, setShowActions] = useState(false);
+	const [showActionsMenu, setShowActionsMenu] = useState(false);
 
+	const [actionsModalRoute, setActionsModalRoute] = useState("RequestPayment");
 	const actionsModalRef = useRef<BottomSheetModal>(null);
 
 	const { userData } = useUserData();
@@ -101,7 +102,7 @@ export default function TransactionRoomScreen() {
 				merchantName: '',
 			});
 
-			setShowActions(false);
+			actionsModalRef.current?.close();
 		});
 	}
 
@@ -180,6 +181,13 @@ export default function TransactionRoomScreen() {
 		}
 	}
 
+	const showActionsModal = (route: string) => {
+		setActionsModalRoute(route);
+		setShowActionsMenu(false);
+
+		actionsModalRef.current?.present();
+	}
+
 	useEffect(() => {
 		getRoomData();
 		setInteractions([]);
@@ -194,30 +202,15 @@ export default function TransactionRoomScreen() {
 
 	const RequestPaymentRoute = () => (
 		<View className="flex flex-col w-full p-2 items-center justify-start">
-			<ScrollView
-				className="w-full"
-				contentContainerStyle={{ flexGrow: 1, rowGap: 8 }}
-			>
+			<View className="flex flex-col w-full gap-2">
 				<Text variant="titleMedium">Transaction Details</Text>
-				<View className="flex flex-row w-full gap-2 items-center justify-center">
-					{/* <Dropdown
-						style={{ borderWidth: 0.5, borderRadius: 8 }}
-						data={Currencies}
-						value={paymentCurrency}
-						onChange={value => setPaymentCurrency(value.value)}
-						labelField="label"
-						valueField="value"
-					/> */}
-					<View className="w-full">
-						<TextInput
-							className="rounded-lg overflow-scroll"
-							label="Amount"
-							value={paymentDetails.amount?.toString()}
-							onChangeText={text => setPaymentDetails({ ...paymentDetails, amount: parseFloat(text) })}
-							keyboardType="numeric"
-						/>
-					</View>
-				</View>
+				<TextInput
+					className="rounded-lg overflow-scroll"
+					label="Amount"
+					value={paymentDetails.amount?.toString()}
+					onChangeText={text => setPaymentDetails({ ...paymentDetails, amount: parseFloat(text) })}
+					keyboardType="numeric"
+				/>
 				<Dropdown
 					style={{ borderWidth: 0.5, borderRadius: 8, padding: 10, backgroundColor: theme.colors.primaryContainer }}
 					data={PaymentPlatforms}
@@ -250,7 +243,7 @@ export default function TransactionRoomScreen() {
 				>
 					Send Request
 				</Button>
-			</ScrollView>
+			</View>
 		</View>
 	)
 
@@ -266,13 +259,16 @@ export default function TransactionRoomScreen() {
 		</View>
 	)
 
-	// Actions Tabs
-	const [tabIndex, setTabIndex] = useState(0);
-	const [tabRoutes] = useState([
-		{ key: "RequestPayment", title: "Request Payment" },
-		{ key: "SendPayment", title: "Send Payment" },
-		{ key: "SendProof", title: "Send Proof" },
-	]);
+	const renderBackdrop = useCallback(
+		(props: BottomSheetBackdropProps) => (
+			<BottomSheetBackdrop 
+				{...props}
+				pressBehavior="close"
+				appearsOnIndex={0}
+				opacity={0.75}
+			/>
+		), []
+	);
 
 	return (
 
@@ -420,62 +416,49 @@ export default function TransactionRoomScreen() {
 						>
 							Send
 						</Button>
-						<Button
-							className="rounded-lg w-full"
-							icon={"information"}
-							mode="contained"
-							onPress={() => actionsModalRef.current?.present()}
-						>
-							Actions
-						</Button>
+						<Menu
+							visible={showActionsMenu}
+							onDismiss={() => setShowActionsMenu(false)}
+							anchor={
+								<Button
+									className="rounded-lg w-full"
+									icon={"information"}
+									mode="contained"
+									onPress={() => setShowActionsMenu(true)}
+								>
+									Actions
+								</Button>
+							}>
+							<Menu.Item 
+								onPress={() => showActionsModal("RequestPayment")} 
+								title="Request Payments" 
+								leadingIcon="cash-plus"
+							/>
+							<Menu.Item 
+								onPress={() => showActionsModal("SendPayment")} 
+								title="Send Payments" 
+								leadingIcon="cash-fast"
+							/>
+							<Menu.Item 
+								onPress={() => showActionsModal("SendProof")} 
+								title="Send Proof" 
+								leadingIcon="account-cash"
+							/>
+						</Menu>
+
 					</View>
 				</View>
-				{/* {showActions &&
-					<TabView
-						navigationState={{ index: tabIndex, routes: tabRoutes }}
-						renderScene={SceneMap({
-							RequestPayment: RequestPaymentRoute,
-							SendPayment: SendPaymentRoute,
-							SendProof: SendProofRoute,
-						})}
-						onIndexChange={index => setTabIndex(index)}
-						initialLayout={{ width: layout.width }}
-						renderTabBar={props => <TabBar {...props}
-							style={{ backgroundColor: theme.colors.primary, borderRadius: 8 }}
-							indicatorStyle={{ backgroundColor: theme.colors.background }}
-							scrollEnabled={true}
-							renderLabel={({ route }) => (
-								<Text style={{ color: theme.colors.background }}>{route.title}</Text>
-							)}
-						/>}
-					/>
-				} */}
 				<BottomSheetModal
 					ref={actionsModalRef}
 					index={0}
-					snapPoints={["50%"]}
+					snapPoints={["60%"]}
 					enablePanDownToClose={true}
+					backdropComponent={renderBackdrop}
 				>
 					<BottomSheetView>
-						<Text>Test</Text>
-						<TabView
-							navigationState={{ index: tabIndex, routes: tabRoutes }}
-							renderScene={SceneMap({
-								RequestPayment: RequestPaymentRoute,
-								SendPayment: SendPaymentRoute,
-								SendProof: SendProofRoute,
-							})}
-							onIndexChange={index => setTabIndex(index)}
-							initialLayout={{ width: layout.width }}
-							renderTabBar={props => <TabBar {...props}
-								style={{ backgroundColor: theme.colors.primary, borderRadius: 8 }}
-								indicatorStyle={{ backgroundColor: theme.colors.background }}
-								scrollEnabled={true}
-								renderLabel={({ route }) => (
-									<Text style={{ color: theme.colors.background }}>{route.title}</Text>
-								)}
-							/>}
-						/>
+						{actionsModalRoute === "RequestPayment" && RequestPaymentRoute()}
+						{actionsModalRoute === "SendPayment" && SendPaymentRoute()}
+						{actionsModalRoute === "SendProof" && SendProofRoute()}
 					</BottomSheetView>
 				</BottomSheetModal>
 			</KeyboardAvoidingView>
