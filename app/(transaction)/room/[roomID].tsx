@@ -200,6 +200,14 @@ export default function TransactionRoomScreen() {
 			(a, b) => a.timestamp.getTime() - b.timestamp.getTime()
 		));
 
+		const platforms = interactions?.filter(inter => inter.type === "payment").map((inter) => {
+			if (inter.data.eventType === "payment_requested") {
+				return inter.data.platform;
+			} else {
+				return "";
+			}
+		}).filter((value, index, self) => self.indexOf(value) === index) as string[];
+
 		const { error } = await supabase
 			.from("transactions")
 			.insert({
@@ -213,6 +221,7 @@ export default function TransactionRoomScreen() {
 					username: role === "merchant" ? merchantData?.username : userData?.username,
 				}),
 				status: "complete",
+				platforms: platforms,
 				timeline: interactionsJSON,
 			});
 

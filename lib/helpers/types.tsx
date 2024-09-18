@@ -17,10 +17,10 @@ export type Transaction = {
 	created_at: Date;
 	merchant: string;
 	client: string;
-	amount: number;
-	platform: string;
+	total_amount: number;
 	status: string;
-	room_id: string;
+    platforms: string[];
+    timeline: string;
 }
 
 export type Request = {
