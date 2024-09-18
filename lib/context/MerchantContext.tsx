@@ -3,17 +3,23 @@ import { UserData } from "@/lib/helpers/types";
 
 const MerchantContext = createContext<{
     merchantData: UserData | null;
+    role: "client" | "merchant";
     setMerchantData: Dispatch<SetStateAction<UserData | null>>;
+    setRole: Dispatch<SetStateAction<"client" | "merchant">>
 }>({ 
     merchantData: null, 
-    setMerchantData: () => {} 
+    role: "client",
+    setMerchantData: () => {},
+    setRole: () => {},
 });
 
 export const MerchantProvider: FC<{ children: ReactNode }> = ({ children }) => { 
     const [merchantData, setMerchantData] = useState<UserData | null>(null);
+    const [role, setRole] = useState<"client" | "merchant">("client");
+
 
     return (
-        <MerchantContext.Provider value={{ merchantData, setMerchantData }}>
+        <MerchantContext.Provider value={{ merchantData, setMerchantData, role, setRole }}>
             {children}
         </MerchantContext.Provider>
     );

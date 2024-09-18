@@ -27,7 +27,7 @@ export default function TransactionHomeScreen() {
     const [showBadge, setShowBadge] = useState(false);
 
     const { userData, requests, setRequests, queue, setQueue } = useUserData();
-    const { setMerchantData } = useMerchantData();
+    const { setMerchantData, setRole } = useMerchantData();
 
     const isFocused = useIsFocused();
     const wasFocused = useRef(false);
@@ -109,6 +109,8 @@ export default function TransactionHomeScreen() {
                         room_id: roomID,
                     }
                 }).then(() => {
+                    setRole("merchant");
+
                     router.navigate(`/(transaction)/room/${roomID}`);
                 });
             }

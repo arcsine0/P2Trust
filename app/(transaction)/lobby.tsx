@@ -63,7 +63,7 @@ export default function TransactionLobbyScreen() {
     const [joinVisible, setJoinVisible] = useState(false);
 
     const { userData } = useUserData();
-    const { merchantData } = useMerchantData();
+    const { merchantData, setRole } = useMerchantData();
 
     const notificationsListener = useRef<Notifications.Subscription>();
     const responseListener = useRef<Notifications.Subscription>();
@@ -131,6 +131,8 @@ export default function TransactionLobbyScreen() {
                 .eq("sender_id", userData.id);
 
             if (!error) {
+                setRole("client");
+
                 router.navigate(`/(transaction)/room/${roomID}`);
             }
         }

@@ -74,4 +74,12 @@ export type Interaction =
     data: {
         submissionId: string;
     };
+}
+| {
+    timestamp: Date;
+    type: "transaction";
+    from: string;
+    data: {
+        eventType: "transaction_started" | "transaction_completed" | "transaction_failed",
+    };
 };

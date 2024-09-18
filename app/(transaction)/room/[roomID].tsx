@@ -41,8 +41,8 @@ export default function TransactionRoomScreen() {
 	const [actionsModalRoute, setActionsModalRoute] = useState("RequestPayment");
 	const actionsModalRef = useRef<BottomSheetModal>(null);
 
-	const { userData } = useUserData();
-	const { merchantData } = useMerchantData();
+	const { userData, setQueue } = useUserData();
+	const { merchantData, role } = useMerchantData();
 
 	const { roomID } = useLocalSearchParams<{ roomID: string }>();
 	const layout = useWindowDimensions();
@@ -148,6 +148,33 @@ export default function TransactionRoomScreen() {
 							default: break;
 						}
 					})
+					.on("broadcast", { event: "transaction" }, async (payload) => {
+						const payloadData = payload.payload;
+
+						switch (payloadData.data.eventType) {
+							case "transaction_started":
+								break;
+							case "transaction_completed":
+								interactionsChannel.unsubscribe();
+								supabase.removeChannel(interactionsChannel);
+
+								setQueue(prevQueue => {
+									if (prevQueue) {
+										return prevQueue.filter(req => req.sender_id !== merchantData?.id);
+									} else {
+										return [];
+									}
+								});
+
+								router.navigate("/(transaction)");
+
+								break;
+							case "transaction_cancelled":
+								break;
+							default: break;
+						};
+
+					})
 					.subscribe(async (status) => {
 						if (status === "SUBSCRIBED") {
 							await interactionsChannel.track({ online_at: new Date().toISOString() });
@@ -173,9 +200,37 @@ export default function TransactionRoomScreen() {
 			(a, b) => a.timestamp.getTime() - b.timestamp.getTime()
 		));
 
-		setShowFinishDialog(false);
+		const { error } = await supabase
+			.from("transactions")
+			.insert({
+				total_amount: 0,
+				merchant: JSON.stringify({
+					id: role === "merchant" ? userData?.id : merchantData?.id,
+					username: role === "merchant" ? userData?.username : merchantData?.username,
+				}),
+				client: JSON.stringify({
+					id: role === "merchant" ? merchantData?.id : userData?.id,
+					username: role === "merchant" ? merchantData?.username : userData?.username,
+				}),
+				status: "complete",
+				timeline: interactionsJSON,
+			});
 
-		console.log(interactionsJSON);
+		if (!error) {
+			setShowFinishDialog(false);
+
+			interactionsChannel.send({
+				type: "broadcast",
+				event: "transaction",
+				payload: {
+					data: {
+						eventType: "transaction_completed",
+					}
+				}
+			});
+		} else {
+			console.log(error);
+		}
 	}
 
 	const showActionsModal = (route: string) => {
