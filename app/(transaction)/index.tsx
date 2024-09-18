@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef, useContext } from "react";
 import { View, ScrollView } from "react-native";
-import { useTheme, Text, Avatar, Portal, Modal, Icon, IconButton, Card, Button, TouchableRipple, Badge } from "react-native-paper";
+import { useTheme, Text, Avatar, Chip, Icon, IconButton, Card, Button, TouchableRipple, Badge } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useIsFocused } from "@react-navigation/native";
 
 import { router, useFocusEffect } from "expo-router";
 import * as Notifications from "expo-notifications";
+
+import { BottomSheetModal, BottomSheetView, BottomSheetScrollView } from "@gorhom/bottom-sheet";
 
 import { supabase } from "@/supabase/config";
 
@@ -36,13 +38,14 @@ export default function TransactionHomeScreen() {
     const responseListener = useRef<Notifications.Subscription>();
 
     const theme = useTheme();
+    const requestsModalRef = useRef<BottomSheetModal>(null);
 
     const requestsChannel = supabase.channel(`requests_channel_${userData?.id}`);
 
     const acceptRequest = async (sender: string) => {
         if (requests) {
             console.log("Accepting request of", sender);
-        
+
             requestsChannel.send({
                 type: "broadcast",
                 event: "queued",
@@ -136,7 +139,7 @@ export default function TransactionHomeScreen() {
             // requestChannel.unsubscribe();
         };
     }, []);
-    
+
     return (
         <SafeAreaView className="flex flex-col w-screen h-screen gap-2 px-4 items-start justify-start">
             {userData ?
@@ -173,9 +176,9 @@ export default function TransactionHomeScreen() {
                     <View className="w-full flex flex-row gap-1 items-center justify-center">
                         <TouchableRipple
                             className="flex p-4 items-center justify-center rounded-lg"
-                            style={{ backgroundColor: theme.colors.primary }}
+                            style={{ backgroundColor: showBadge ? theme.colors.primary + "4D" : theme.colors.primary }}
                             onPress={() => {
-                                setShowRequests(!showRequests);
+                                requestsModalRef.current?.present();
                                 setShowBadge(false);
                             }}
                         >
@@ -185,9 +188,6 @@ export default function TransactionHomeScreen() {
                                     color={theme.colors.background}
                                     size={25}
                                 />
-                                {showBadge ?
-                                    <Badge></Badge>
-                                    : null}
                             </View>
                         </TouchableRipple>
                         <TouchableRipple
@@ -222,18 +222,19 @@ export default function TransactionHomeScreen() {
                                 /> */}
                             </View>
                         </TouchableRipple>
-                        <Portal>
-                            <Modal
-                                visible={showRequests}
-                                onDismiss={() => setShowRequests(false)}
-                                style={{ backgroundColor: theme.colors.background, width: "80%", height: "50%", borderRadius: 8, padding: 8, alignSelf: "center" }}
-                            >
-                                <View className="flex flex-col items-start justify-start">
-                                    <Text variant="titleLarge">Invite Requests</Text>
+                        <BottomSheetModal
+                            ref={requestsModalRef}
+                            index={0}
+                            snapPoints={["45%"]}
+                            enablePanDownToClose={true}
+                        >
+                            <BottomSheetView>
+                                <View className="flex flex-col w-full p-2 gap-2 items-start justify-start">
+                                    <Text variant="titleLarge" className="font-bold">Invite Requests</Text>
                                     {requests && requests.length > 0 ?
                                         <ScrollView>
                                             {requests.sort((a, b) => b.created_at.getTime() - a.created_at.getTime()).map((req, i) => (
-                                                <Card key={i}>
+                                                <Card key={i} className="rounded-lg">
                                                     <Card.Content className="flex flex-row w-full justify-between items-center">
                                                         <View className="flex flex-row items-center gap-5">
                                                             <Avatar.Text label={getInitials(req.sender_name)} size={35} />
@@ -260,11 +261,11 @@ export default function TransactionHomeScreen() {
                                             ))}
                                         </ScrollView>
                                         :
-                                        <Text variant="titleLarge">No Invite Requests</Text>
+                                        <Chip>No Invite Requests</Chip>
                                     }
                                 </View>
-                            </Modal>
-                        </Portal>
+                            </BottomSheetView>
+                        </BottomSheetModal>
                     </View>
                 </View>
                 : null}
