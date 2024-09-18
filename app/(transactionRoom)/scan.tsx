@@ -35,7 +35,7 @@ export default function TransactionScanScreen() {
 
 			if (!error) {
 				setMerchantData(data[0]);
-				router.navigate("/(transaction)/lobby")
+				router.navigate("/(transactionRoom)/lobby")
 			} else {
 				console.log(error);
 				setHasScanned(false);

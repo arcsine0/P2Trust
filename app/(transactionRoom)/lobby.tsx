@@ -133,7 +133,7 @@ export default function TransactionLobbyScreen() {
             if (!error) {
                 setRole("client");
 
-                router.navigate(`/(transaction)/room/${roomID}`);
+                router.navigate(`/(transactionRoom)/room/${roomID}`);
             }
         }
     }

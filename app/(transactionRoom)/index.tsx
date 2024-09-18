@@ -114,7 +114,7 @@ export default function TransactionHomeScreen() {
                 }).then(() => {
                     setRole("merchant");
 
-                    router.navigate(`/(transaction)/room/${roomID}`);
+                    router.navigate(`/(transactionRoom)/room/${roomID}`);
                 });
             }
         }
@@ -167,7 +167,7 @@ export default function TransactionHomeScreen() {
                             <Button
                                 icon={"qrcode-scan"}
                                 mode="contained"
-                                onPress={() => router.navigate("/(transaction)/scan")}
+                                onPress={() => router.navigate("/(transactionRoom)/scan")}
                             >
                                 Scan QR Code
                             </Button>

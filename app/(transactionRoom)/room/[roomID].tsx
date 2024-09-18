@@ -166,7 +166,7 @@ export default function TransactionRoomScreen() {
 									}
 								});
 
-								router.navigate("/(transaction)");
+								router.navigate("/(transactionRoom)");
 
 								break;
 							case "transaction_cancelled":
