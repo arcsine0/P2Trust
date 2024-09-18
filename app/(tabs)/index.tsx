@@ -11,6 +11,7 @@ import { router } from "expo-router";
 import { supabase } from "@/supabase/config";
 
 import { useUserData } from "@/lib/context/UserContext";
+import { Transaction } from "@/lib/helpers/types";
 
 import { MaterialCommunityIcons as MCI } from "@expo/vector-icons";
 
@@ -27,16 +28,6 @@ type Props = {
 	navigation: HomeScreenNavigationProp;
 };
 
-type Transaction = {
-	id: string;
-	created_at: Date;
-	merchant: string;
-	client: string;
-	amount: number;
-	platform: string;
-	status: string;
-	room_id: string;
-}
 
 const getInitials = (name: string) => {
 	if (name) {

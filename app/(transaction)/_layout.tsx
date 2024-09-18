@@ -29,27 +29,7 @@ export default function TransactionLayout() {
                     options={{
                         headerBackVisible: false,
                         headerTitle: "",
-                        headerLeft: () => (
-                            <View className="flex flex-row gap-2 items-center justify-start">
-                                {merchantData ?
-                                    <Avatar.Text label={getInitials(merchantData.username)} size={30} />
-
-                                : 
-                                    <Avatar.Text label="N/A" size={30} />
-                                }
-                                <Text variant="titleMedium">{merchantData?.username || "N/A"}</Text>
-                            </View>
-                        ),
-                        headerRight: () => (
-                            <Button
-                                className="rounded-lg"
-                                icon="check-all"
-                                mode="contained"
-                                onPress={() => { }}
-                            >
-                                Finish
-                            </Button>
-                        )
+                        
                     }}
                 />
                 {/* Add more Stack.Screen components for other transaction screens */}

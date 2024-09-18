@@ -19,8 +19,6 @@ type TabParamList = {
 
 const Tab = createBottomTabNavigator<TabParamList>();
 
-const UserContext = createContext(null);
-
 export default function TabLayout() {
 	const theme = useTheme();
 

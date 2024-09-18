@@ -1,12 +1,10 @@
+import { useNavigation } from "expo-router";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useWindowDimensions, Platform, View, KeyboardAvoidingView, FlatList, ScrollView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme, Text, TextInput, Avatar, Chip, IconButton, Card, Button, Menu } from "react-native-paper";
-import { Dropdown } from "react-native-element-dropdown";
-import { NativeViewGestureHandler } from "react-native-gesture-handler";
-import { TabView, SceneMap, TabBar } from "react-native-tab-view";
+import { useWindowDimensions, Platform, View, KeyboardAvoidingView, FlatList } from "react-native";
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useTheme, Text, TextInput, Avatar, Chip, Card, Button, Menu, Dialog, Portal } from "react-native-paper";
+import { Dropdown } from "react-native-element-dropdown";
 
 import { router, useLocalSearchParams } from "expo-router";
 
@@ -15,27 +13,13 @@ import { BottomSheetModal, BottomSheetView, BottomSheetBackdrop, BottomSheetBack
 import { supabase } from "@/supabase/config";
 
 import { useUserData } from "@/lib/context/UserContext";
+import { useMerchantData } from "@/lib/context/MerchantContext";
+
 import { Interaction } from "@/lib/helpers/types";
 import { Currencies, PaymentPlatforms } from "@/lib/helpers/collections";
 
 import { Float } from "react-native/Libraries/Types/CodegenTypes";
-
-const getInitials = (name: string) => {
-	if (name) {
-		const words = name.trim().split(" ");
-		let initials = "";
-
-		for (let i = 0; i < Math.min(words.length, 2); i++) {
-			if (words[i].length > 0) {
-				initials += words[i][0].toUpperCase();
-			}
-		}
-
-		return initials;
-	} else {
-		return "N/A"
-	}
-}
+import { getInitials } from "@/lib/helpers/functions";
 
 export default function TransactionRoomScreen() {
 	const [interactions, setInteractions] = useState<Interaction[] | undefined>([]);
@@ -52,15 +36,18 @@ export default function TransactionRoomScreen() {
 	});
 
 	const [showActionsMenu, setShowActionsMenu] = useState(false);
+	const [showFinishDialog, setShowFinishDialog] = useState(false);
 
 	const [actionsModalRoute, setActionsModalRoute] = useState("RequestPayment");
 	const actionsModalRef = useRef<BottomSheetModal>(null);
 
 	const { userData } = useUserData();
+	const { merchantData } = useMerchantData();
 
 	const { roomID } = useLocalSearchParams<{ roomID: string }>();
 	const layout = useWindowDimensions();
 	const theme = useTheme();
+	const navigation = useNavigation();
 
 	const interactionsChannel = supabase.channel(`room_${roomID}`);
 
@@ -181,6 +168,16 @@ export default function TransactionRoomScreen() {
 		}
 	}
 
+	const finishTransaction = async () => {
+		const interactionsJSON = JSON.stringify(interactions?.sort(
+			(a, b) => a.timestamp.getTime() - b.timestamp.getTime()
+		));
+
+		setShowFinishDialog(false);
+
+		console.log(interactionsJSON);
+	}
+
 	const showActionsModal = (route: string) => {
 		setActionsModalRoute(route);
 		setShowActionsMenu(false);
@@ -192,7 +189,28 @@ export default function TransactionRoomScreen() {
 		getRoomData();
 		setInteractions([]);
 
-		// console.log(`room_${roomID}`)
+		navigation.setOptions({
+			headerLeft: () => (
+				<View className="flex flex-row gap-2 items-center justify-start">
+					{merchantData ?
+						<Avatar.Text label={getInitials(merchantData.username)} size={30} />
+						:
+						<Avatar.Text label="N/A" size={30} />
+					}
+					<Text variant="titleMedium">{merchantData?.username || "N/A"}</Text>
+				</View>
+			),
+			headerRight: () => (
+				<Button
+					className="rounded-lg"
+					icon="check-all"
+					mode="contained"
+					onPress={() => setShowFinishDialog(true)}
+				>
+					Finish
+				</Button>
+			)
+		})
 
 		return () => {
 			interactionsChannel.unsubscribe();
@@ -261,7 +279,7 @@ export default function TransactionRoomScreen() {
 
 	const renderBackdrop = useCallback(
 		(props: BottomSheetBackdropProps) => (
-			<BottomSheetBackdrop 
+			<BottomSheetBackdrop
 				{...props}
 				pressBehavior="close"
 				appearsOnIndex={0}
@@ -271,7 +289,6 @@ export default function TransactionRoomScreen() {
 	);
 
 	return (
-
 		<SafeAreaView className="flex flex-col w-full h-full px-2 pb-2 items-start justify-start">
 			<KeyboardAvoidingView
 				behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -429,19 +446,19 @@ export default function TransactionRoomScreen() {
 									Actions
 								</Button>
 							}>
-							<Menu.Item 
-								onPress={() => showActionsModal("RequestPayment")} 
-								title="Request Payments" 
+							<Menu.Item
+								onPress={() => showActionsModal("RequestPayment")}
+								title="Request Payments"
 								leadingIcon="cash-plus"
 							/>
-							<Menu.Item 
-								onPress={() => showActionsModal("SendPayment")} 
-								title="Send Payments" 
+							<Menu.Item
+								onPress={() => showActionsModal("SendPayment")}
+								title="Send Payments"
 								leadingIcon="cash-fast"
 							/>
-							<Menu.Item 
-								onPress={() => showActionsModal("SendProof")} 
-								title="Send Proof" 
+							<Menu.Item
+								onPress={() => showActionsModal("SendProof")}
+								title="Send Proof"
 								leadingIcon="account-cash"
 							/>
 						</Menu>
@@ -461,6 +478,22 @@ export default function TransactionRoomScreen() {
 						{actionsModalRoute === "SendProof" && SendProofRoute()}
 					</BottomSheetView>
 				</BottomSheetModal>
+				<Portal>
+					<Dialog visible={showFinishDialog} onDismiss={() => setShowFinishDialog(false)}>
+						<Dialog.Title>
+							<Chip style={{ backgroundColor: theme.colors.error }}>
+								<Text style={{ color: theme.colors.background }}>Warning</Text>
+							</Chip>
+						</Dialog.Title>
+						<Dialog.Content>
+							<Text variant="bodyMedium">Are you sure you want to finish the transaction? This action cannot be undone.</Text>
+						</Dialog.Content>
+						<Dialog.Actions>
+							<Button onPress={() => setShowFinishDialog(false)}>Cancel</Button>
+							<Button onPress={() => finishTransaction()}>Finish</Button>
+						</Dialog.Actions>
+					</Dialog>
+				</Portal>
 			</KeyboardAvoidingView>
 		</SafeAreaView>
 	);

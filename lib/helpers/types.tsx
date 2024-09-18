@@ -12,6 +12,17 @@ export type RoomData = {
     [key: string]: any;
 }
 
+export type Transaction = {
+	id: string;
+	created_at: Date;
+	merchant: string;
+	client: string;
+	amount: number;
+	platform: string;
+	status: string;
+	room_id: string;
+}
+
 export type Request = {
     created_at: Date;
     sender_id: string;
