@@ -196,7 +196,7 @@ export default function TransactionRoomScreen() {
 	}
 
 	const finishTransaction = async () => {
-		const interactionsJSON = JSON.stringify(interactions?.sort(
+		const interactionsJSON = JSON.stringify(interactions?.filter(inter => inter.type !== "message").sort(
 			(a, b) => a.timestamp.getTime() - b.timestamp.getTime()
 		));
 

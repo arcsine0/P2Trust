@@ -83,3 +83,12 @@ export type Interaction =
         eventType: "transaction_started" | "transaction_completed" | "transaction_failed",
     };
 };
+
+export type TimelineEvent = {
+    timestamp: string;
+    type: string;
+    from: string;
+    data: {
+        eventType: string;
+    }
+}

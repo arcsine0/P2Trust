@@ -37,7 +37,12 @@ export default function RootLayout() {
 							<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
 							<Stack.Screen name="(transactionRoom)" options={{ headerShown: false }} />
 							<Stack.Screen name="merchant/[merchantID]" options={{ headerShown: false }} />
-							<Stack.Screen name="transaction/[transactionID]" options={{ headerShown: false }} />
+							<Stack.Screen 
+								name="transaction/[transactionID]" 
+								options={{ 
+									headerTitle: "", 
+								}} 
+							/>
 							<Stack.Screen name="+not-found" />
 						</Stack>
 					</UserProvider>
