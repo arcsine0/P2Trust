@@ -114,7 +114,11 @@ export default function HomeScreen({ navigation }: Props) {
 			<ScrollView className="w-full">
 				<View className="flex flex-col p-2 gap-4">
 					{transactions.map((trans: Transaction, i) => (
-						<Card key={i} onPress={() => router.navigate(`/transaction/${trans.id}`)}>
+						<Card 
+							key={i} 
+							onPress={() => router.navigate(`/transaction/${trans.id}`)}
+							style={{ backgroundColor: theme.colors.background }}
+						>
 							<Card.Content className="flex flex-col gap-2">
 								<View className="flex flex-row w-full justify-between items-center">
 									<View className="flex flex-row items-center gap-5">

@@ -90,5 +90,10 @@ export type TimelineEvent = {
     from: string;
     data: {
         eventType: string;
-    }
+        amount: number | null;
+        currency: string | null;
+        platform: string | null;
+        merchantName: string | null;
+        merchantNumber: string | null;
+    };
 }

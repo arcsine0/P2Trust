@@ -1,9 +1,9 @@
-import { createContext, useContext, useState, Dispatch, SetStateAction } from "react";
 import { Stack, useNavigation } from "expo-router";
-import * as SplashScreen from "expo-splash-screen";
+import { createContext, useContext, useState, Dispatch, SetStateAction } from "react";
+import { View } from "react-native";
 
 import { useColorScheme, KeyboardAvoidingView, Platform } from "react-native";
-import { MD3LightTheme, MD3DarkTheme, PaperProvider } from "react-native-paper";
+import { MD3LightTheme, MD3DarkTheme, PaperProvider, Text, IconButton } from "react-native-paper";
 
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
@@ -41,6 +41,13 @@ export default function RootLayout() {
 								name="transaction/[transactionID]" 
 								options={{ 
 									headerTitle: "", 
+									headerLeft: () => (
+										<View className="flex flex-col items-start justify-center">
+											<Text variant="titleMedium" className="font-bold">Transaction Details</Text>
+											<Text variant="bodyMedium">ID: </Text>
+											<Text variant="bodyMedium">{Date.now()}</Text>
+										</View>
+									),
 								}} 
 							/>
 							<Stack.Screen name="+not-found" />

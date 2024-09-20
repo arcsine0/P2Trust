@@ -25,3 +25,16 @@ export const formatTimeDifference = (timestamp: string, startTime: number, endTi
 
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 }
+
+export const formatISODate = (iso: string) => {
+    const formattedDate = new Date(iso).toLocaleDateString('en-US', { 
+        month: '2-digit', 
+        day: '2-digit', 
+        year: 'numeric', 
+        hour: 'numeric', 
+        minute: 'numeric', 
+        hour12: true 
+    });
+
+    return formattedDate;
+}
