@@ -85,8 +85,9 @@ export default function TransactionRoomScreen() {
 	const sendPaymentRequest = () => {
 		interactionsChannel.send({
 			type: "broadcast",
-			event: "payment_requested",
+			event: "payment",
 			payload: {
+				type: "payment_requested",
 				data: {
 					from: userData?.username || "N/A",
 					amount: requestDetails.amount,
@@ -113,14 +114,16 @@ export default function TransactionRoomScreen() {
 	const sendPayment = () => {
 		interactionsChannel.send({
 			type: "broadcast",
-			event: "payment_sent",
+			event: "payment",
 			payload: {
+				type: "payment_sent",
 				data: {
 					from: userData?.username,
 					proof: receiptURI,
 				}
 			}
 		})
+		console.log(receiptURI);
 	}
 
 	const pickReceipt = async () => {
@@ -165,36 +168,40 @@ export default function TransactionRoomScreen() {
 							},
 						}]);
 					})
-					.on("broadcast", { event: "payment_requested" }, (payload) => {
+					.on("broadcast", { event: "payment" }, (payload) => {
 						const payloadData = payload.payload;
 
-						setInteractions(curr => [...(curr || []), {
-							timestamp: new Date(Date.now()),
-							type: "payment_requested",
-							from: payloadData.data.from,
-							data: {
-								amount: payloadData.data.amount,
-								currency: payloadData.data.currency,
-								platform: payloadData.data.platform,
-								accountName: payloadData.data.merchantName,
-								accountNumber: payloadData.data.merchantNumber,
-							},
-						}]);
-					})
-					.on("broadcast", { event: "payment_sent" }, (payload) => {
-						const payloadData = payload.payload;
+						switch (payloadData.type) {
+							case "payment_requested":
+								setInteractions(curr => [...(curr || []), {
+									timestamp: new Date(Date.now()),
+									type: "payment_requested",
+									from: payloadData.data.from,
+									data: {
+										amount: payloadData.data.amount,
+										currency: payloadData.data.currency,
+										platform: payloadData.data.platform,
+										accountName: payloadData.data.merchantName,
+										accountNumber: payloadData.data.merchantNumber,
+									},
+								}]);
 
-						setInteractions(curr => [...(curr || []), {
-							timestamp: new Date(Date.now()),
-							type: "payment_sent",
-							from: payloadData.data.from,
-							data: {
-								eventType: "payment_sent",
-								proof: payload.data.proof,
-							},
-						}]);
-					})
+								break;
+							case "payment_sent":
+								setInteractions(curr => [...(curr || []), {
+									timestamp: new Date(Date.now()),
+									type: "payment_sent",
+									from: payloadData.data.from,
+									data: {
+										proof: payloadData.data.proof,
+									},
+								}]);
 
+								break;
+							default: break;
+						}
+
+					})
 					.on("broadcast", { event: "transaction" }, async (payload) => {
 						const payloadData = payload.payload;
 
