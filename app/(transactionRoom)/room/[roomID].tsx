@@ -3,8 +3,11 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useWindowDimensions, Platform, View, KeyboardAvoidingView, FlatList } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme, Text, TextInput, Avatar, Chip, Card, Button, Menu, Dialog, Portal, Icon } from "react-native-paper";
+import { useTheme, Text, TextInput, Avatar, Chip, Card, Button, Menu, Dialog, Portal, Icon, TouchableRipple } from "react-native-paper";
 import { Dropdown } from "react-native-element-dropdown";
+
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 
 import { FontAwesome6 } from "@expo/vector-icons";
 
@@ -17,8 +20,10 @@ import { supabase } from "@/supabase/config";
 import { useUserData } from "@/lib/context/UserContext";
 import { useMerchantData } from "@/lib/context/MerchantContext";
 
-import { Interaction } from "@/lib/helpers/types";
-import { Currencies, PaymentPlatforms } from "@/lib/helpers/collections";
+import { Interaction, RequestDetails } from "@/lib/helpers/types";
+
+import { EventChip, PaymentRequestCard, PaymentSentCard } from "@/components/chatEvents";
+import { RequestPaymentRoute, SendPaymentRoute } from "@/components/chatBottomSheetRoutes";
 
 import { Float } from "react-native/Libraries/Types/CodegenTypes";
 import { getInitials, formatISODate } from "@/lib/helpers/functions";
@@ -29,13 +34,23 @@ export default function TransactionRoomScreen() {
 	// messages
 	const [message, setMessage] = useState("");
 
-	const [paymentDetails, setPaymentDetails] = useState({
-		amount: undefined as Float | undefined,
+	const [requestDetails, setRequestDetails] = useState<RequestDetails>({
+		amount: 100,
+		currency: "PHP",
+		platform: "GCash",
+		accountNumber: "Test Client",
+		accountName: "09673127888",
+	});
+
+	const [paymentDetails, setPaymentDetails] = useState<RequestDetails>({
+		amount: 0 as Float,
 		currency: undefined as string | undefined,
 		platform: undefined as string | undefined,
-		merchantNumber: undefined as string | undefined,
-		merchantName: undefined as string | undefined,
+		accountNumber: undefined as string | undefined,
+		accountName: undefined as string | undefined,
 	});
+
+	const [receiptURI, setReceiptURI] = useState<string | undefined>(undefined);
 
 	const [showActionsMenu, setShowActionsMenu] = useState(false);
 	const [showFinishDialog, setShowFinishDialog] = useState(false);
@@ -70,29 +85,54 @@ export default function TransactionRoomScreen() {
 	const sendPaymentRequest = () => {
 		interactionsChannel.send({
 			type: "broadcast",
-			event: "payment",
+			event: "payment_requested",
 			payload: {
 				data: {
-					eventType: "payment_requested",
 					from: userData?.username || "N/A",
-					amount: paymentDetails.amount,
+					amount: requestDetails.amount,
 					currency: "PHP",
-					platform: paymentDetails.platform,
-					merchantName: paymentDetails.merchantName,
-					merchantNumber: paymentDetails.merchantNumber,
+					platform: requestDetails.platform,
+					merchantName: requestDetails.accountName,
+					merchantNumber: requestDetails.accountNumber,
 				}
 			}
 		}).then(() => {
-			setPaymentDetails({
-				amount: 0,
-				currency: '',
-				platform: '',
-				merchantNumber: '',
-				merchantName: '',
-			});
+			// commented out for testing
+			// setRequestDetails({
+			// 	amount: 0,
+			// 	currency: '',
+			// 	platform: '',
+			// 	accountNumber: '',
+			// 	accountName: '',
+			// });
 
 			actionsModalRef.current?.close();
 		});
+	}
+
+	const sendPayment = () => {
+		interactionsChannel.send({
+			type: "broadcast",
+			event: "payment_sent",
+			payload: {
+				data: {
+					from: userData?.username,
+					proof: receiptURI,
+				}
+			}
+		})
+	}
+
+	const pickReceipt = async () => {
+		const result = await ImagePicker.launchImageLibraryAsync({
+			mediaTypes: ImagePicker.MediaTypeOptions.Images,
+			quality: 1,
+		});
+
+		if (result && result.assets && result.assets[0].uri) {
+			console.log(result.assets[0].uri);
+			setReceiptURI(result.assets[0].uri);
+		}
 	}
 
 	const getRoomData = async () => {
@@ -106,11 +146,8 @@ export default function TransactionRoomScreen() {
 							case "join":
 								setInteractions(curr => [...(curr || []), {
 									timestamp: new Date(Date.now()),
-									type: "user",
+									type: "user_joined",
 									from: payloadData.from,
-									data: {
-										eventType: "user_joined",
-									},
 								}]);
 								break;
 							default: break;
@@ -128,28 +165,36 @@ export default function TransactionRoomScreen() {
 							},
 						}]);
 					})
-					.on("broadcast", { event: "payment" }, (payload) => {
+					.on("broadcast", { event: "payment_requested" }, (payload) => {
 						const payloadData = payload.payload;
 
-						switch (payloadData.data.eventType) {
-							case "payment_requested":
-								setInteractions(curr => [...(curr || []), {
-									timestamp: new Date(Date.now()),
-									type: "payment",
-									from: payloadData.data.from,
-									data: {
-										eventType: "payment_requested",
-										amount: payloadData.data.amount,
-										currency: payloadData.data.currency,
-										merchantName: payloadData.data.merchantName,
-										merchantNumber: payloadData.data.merchantNumber,
-										platform: payloadData.data.platform,
-									},
-								}]);
-								break;
-							default: break;
-						}
+						setInteractions(curr => [...(curr || []), {
+							timestamp: new Date(Date.now()),
+							type: "payment_requested",
+							from: payloadData.data.from,
+							data: {
+								amount: payloadData.data.amount,
+								currency: payloadData.data.currency,
+								platform: payloadData.data.platform,
+								accountName: payloadData.data.merchantName,
+								accountNumber: payloadData.data.merchantNumber,
+							},
+						}]);
 					})
+					.on("broadcast", { event: "payment_sent" }, (payload) => {
+						const payloadData = payload.payload;
+
+						setInteractions(curr => [...(curr || []), {
+							timestamp: new Date(Date.now()),
+							type: "payment_sent",
+							from: payloadData.data.from,
+							data: {
+								eventType: "payment_sent",
+								proof: payload.data.proof,
+							},
+						}]);
+					})
+
 					.on("broadcast", { event: "transaction" }, async (payload) => {
 						const payloadData = payload.payload;
 
@@ -202,8 +247,8 @@ export default function TransactionRoomScreen() {
 			(a, b) => a.timestamp.getTime() - b.timestamp.getTime()
 		));
 
-		const platforms = interactions?.filter(inter => inter.type === "payment").map((inter) => {
-			if (inter.data.eventType === "payment_requested") {
+		const platforms = interactions?.filter(inter => inter.type === "payment_requested").map((inter) => {
+			if (inter.type === "payment_requested") {
 				return inter.data.platform;
 			} else {
 				return "";
@@ -284,59 +329,6 @@ export default function TransactionRoomScreen() {
 		}
 	}, []);
 
-	const RequestPaymentRoute = () => (
-		<View className="flex flex-col w-full p-2 items-center justify-start">
-			<View className="flex flex-col w-full gap-2">
-				<Text variant="titleMedium">Transaction Details</Text>
-				<TextInput
-					className="rounded-lg overflow-scroll"
-					label="Amount"
-					value={paymentDetails.amount?.toString()}
-					onChangeText={text => setPaymentDetails({ ...paymentDetails, amount: parseFloat(text) })}
-					keyboardType="numeric"
-				/>
-				<Dropdown
-					style={{ borderWidth: 0.5, borderRadius: 8, padding: 10, backgroundColor: theme.colors.primaryContainer }}
-					data={PaymentPlatforms}
-					value={paymentDetails.platform}
-					onChange={value => setPaymentDetails({ ...paymentDetails, platform: value.value })}
-					labelField="label"
-					valueField="value"
-					placeholder="Select Payment Platform"
-				/>
-				<Text variant="titleMedium">Your Account Details</Text>
-				<TextInput
-					className="rounded-lg overflow-scroll"
-					label="Name"
-					value={paymentDetails.merchantName}
-					onChangeText={text => setPaymentDetails({ ...paymentDetails, merchantName: text })}
-					keyboardType="default"
-				/>
-				<TextInput
-					className="rounded-lg overflow-scroll"
-					label="Account Number"
-					value={paymentDetails.merchantNumber}
-					onChangeText={text => setPaymentDetails({ ...paymentDetails, merchantNumber: text })}
-					keyboardType="default"
-				/>
-				<Button
-					className="rounded-lg w-full"
-					icon={"information"}
-					mode="contained"
-					onPress={() => sendPaymentRequest()}
-				>
-					Send Request
-				</Button>
-			</View>
-		</View>
-	)
-
-	const SendPaymentRoute = () => (
-		<View>
-			<Text variant="titleLarge">Test</Text>
-		</View>
-	)
-
 	const SendProofRoute = () => (
 		<View>
 			<Text variant="titleLarge">Test</Text>
@@ -371,113 +363,11 @@ export default function TransactionRoomScreen() {
 						keyExtractor={(item, index) => index.toString()}
 						contentContainerStyle={{ flexGrow: 1 }}
 						renderItem={({ item: inter }) => (
-							<View key={inter.timestamp.getTime()} className="mb-2">
-								{inter.type === ("user") && (
-									<Chip
-										icon={(() => {
-											switch (inter.data.eventType) {
-												case "user_joined":
-													return "account-plus";
-												case "user_left":
-													return "account-minus";
-												default:
-													return "information";
-											}
-										})()}
-									>
-										{inter.data.eventType === "user_joined" && (
-											<Text>{inter.from} joined the room</Text>
-										)}
-										{inter.data.eventType === "user_left" && (
-											<Text>{inter.from} left the room</Text>
-										)}
-									</Chip>
-								)}
-								{inter.type === ("payment") && (
-									<View className="flex flex-col w-full">
-										<Chip
-											className="mb-2"
-											icon={(() => {
-												switch (inter.data.eventType) {
-													case "payment_requested":
-														return "cash-plus";
-													case "payment_sent":
-														return "cash-fast";
-													case "payment_received":
-														return "cash-check";
-													case "payment_request_cancelled":
-														return "cash-refund";
-													default:
-														return "information";
-												}
-											})()}
-										>
-											{inter.data.eventType === "payment_requested" && (
-												<Text>{inter.from} has sent a payment request</Text>
-											)}
-											{inter.data.eventType === "payment_request_cancelled" && (
-												<Text>{inter.from} has cancelled the payment request</Text>
-											)}
-											{inter.data.eventType === "payment_sent" && (
-												<Text>{inter.from} has sent the payment</Text>
-											)}
-											{inter.data.eventType === "payment_received" && (
-												<Text>{inter.from} has received the payment</Text>
-											)}
-										</Chip>
-										{inter.data.eventType === "payment_requested" && (
-											<Card
-												className="w-2/3"
-												style={{ backgroundColor: theme.colors.background }}
-											>
-												<Card.Content className="flex flex-col space-y-1 p-2">
-													<View className="flex flex-row items-center justify-between">
-														<View className="flex flex-row space-x-2 items-center justify-start">
-															<Icon source="calendar-blank-outline" size={15} color={"#94a3b8"} />
-															<Text variant="bodyMedium" className="text-slate-400">{inter.timestamp.toLocaleDateString()}</Text>
-														</View>
-														<Chip compact={true}>{inter.data.platform}</Chip>
-													</View>
-													<Text variant="titleMedium" className="font-bold">Payment Request</Text>
-													<View className="flex flex-row space-x-2 items-center justify-start">
-														<FontAwesome6
-															name={
-																inter.data.currency === "PHP"
-																	? "peso-sign"
-																	: inter.data.currency === "USD"
-																	? "dollar-sign"
-																	: inter.data.currency === "EUR"
-																	? "euro-sign"
-																	: "dollar-sign"
-															}
-															size={20}
-															color={"#94a3b8"}
-														/>
-														<Text variant="titleLarge" className="font-bold">{inter.data.amount}</Text>
-													</View>
-													<View className="flex flex-row space-x-2 items-center justify-start">
-														<FontAwesome6
-															name="credit-card"
-															size={15}
-															color={"#94a3b8"}
-														/>
-														<Text variant="bodyMedium" className="text-slate-400">Pay Via {inter.data.platform}</Text>
-													</View>
-													<Button
-														className="rounded-lg w-full"
-														icon={"cash"}
-														mode="contained"
-														onPress={() => { }}
-													>
-														Pay
-													</Button>
-												</Card.Content>
-											</Card>
-										)}
-									</View>
-								)}
-								{inter.type === "message" && (
-									<View className="flex flex-row mb-2 gap-2 items-center justify-start">
+							<View key={inter.timestamp.getTime()} className="mb-2 space-y-2">
+								{inter.type !== "message" ?
+									<EventChip type={inter.type} from={inter.from} />
+									:
+									<View className="flex flex-row gap-2 items-center justify-start">
 										<Avatar.Text label={getInitials(inter.from)} size={35} />
 										<View className="flex flex-col items-start justify-start">
 											<Text
@@ -497,6 +387,35 @@ export default function TransactionRoomScreen() {
 											</Text>
 										</View>
 									</View>
+								}
+								{inter.type === "payment_requested" && (
+									<PaymentRequestCard
+										style={{ backgroundColor: theme.colors.background }}
+										timestamp={inter.timestamp}
+										amount={inter.data.amount}
+										platform={inter.data.platform}
+										currency={inter.data.currency}
+										onPayment={() => {
+											setPaymentDetails({
+												amount: inter.data.amount,
+												currency: inter.data.currency,
+												platform: inter.data.platform,
+												accountName: inter.data.accountName,
+												accountNumber: inter.data.accountNumber,
+											})
+											setActionsModalRoute("SendPayment");
+
+											actionsModalRef.current?.present()
+										}}
+									/>
+								)}
+								{inter.type === "payment_sent" && (
+									<PaymentSentCard
+										style={{ backgroundColor: theme.colors.background }}
+										timestamp={inter.timestamp}
+										from={inter.from}
+										onConfirm={() => { }}
+									/>
 								)}
 							</View>
 						)}
@@ -539,11 +458,11 @@ export default function TransactionRoomScreen() {
 								title="Request Payments"
 								leadingIcon="cash-plus"
 							/>
-							<Menu.Item
+							{/* <Menu.Item
 								onPress={() => showActionsModal("SendPayment")}
 								title="Send Payments"
 								leadingIcon="cash-fast"
-							/>
+							/> */}
 							<Menu.Item
 								onPress={() => showActionsModal("SendProof")}
 								title="Send Proof"
@@ -561,8 +480,23 @@ export default function TransactionRoomScreen() {
 					backdropComponent={renderBackdrop}
 				>
 					<BottomSheetView>
-						{actionsModalRoute === "RequestPayment" && RequestPaymentRoute()}
-						{actionsModalRoute === "SendPayment" && SendPaymentRoute()}
+						{actionsModalRoute === "RequestPayment" && (
+							<RequestPaymentRoute
+								dropdownStyle={{ borderWidth: 0.5, borderRadius: 8, padding: 10, backgroundColor: theme.colors.primaryContainer }}
+								requestDetails={requestDetails}
+								setRequestDetails={setRequestDetails}
+								sendPaymentRequest={sendPaymentRequest}
+							/>
+						)}
+						{actionsModalRoute === "SendPayment" && (
+							<SendPaymentRoute
+								paymentDetails={paymentDetails}
+								receiptURI={receiptURI}
+								setReceiptURI={setReceiptURI}
+								pickReceipt={pickReceipt}
+								sendPayment={sendPayment}
+							/>
+						)}
 						{actionsModalRoute === "SendProof" && SendProofRoute()}
 					</BottomSheetView>
 				</BottomSheetModal>
@@ -583,6 +517,6 @@ export default function TransactionRoomScreen() {
 					</Dialog>
 				</Portal>
 			</KeyboardAvoidingView>
-		</SafeAreaView>
+		</SafeAreaView >
 	);
 }
