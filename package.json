@@ -58,7 +58,8 @@
     "react-native-tab-view": "^3.5.2",
     "react-native-vector-icons": "^10.1.0",
     "react-native-web": "~0.19.10",
-    "react-qr-code": "^2.0.15"
+    "react-qr-code": "^2.0.15",
+    "expo-image-picker": "~15.0.7"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

@@ -57,6 +57,11 @@ export type Interaction =
     from: string;
     data: {
         eventType: "payment_sent" | "payment_received";
+        amount: Float;
+        currency: string;
+        platform: string;
+        merchantName: string;
+        merchantNumber: string;
     };
 }
 | {

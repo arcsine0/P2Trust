@@ -3,8 +3,10 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useWindowDimensions, Platform, View, KeyboardAvoidingView, FlatList } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme, Text, TextInput, Avatar, Chip, Card, Button, Menu, Dialog, Portal } from "react-native-paper";
+import { useTheme, Text, TextInput, Avatar, Chip, Card, Button, Menu, Dialog, Portal, Icon } from "react-native-paper";
 import { Dropdown } from "react-native-element-dropdown";
+
+import { FontAwesome6 } from "@expo/vector-icons";
 
 import { router, useLocalSearchParams } from "expo-router";
 
@@ -19,7 +21,7 @@ import { Interaction } from "@/lib/helpers/types";
 import { Currencies, PaymentPlatforms } from "@/lib/helpers/collections";
 
 import { Float } from "react-native/Libraries/Types/CodegenTypes";
-import { getInitials } from "@/lib/helpers/functions";
+import { getInitials, formatISODate } from "@/lib/helpers/functions";
 
 export default function TransactionRoomScreen() {
 	const [interactions, setInteractions] = useState<Interaction[] | undefined>([]);
@@ -428,20 +430,42 @@ export default function TransactionRoomScreen() {
 												className="w-2/3"
 												style={{ backgroundColor: theme.colors.background }}
 											>
-												<Card.Content className="flex flex-col p-2">
-													<Text className="mb-2">Amount</Text>
-													<Text className="mb-2 font-bold" variant="titleLarge">
-														{inter.data.currency} {inter.data.amount}
-													</Text>
-													<Text className="mb-2">Platform</Text>
-													<View className="flex flex-row mb-2 items-center justify-start">
-														<Chip icon="cash">
-															<Text>{inter.data.platform}</Text>
-														</Chip>
+												<Card.Content className="flex flex-col space-y-1 p-2">
+													<View className="flex flex-row items-center justify-between">
+														<View className="flex flex-row space-x-2 items-center justify-start">
+															<Icon source="calendar-blank-outline" size={15} color={"#94a3b8"} />
+															<Text variant="bodyMedium" className="text-slate-400">{inter.timestamp.toLocaleDateString()}</Text>
+														</View>
+														<Chip compact={true}>{inter.data.platform}</Chip>
+													</View>
+													<Text variant="titleMedium" className="font-bold">Payment Request</Text>
+													<View className="flex flex-row space-x-2 items-center justify-start">
+														<FontAwesome6
+															name={
+																inter.data.currency === "PHP"
+																	? "peso-sign"
+																	: inter.data.currency === "USD"
+																	? "dollar-sign"
+																	: inter.data.currency === "EUR"
+																	? "euro-sign"
+																	: "dollar-sign"
+															}
+															size={20}
+															color={"#94a3b8"}
+														/>
+														<Text variant="titleLarge" className="font-bold">{inter.data.amount}</Text>
+													</View>
+													<View className="flex flex-row space-x-2 items-center justify-start">
+														<FontAwesome6
+															name="credit-card"
+															size={15}
+															color={"#94a3b8"}
+														/>
+														<Text variant="bodyMedium" className="text-slate-400">Pay Via {inter.data.platform}</Text>
 													</View>
 													<Button
 														className="rounded-lg w-full"
-														icon={"information"}
+														icon={"cash"}
 														mode="contained"
 														onPress={() => { }}
 													>

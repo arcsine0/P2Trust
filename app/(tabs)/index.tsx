@@ -57,7 +57,7 @@ export default function HomeScreen({ navigation }: Props) {
 		const { data, error } = await supabase
 			.from("transactions")
 			.select()
-			.order("created_at", { ascending: true });
+			.order("created_at", { ascending: false });
 
 		if (!error) {
 			setTransactions(data);

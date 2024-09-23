@@ -144,7 +144,7 @@ export default function TransactionHomeScreen() {
         <SafeAreaView className="flex flex-col w-screen h-screen gap-2 px-4 items-start justify-start">
             {userData ?
                 <View className="flex flex-col w-full h-full items-center justify-start">
-                    <Card className="w-full mb-2">
+                    <Card className="w-full mb-2" style={{ backgroundColor: theme.colors.background }}>
                         <Card.Content className="flex flex-row w-full justify-between items-center">
                             <View className="flex flex-row items-center gap-5">
                                 <Avatar.Text label={getInitials(userData.username)} size={35} />
@@ -155,13 +155,16 @@ export default function TransactionHomeScreen() {
                             </View>
                         </Card.Content>
                     </Card>
-                    <Card className="w-full mb-2">
+                    <Card className="w-full mb-2" style={{ backgroundColor: theme.colors.background }}>
                         <Card.Content className="flex flex-col gap-3">
                             <View className="flex justify-center items-center border-2 rounded-lg p-5">
                                 <QRCode
                                     size={256}
                                     className="h-auto w-full"
-                                    value={userData.id}
+                                    value={JSON.stringify({
+                                        auth: "P2Trust",
+                                        id: userData.id
+                                    })}
                                 />
                             </View>
                             <Button
