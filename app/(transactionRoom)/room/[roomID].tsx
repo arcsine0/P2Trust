@@ -31,8 +31,8 @@ import { getInitials, formatISODate } from "@/lib/helpers/functions";
 export default function TransactionRoomScreen() {
 	const [interactions, setInteractions] = useState<Interaction[] | undefined>([]);
 
-	// messages
 	const [message, setMessage] = useState("");
+	const [activePaymentRequestID, setActivePaymentRequestID] = useState<string | undefined>(undefined);
 
 	const [requestDetails, setRequestDetails] = useState<RequestDetails>({
 		amount: 100,
@@ -82,48 +82,82 @@ export default function TransactionRoomScreen() {
 		setMessage("");
 	}
 
-	const sendPaymentRequest = () => {
-		interactionsChannel.send({
-			type: "broadcast",
-			event: "payment",
-			payload: {
-				type: "payment_requested",
-				data: {
-					from: userData?.username || "N/A",
-					amount: requestDetails.amount,
-					currency: "PHP",
-					platform: requestDetails.platform,
-					merchantName: requestDetails.accountName,
-					merchantNumber: requestDetails.accountNumber,
-				}
-			}
-		}).then(() => {
-			// commented out for testing
-			// setRequestDetails({
-			// 	amount: 0,
-			// 	currency: '',
-			// 	platform: '',
-			// 	accountNumber: '',
-			// 	accountName: '',
-			// });
+	const sendPaymentRequest = async () => {
+		const { data, error } = await supabase
+			.from("payments")
+			.insert({
+				sender_id: userData?.id,
+				receiver_id: merchantData?.id,
+				amount: requestDetails.amount,
+				currency: requestDetails.currency,
+				platform: requestDetails.platform,
+			})
+			.select();
 
-			actionsModalRef.current?.close();
-		});
+		if (!error) {
+			interactionsChannel.send({
+				type: "broadcast",
+				event: "payment",
+				payload: {
+					type: "payment_requested",
+					data: {
+						id: data[0].id,
+						from: userData?.username || "N/A",
+						amount: requestDetails.amount,
+						currency: "PHP",
+						platform: requestDetails.platform,
+						merchantName: requestDetails.accountName,
+						merchantNumber: requestDetails.accountNumber,
+					}
+				}
+			}).then(() => {
+				setActivePaymentRequestID(data[0].id);
+
+				// commented out for testing
+				// setRequestDetails({
+				// 	amount: 0,
+				// 	currency: '',
+				// 	platform: '',
+				// 	accountNumber: '',
+				// 	accountName: '',
+				// });
+
+				actionsModalRef.current?.close();
+			});
+		} else {
+			console.log(error);
+		}
 	}
 
-	const sendPayment = () => {
-		interactionsChannel.send({
-			type: "broadcast",
-			event: "payment",
-			payload: {
-				type: "payment_sent",
-				data: {
-					from: userData?.username,
-					proof: receiptURI,
+	const sendPayment = async (id: string | undefined) => {
+		if (!id) return;
+
+		const { error } = await supabase
+			.from("payments")
+			.update({
+				status: "paid",
+				paid_at: new Date().toISOString(),
+			})
+			.eq("id", id);
+
+		if (!error) {
+			interactionsChannel.send({
+				type: "broadcast",
+				event: "payment",
+				payload: {
+					type: "payment_sent",
+					data: {
+						id: id,
+						from: userData?.username,
+						proof: receiptURI,
+					}
 				}
-			}
-		})
-		console.log(receiptURI);
+			}).then(() => {
+				actionsModalRef.current?.close();
+			});
+		} else {
+			console.log(error);
+		}
 	}
 
 	const pickReceipt = async () => {
@@ -133,13 +167,14 @@ export default function TransactionRoomScreen() {
 		});
 
 		if (result && result.assets && result.assets[0].uri) {
-			console.log(result.assets[0].uri);
 			setReceiptURI(result.assets[0].uri);
 		}
 	}
 
 	const getRoomData = async () => {
 		try {
+			setActivePaymentRequestID(undefined);
+
 			if (userData) {
 				interactionsChannel
 					.on("broadcast", { event: "user" }, (payload) => {
@@ -178,6 +213,7 @@ export default function TransactionRoomScreen() {
 									type: "payment_requested",
 									from: payloadData.data.from,
 									data: {
+										id: payloadData.data.id,
 										amount: payloadData.data.amount,
 										currency: payloadData.data.currency,
 										platform: payloadData.data.platform,
@@ -188,11 +224,14 @@ export default function TransactionRoomScreen() {
 
 								break;
 							case "payment_sent":
+								setActivePaymentRequestID(undefined);
+
 								setInteractions(curr => [...(curr || []), {
-									timestamp: new Date(Date.now()),
+									timestamp: new Date(Date.now()), 
 									type: "payment_sent",
 									from: payloadData.data.from,
 									data: {
+										id: payloadData.data.id,
 										proof: payloadData.data.proof,
 									},
 								}]);
@@ -398,18 +437,21 @@ export default function TransactionRoomScreen() {
 								{inter.type === "payment_requested" && (
 									<PaymentRequestCard
 										style={{ backgroundColor: theme.colors.background }}
+										userData={userData}
 										timestamp={inter.timestamp}
+										from={inter.from}
 										amount={inter.data.amount}
 										platform={inter.data.platform}
 										currency={inter.data.currency}
 										onPayment={() => {
 											setPaymentDetails({
+												id: inter.data.id,
 												amount: inter.data.amount,
 												currency: inter.data.currency,
 												platform: inter.data.platform,
 												accountName: inter.data.accountName,
 												accountNumber: inter.data.accountNumber,
-											})
+											});
 											setActionsModalRoute("SendPayment");
 
 											actionsModalRef.current?.present()
@@ -419,6 +461,7 @@ export default function TransactionRoomScreen() {
 								{inter.type === "payment_sent" && (
 									<PaymentSentCard
 										style={{ backgroundColor: theme.colors.background }}
+										id={inter.data.id}
 										timestamp={inter.timestamp}
 										from={inter.from}
 										onConfirm={() => { }}
@@ -460,16 +503,19 @@ export default function TransactionRoomScreen() {
 									Actions
 								</Button>
 							}>
-							<Menu.Item
-								onPress={() => showActionsModal("RequestPayment")}
-								title="Request Payments"
-								leadingIcon="cash-plus"
-							/>
-							{/* <Menu.Item
-								onPress={() => showActionsModal("SendPayment")}
-								title="Send Payments"
-								leadingIcon="cash-fast"
-							/> */}
+							{activePaymentRequestID ? (
+								<Menu.Item
+									onPress={() => { }}
+									title="Cancel Request"
+									leadingIcon="cash-remove"
+								/>
+							) : (
+								<Menu.Item
+									onPress={() => showActionsModal("RequestPayment")}
+									title="Request Payments"
+									leadingIcon="cash-plus"
+								/>
+							)}
 							<Menu.Item
 								onPress={() => showActionsModal("SendProof")}
 								title="Send Proof"
@@ -501,7 +547,7 @@ export default function TransactionRoomScreen() {
 								receiptURI={receiptURI}
 								setReceiptURI={setReceiptURI}
 								pickReceipt={pickReceipt}
-								sendPayment={sendPayment}
+								sendPayment={() => sendPayment(paymentDetails.id)}
 							/>
 						)}
 						{actionsModalRoute === "SendProof" && SendProofRoute()}

@@ -30,6 +30,7 @@ export type Request = {
 }
 
 export type RequestDetails = {
+    id?: string;
     amount: number;
 	currency?: string;
 	platform?: string;
@@ -48,6 +49,7 @@ export type Interaction =
     type: "payment_requested" | "payment_request_cancelled";
     from: string;
     data: {
+        id: string;
         amount: Float;
         currency: string;
         platform: string;
@@ -60,6 +62,7 @@ export type Interaction =
     type: "payment_sent";
     from: string;
     data: {
+        id: string;
         proof: string;
     };
 }
@@ -68,6 +71,7 @@ export type Interaction =
     type: "payment_received";
     from: string;
     data: {
+        id: string;
         amount: Float;
         currency: string;
         platform: string;

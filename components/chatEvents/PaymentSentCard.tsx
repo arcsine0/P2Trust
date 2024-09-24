@@ -9,6 +9,7 @@ import { Float } from "react-native/Libraries/Types/CodegenTypes";
 
 interface PaymentSentCardProps {
     style?: ViewStyle;
+    id: string;
     timestamp: Date;
     from: string
     platform?: string;
@@ -17,7 +18,7 @@ interface PaymentSentCardProps {
     onConfirm?: () => void;
 }
 
-const PaymentSentCard: FC<PaymentSentCardProps> = ({ style, timestamp, from, platform, currency, onConfirm }) => {
+const PaymentSentCard: FC<PaymentSentCardProps> = ({ style, id, timestamp, from, platform, currency, onConfirm }) => {
     let currencySymbol;
 
     switch (currency) {
