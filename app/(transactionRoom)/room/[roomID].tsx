@@ -196,6 +196,38 @@ export default function TransactionRoomScreen() {
 		}
 	}
 
+	const confirmPayment = async (id: string | undefined) => {
+		if (!id) return;
+
+		try {
+			const { error } = await supabase
+				.from("payments")
+				.update({
+					status: "confirmed",
+					confirmed_at: new Date().toISOString(),
+				})
+				.eq("id", id)
+
+			if (!error) {
+				interactionsChannel.send({
+					type: "broadcast",
+					event: "payment",
+					payload: {
+						type: "payment_confirmed",
+						data: {
+							id: id,
+							from: userData?.username,
+						}
+					}
+				});
+			} else {
+				console.log(error);
+			}
+		} catch (error) {
+			console.log(error);
+		}
+	}
+
 	const pickReceipt = async () => {
 		const result = await ImagePicker.launchImageLibraryAsync({
 			mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -281,17 +313,18 @@ export default function TransactionRoomScreen() {
 										data: {
 											id: payloadData.data.id,
 											proof: payloadData.data.proof,
+											status: "pending",
 										},
 									}]);
 
 									break;
 								case "payment_request_cancelled":
 
-									setInteractions(curr => curr?.map(inter => 
-										inter.type === "payment_requested" && inter.data.id === payloadData.data.id 
-										  ? { ...inter, data: { ...inter.data, status: "cancelled" } }
-										  : inter 
-									  ));
+									setInteractions(curr => curr?.map(inter =>
+										inter.type === "payment_requested" && inter.data.id === payloadData.data.id
+											? { ...inter, data: { ...inter.data, status: "cancelled" } }
+											: inter
+									));
 
 									setInteractions(curr => [...(curr || []), {
 										timestamp: new Date(Date.now()),
@@ -302,6 +335,23 @@ export default function TransactionRoomScreen() {
 										},
 									}]);
 
+									break;
+								case "payment_confirmed":
+									setInteractions(curr => curr?.map(inter =>
+										inter.type === "payment_sent" && inter.data.id === payloadData.data.id
+											? { ...inter, data: { ...inter.data, status: "confirmed" } }
+											: inter
+									));
+
+									setInteractions(curr => [...(curr || []), {
+										timestamp: new Date(Date.now()),
+										type: "payment_confirmed",
+										from: payloadData.data.from,
+										data: {
+											id: payloadData.data.id,
+										},
+									}]);
+								
 									break;
 
 								default: break;
@@ -535,9 +585,11 @@ export default function TransactionRoomScreen() {
 									<PaymentSentCard
 										style={{ backgroundColor: theme.colors.background }}
 										id={inter.data.id}
+										userData={userData}
 										timestamp={inter.timestamp}
 										from={inter.from}
-										onConfirm={() => { }}
+										status={inter.data.status}
+										onConfirm={() => confirmPayment(inter.data.id)}
 									/>
 								)}
 							</View>

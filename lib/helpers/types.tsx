@@ -73,19 +73,15 @@ export type Interaction =
     data: {
         id: string;
         proof: string;
+        status: "pending" | "confirmed";
     };
 }
 | {
     timestamp: Date;
-    type: "payment_received";
+    type: "payment_confirmed";
     from: string;
     data: {
         id: string;
-        amount: Float;
-        currency: string;
-        platform: string;
-        accountName: string;
-        accountNumber: string;
     };
 }
 | {
