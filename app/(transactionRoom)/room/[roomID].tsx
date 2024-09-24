@@ -83,48 +83,84 @@ export default function TransactionRoomScreen() {
 	}
 
 	const sendPaymentRequest = async () => {
-		const { data, error } = await supabase
-			.from("payments")
-			.insert({
-				sender_id: userData?.id,
-				receiver_id: merchantData?.id,
-				amount: requestDetails.amount,
-				currency: requestDetails.currency,
-				platform: requestDetails.platform,
-			})
-			.select();
+		try {
+			const { data, error } = await supabase
+				.from("payments")
+				.insert({
+					sender_id: userData?.id,
+					receiver_id: merchantData?.id,
+					amount: requestDetails.amount,
+					currency: requestDetails.currency,
+					platform: requestDetails.platform,
+				})
+				.select();
 
-		if (!error) {
-			interactionsChannel.send({
-				type: "broadcast",
-				event: "payment",
-				payload: {
-					type: "payment_requested",
-					data: {
-						id: data[0].id,
-						from: userData?.username || "N/A",
-						amount: requestDetails.amount,
-						currency: "PHP",
-						platform: requestDetails.platform,
-						merchantName: requestDetails.accountName,
-						merchantNumber: requestDetails.accountNumber,
+			if (!error) {
+				interactionsChannel.send({
+					type: "broadcast",
+					event: "payment",
+					payload: {
+						type: "payment_requested",
+						data: {
+							id: data[0].id,
+							from: userData?.username || "N/A",
+							amount: requestDetails.amount,
+							currency: "PHP",
+							platform: requestDetails.platform,
+							merchantName: requestDetails.accountName,
+							merchantNumber: requestDetails.accountNumber,
+						}
 					}
+				}).then(() => {
+					setActivePaymentRequestID(data[0].id);
+
+					// commented out for testing
+					// setRequestDetails({
+					// 	amount: 0,
+					// 	currency: '',
+					// 	platform: '',
+					// 	accountNumber: '',
+					// 	accountName: '',
+					// });
+
+					actionsModalRef.current?.close();
+				});
+			} else {
+				console.log(error);
+			}
+		} catch (error) {
+			console.log(error);
+		}
+	}
+
+	const cancelPaymentRequest = async (id: string | undefined) => {
+		try {
+			if (id) {
+				const { error } = await supabase
+					.from("payments")
+					.delete()
+					.eq("id", id);
+
+				if (!error) {
+					interactionsChannel.send({
+						type: "broadcast",
+						event: "payment",
+						payload: {
+							type: "payment_request_cancelled",
+							data: {
+								id: id,
+								from: userData?.username,
+							}
+						}
+					}).then(() => {
+						setActivePaymentRequestID(undefined);
+					})
+
+				} else {
+					console.log(error);
 				}
-			}).then(() => {
-				setActivePaymentRequestID(data[0].id);
-
-				// commented out for testing
-				// setRequestDetails({
-				// 	amount: 0,
-				// 	currency: '',
-				// 	platform: '',
-				// 	accountNumber: '',
-				// 	accountName: '',
-				// });
-
-				actionsModalRef.current?.close();
-			});
-		} else {
+			}
+		} catch (error) {
 			console.log(error);
 		}
 	}
@@ -180,93 +216,129 @@ export default function TransactionRoomScreen() {
 					.on("broadcast", { event: "user" }, (payload) => {
 						const payloadData = payload.payload;
 
-						switch (payloadData.type) {
-							case "join":
-								setInteractions(curr => [...(curr || []), {
-									timestamp: new Date(Date.now()),
-									type: "user_joined",
-									from: payloadData.from,
-								}]);
-								break;
-							default: break;
+						try {
+							switch (payloadData.type) {
+								case "join":
+									setInteractions(curr => [...(curr || []), {
+										timestamp: new Date(Date.now()),
+										type: "user_joined",
+										from: payloadData.from,
+									}]);
+									break;
+								default: break;
+							}
+						} catch (error) {
+							console.log(error);
 						}
+
+
 					})
 					.on("broadcast", { event: "message" }, (payload) => {
 						const payloadData = payload.payload;
 
-						setInteractions(curr => [...(curr || []), {
-							timestamp: new Date(Date.now()),
-							type: "message",
-							from: payloadData.data.from,
-							data: {
-								message: payloadData.data.message,
-							},
-						}]);
+						try {
+							setInteractions(curr => [...(curr || []), {
+								timestamp: new Date(Date.now()),
+								type: "message",
+								from: payloadData.data.from,
+								data: {
+									message: payloadData.data.message,
+								},
+							}]);
+						} catch (error) {
+							console.log(error);
+						}
 					})
 					.on("broadcast", { event: "payment" }, (payload) => {
 						const payloadData = payload.payload;
 
-						switch (payloadData.type) {
-							case "payment_requested":
-								setInteractions(curr => [...(curr || []), {
-									timestamp: new Date(Date.now()),
-									type: "payment_requested",
-									from: payloadData.data.from,
-									data: {
-										id: payloadData.data.id,
-										amount: payloadData.data.amount,
-										currency: payloadData.data.currency,
-										platform: payloadData.data.platform,
-										accountName: payloadData.data.merchantName,
-										accountNumber: payloadData.data.merchantNumber,
-									},
-								}]);
+						try {
+							switch (payloadData.type) {
+								case "payment_requested":
+									setInteractions(curr => [...(curr || []), {
+										timestamp: new Date(Date.now()),
+										type: "payment_requested",
+										from: payloadData.data.from,
+										data: {
+											id: payloadData.data.id,
+											amount: payloadData.data.amount,
+											currency: payloadData.data.currency,
+											platform: payloadData.data.platform,
+											accountName: payloadData.data.merchantName,
+											accountNumber: payloadData.data.merchantNumber,
+											status: "pending",
+										},
+									}]);
 
-								break;
-							case "payment_sent":
-								setActivePaymentRequestID(undefined);
+									break;
+								case "payment_sent":
+									setActivePaymentRequestID(undefined);
 
-								setInteractions(curr => [...(curr || []), {
-									timestamp: new Date(Date.now()), 
-									type: "payment_sent",
-									from: payloadData.data.from,
-									data: {
-										id: payloadData.data.id,
-										proof: payloadData.data.proof,
-									},
-								}]);
+									setInteractions(curr => [...(curr || []), {
+										timestamp: new Date(Date.now()),
+										type: "payment_sent",
+										from: payloadData.data.from,
+										data: {
+											id: payloadData.data.id,
+											proof: payloadData.data.proof,
+										},
+									}]);
 
-								break;
-							default: break;
+									break;
+								case "payment_request_cancelled":
+
+									setInteractions(curr => curr?.map(inter => 
+										inter.type === "payment_requested" && inter.data.id === payloadData.data.id 
+										  ? { ...inter, data: { ...inter.data, status: "cancelled" } }
+										  : inter 
+									  ));
+
+									setInteractions(curr => [...(curr || []), {
+										timestamp: new Date(Date.now()),
+										type: "payment_request_cancelled",
+										from: payloadData.data.from,
+										data: {
+											id: payloadData.data.id,
+										},
+									}]);
+
+									break;
+
+								default: break;
+							}
+						} catch (error) {
+							console.log(error);
 						}
-
 					})
 					.on("broadcast", { event: "transaction" }, async (payload) => {
 						const payloadData = payload.payload;
 
-						switch (payloadData.data.eventType) {
-							case "transaction_started":
-								break;
-							case "transaction_completed":
-								interactionsChannel.unsubscribe();
-								supabase.removeChannel(interactionsChannel);
+						try {
+							switch (payloadData.data.eventType) {
+								case "transaction_started":
+									break;
+								case "transaction_completed":
+									interactionsChannel.unsubscribe();
+									supabase.removeChannel(interactionsChannel);
 
-								setQueue(prevQueue => {
-									if (prevQueue) {
-										return prevQueue.filter(req => req.sender_id !== merchantData?.id);
-									} else {
-										return [];
-									}
-								});
+									setQueue(prevQueue => {
+										if (prevQueue) {
+											return prevQueue.filter(req => req.sender_id !== merchantData?.id);
+										} else {
+											return [];
+										}
+									});
 
-								router.navigate("/(transactionRoom)");
+									router.navigate("/(transactionRoom)");
 
-								break;
-							case "transaction_cancelled":
-								break;
-							default: break;
-						};
-
+									break;
+								case "transaction_cancelled":
+									break;
+								default: break;
+							};
+						} catch (error) {
+							console.log(error);
+						}
 					})
 					.subscribe(async (status) => {
 						if (status === "SUBSCRIBED") {
@@ -443,6 +515,7 @@ export default function TransactionRoomScreen() {
 										amount={inter.data.amount}
 										platform={inter.data.platform}
 										currency={inter.data.currency}
+										status={inter.data.status}
 										onPayment={() => {
 											setPaymentDetails({
 												id: inter.data.id,
@@ -505,7 +578,7 @@ export default function TransactionRoomScreen() {
 							}>
 							{activePaymentRequestID ? (
 								<Menu.Item
-									onPress={() => { }}
+									onPress={() => cancelPaymentRequest(activePaymentRequestID)}
 									title="Cancel Request"
 									leadingIcon="cash-remove"
 								/>

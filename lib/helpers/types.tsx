@@ -46,7 +46,7 @@ export type Interaction =
 }
 | {
     timestamp: Date;
-    type: "payment_requested" | "payment_request_cancelled";
+    type: "payment_requested";
     from: string;
     data: {
         id: string;
@@ -55,6 +55,15 @@ export type Interaction =
         platform: string;
         accountName: string;
         accountNumber: string;
+        status: "pending" | "completed" | "cancelled";
+    };
+}
+| {
+    timestamp: Date;
+    type: "payment_request_cancelled";
+    from: string;
+    data: {
+        id: string;
     };
 }
 | {
@@ -89,18 +98,10 @@ export type Interaction =
 }
 | {
     timestamp: Date;
-    type: "submission";
-    from: string;
-    data: {
-        submissionId: string;
-    };
-}
-| {
-    timestamp: Date;
     type: "transaction";
     from: string;
     data: {
-        eventType: "transaction_started" | "transaction_completed" | "transaction_failed",
+        type: "transaction_started" | "transaction_completed" | "transaction_failed",
     };
 };
 

@@ -14,11 +14,12 @@ interface PaymentRequestCardProps {
     platform: string;
     currency: string;
     amount: Float;
+    status: "pending" | "completed" | "cancelled";
     onPayment?: () => void;
     style?: ViewStyle;
 }
 
-const PaymentRequestCard: FC<PaymentRequestCardProps> = ({ style, userData, timestamp, from, platform, currency, amount, onPayment }) => {
+const PaymentRequestCard: FC<PaymentRequestCardProps> = ({ style, userData, timestamp, from, platform, currency, amount, status, onPayment }) => {
     let currencySymbol;
 
     switch (currency) {
@@ -65,8 +66,11 @@ const PaymentRequestCard: FC<PaymentRequestCardProps> = ({ style, userData, time
                             icon={"cash"}
                             mode="contained"
                             onPress={onPayment}
+                            disabled={status === "cancelled" || status === "completed"}
                         >
-                            Pay
+                            {status === "pending" && "Pay"}
+                            {status === "cancelled" && "Cancelled"}
+                            {status === "completed" && "Completed"}
                         </Button>
                     : null}
                 </Card.Content>
