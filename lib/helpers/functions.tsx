@@ -1,3 +1,5 @@
+import { supabase } from "@/supabase/config";
+
 export const getInitials = (name: string) => {
     if (name) {
         const words = name.trim().split(" ");
@@ -37,4 +39,14 @@ export const formatISODate = (iso: string) => {
     });
 
     return formattedDate;
+}
+
+export const getBlobFromSupabase = async (path: string) => {
+    const { data, error } = await supabase.storage
+        .from("receipts")
+        .download(path)
+
+    if (!error && data) {
+        return data;
+    }
 }

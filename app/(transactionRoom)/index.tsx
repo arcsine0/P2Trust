@@ -94,28 +94,43 @@ export default function TransactionHomeScreen() {
     const createRoom = async () => {
         if (requests && queue && userData) {
             const currentRequest = queue.sort((a, b) => b.created_at.getTime() - a.created_at.getTime())[0];
-            const roomID = `H:${userData.id}_C:${currentRequest.sender_id}`;
 
-            const { data, error } = await supabase
+            const { data: merchantData, error: merchantError } = await supabase
                 .from("accounts")
                 .select("*")
                 .eq("id", currentRequest.sender_id);
 
-            if (!error && data) {
-                setMerchantData(data[0]);
+            if (!merchantError && merchantData) {
+                setMerchantData(merchantData[0]);
 
-                requestsChannel.send({
-                    type: "broadcast",
-                    event: "accepted",
-                    payload: {
-                        sender_id: currentRequest.sender_id,
-                        room_id: roomID,
-                    }
-                }).then(() => {
-                    setRole("merchant");
+                const { data: transactionData, error: transactionError } = await supabase
+                    .from("transactions")
+                    .insert({
+                        merchant: JSON.stringify({
+                            id: userData.id,
+                            username: userData.username,
+                        }),
+                        client: JSON.stringify({
+                            id: currentRequest.sender_id,
+                            username: currentRequest.sender_name,
+                        })
+                    })
+                    .select()
 
-                    router.navigate(`/(transactionRoom)/room/${roomID}`);
-                });
+                if (!transactionError && transactionData) {
+                    requestsChannel.send({
+                        type: "broadcast",
+                        event: "accepted",
+                        payload: {
+                            sender_id: currentRequest.sender_id,
+                            room_id: transactionData[0].id,
+                        }
+                    }).then(async () => {
+                        setRole("merchant");
+
+                        router.navigate(`/(transactionRoom)/room/${transactionData[0].id}`);
+                    });
+                }
             }
         }
     }

@@ -57,6 +57,7 @@ export default function HomeScreen({ navigation }: Props) {
 		const { data, error } = await supabase
 			.from("transactions")
 			.select()
+			.neq("status", "pending")
 			.order("created_at", { ascending: false });
 
 		if (!error) {

@@ -7,6 +7,7 @@ import { FontAwesome6 } from "@expo/vector-icons";
 
 import { Float } from "react-native/Libraries/Types/CodegenTypes";
 import { UserData } from "@/lib/helpers/types";
+import { getBlobFromSupabase } from "@/lib/helpers/functions"
 
 interface PaymentSentCardProps {
     style?: ViewStyle;
@@ -18,10 +19,11 @@ interface PaymentSentCardProps {
     currency?: string;
     amount?: Float;
     status: "pending" | "confirmed";
+    receiptURL: string;
     onConfirm?: () => void;
 }
 
-const PaymentSentCard: FC<PaymentSentCardProps> = ({ style, id, userData, timestamp, from, platform, currency, status, onConfirm }) => {
+const PaymentSentCard: FC<PaymentSentCardProps> = ({ style, id, userData, timestamp, from, platform, currency, status, receiptURL, onConfirm }) => {
     let currencySymbol;
 
     switch (currency) {
@@ -30,6 +32,9 @@ const PaymentSentCard: FC<PaymentSentCardProps> = ({ style, id, userData, timest
         case "EUR": currencySymbol = "euro-sign"; break;
         default: currencySymbol = "dollar-sign"; break;
     }
+
+    console.log(receiptURL)
+
     if (userData) {
         return (
             <Card
@@ -55,7 +60,7 @@ const PaymentSentCard: FC<PaymentSentCardProps> = ({ style, id, userData, timest
                     </View>
                     <Text variant="titleSmall" className="font-bold">Proof of Payment</Text>
                     <Image
-
+                        source={{ uri: receiptURL }}
                     />
                     {userData.username !== from ?
                         <Button

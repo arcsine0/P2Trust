@@ -3,18 +3,20 @@ import { View, ViewStyle } from "react-native";
 import { Text, Button, Icon, TouchableRipple } from "react-native-paper";
 import { Image } from "expo-image";
 
+import { ImagePickerAsset } from "expo-image-picker";
+
 import { RequestDetails } from "@/lib/helpers/types";
 import { PaymentPlatforms } from "@/lib/helpers/collections";
 
 interface SendPaymentRouteProps {
     paymentDetails: RequestDetails;
-    receiptURI: string | undefined;
-    setReceiptURI: Dispatch<SetStateAction<string | undefined>>;
+    receipt: ImagePickerAsset | undefined;
+    setReceipt: Dispatch<SetStateAction<ImagePickerAsset | undefined>>;
     pickReceipt: () => void;
     sendPayment: () => void;
 }
 
-const SendPaymentRoute: FC<SendPaymentRouteProps> = ({ paymentDetails, receiptURI, setReceiptURI, pickReceipt, sendPayment }) => {
+const SendPaymentRoute: FC<SendPaymentRouteProps> = ({ paymentDetails, receipt, setReceipt, pickReceipt, sendPayment }) => {
     return (
         <View className="flex flex-col space-y-2 p-4 items-start justify-start">
             <Text variant="titleLarge" className="font-bold">Payment Details</Text>
@@ -44,7 +46,7 @@ const SendPaymentRoute: FC<SendPaymentRouteProps> = ({ paymentDetails, receiptUR
             <View className="flex flex-col w-full space-y-1">
                 <View className="flex flex-row w-full items-center justify-between">
                     <Text variant="bodySmall" className="text-slate-400">Upload Receipt</Text>
-                    <TouchableRipple onPress={() => setReceiptURI(undefined)}>
+                    <TouchableRipple onPress={() => setReceipt(undefined)}>
                         <View className="flex flex-row space-x-1 items-center justify-center">
                             <Icon
                                 source="trash-can-outline"
@@ -57,7 +59,7 @@ const SendPaymentRoute: FC<SendPaymentRouteProps> = ({ paymentDetails, receiptUR
                     </TouchableRipple>
                 </View>
                 <View className="flex flex-row w-full p-2 items-center justify-center border-2 border-dashed border-slate-499">
-                    {!receiptURI ?
+                    {!receipt ?
                         <TouchableRipple
                             className="flex flex-row w-full py-2 items-center justify-center"
                             onPress={() => pickReceipt()}
@@ -74,7 +76,7 @@ const SendPaymentRoute: FC<SendPaymentRouteProps> = ({ paymentDetails, receiptUR
                         :
                         <Image
                             className="w-full"
-                            source={{ uri: receiptURI }}
+                            source={{ uri: receipt.uri }}
                             contentFit="contain"
                         />
                     }
@@ -84,7 +86,7 @@ const SendPaymentRoute: FC<SendPaymentRouteProps> = ({ paymentDetails, receiptUR
                 className="rounded-lg w-full"
                 icon={"information"}
                 mode="contained"
-                disabled={!receiptURI ? true : false}
+                disabled={!receipt ? true : false}
                 onPress={sendPayment}
             >
                 Mark payment as sent

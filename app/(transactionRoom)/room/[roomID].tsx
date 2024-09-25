@@ -16,6 +16,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { BottomSheetModal, BottomSheetView, BottomSheetBackdrop, BottomSheetBackdropProps } from "@gorhom/bottom-sheet";
 
 import { supabase } from "@/supabase/config";
+import { decode } from "base64-arraybuffer";
 
 import { useUserData } from "@/lib/context/UserContext";
 import { useMerchantData } from "@/lib/context/MerchantContext";
@@ -50,7 +51,7 @@ export default function TransactionRoomScreen() {
 		accountName: undefined as string | undefined,
 	});
 
-	const [receiptURI, setReceiptURI] = useState<string | undefined>(undefined);
+	const [receipt, setReceipt] = useState<ImagePicker.ImagePickerAsset | undefined>(undefined);
 
 	const [showActionsMenu, setShowActionsMenu] = useState(false);
 	const [showFinishDialog, setShowFinishDialog] = useState(false);
@@ -168,32 +169,62 @@ export default function TransactionRoomScreen() {
 	const sendPayment = async (id: string | undefined) => {
 		if (!id) return;
 
-		const { error } = await supabase
-			.from("payments")
-			.update({
-				status: "paid",
-				paid_at: new Date().toISOString(),
-			})
-			.eq("id", id);
 
-		if (!error) {
-			interactionsChannel.send({
-				type: "broadcast",
-				event: "payment",
-				payload: {
-					type: "payment_sent",
-					data: {
-						id: id,
-						from: userData?.username,
-						proof: receiptURI,
+		if (receipt) {
+			try {
+				// const response = await fetch(receiptURI);
+				const base64Data = receipt.base64;
+				const contentType = receipt.mimeType;
+
+				if (base64Data) {
+					const arrayBuffer = decode(base64Data);
+
+					const { data: receiptData, error: receiptError } = await supabase.storage
+						.from("receipts")
+						.upload(`transactions/${roomID}/${id}`, arrayBuffer, {
+							contentType: contentType,
+							cacheControl: "3600",
+							upsert: true,
+						})
+
+					if (!receiptError && receiptData) {
+						const { error } = await supabase
+							.from("payments")
+							.update({
+								status: "paid",
+								paid_at: new Date().toISOString(),
+							})
+							.eq("id", id);
+
+						if (!error) {
+							interactionsChannel.send({
+								type: "broadcast",
+								event: "payment",
+								payload: {
+									type: "payment_sent",
+									data: {
+										id: id,
+										from: userData?.username,
+										receipt: receiptData.path,
+									}
+								}
+							}).then(() => {
+								actionsModalRef.current?.close();
+							});
+						} else {
+							console.log("Supabase transaction update error: ", error);
+						}
+					} else {
+						console.log("Supabase upload error: ", receiptError);
 					}
 				}
-			}).then(() => {
-				actionsModalRef.current?.close();
-			});
-		} else {
-			console.log(error);
+			} catch (error) {
+				console.log("Error during upload:", error);
+			}
+
+
 		}
+
 	}
 
 	const confirmPayment = async (id: string | undefined) => {
@@ -231,11 +262,12 @@ export default function TransactionRoomScreen() {
 	const pickReceipt = async () => {
 		const result = await ImagePicker.launchImageLibraryAsync({
 			mediaTypes: ImagePicker.MediaTypeOptions.Images,
+			base64: true,
 			quality: 1,
 		});
 
 		if (result && result.assets && result.assets[0].uri) {
-			setReceiptURI(result.assets[0].uri);
+			setReceipt(result.assets[0]);
 		}
 	}
 
@@ -312,7 +344,7 @@ export default function TransactionRoomScreen() {
 										from: payloadData.data.from,
 										data: {
 											id: payloadData.data.id,
-											proof: payloadData.data.proof,
+											receipt: payloadData.data.receipt,
 											status: "pending",
 										},
 									}]);
@@ -351,7 +383,7 @@ export default function TransactionRoomScreen() {
 											id: payloadData.data.id,
 										},
 									}]);
-								
+
 									break;
 
 								default: break;
@@ -425,20 +457,13 @@ export default function TransactionRoomScreen() {
 
 		const { error } = await supabase
 			.from("transactions")
-			.insert({
+			.update({
 				total_amount: 0,
-				merchant: JSON.stringify({
-					id: role === "merchant" ? userData?.id : merchantData?.id,
-					username: role === "merchant" ? userData?.username : merchantData?.username,
-				}),
-				client: JSON.stringify({
-					id: role === "merchant" ? merchantData?.id : userData?.id,
-					username: role === "merchant" ? merchantData?.username : userData?.username,
-				}),
 				status: "complete",
 				platforms: platforms,
 				timeline: interactionsJSON,
-			});
+			})
+			.eq("id", roomID);
 
 		if (!error) {
 			setShowFinishDialog(false);
@@ -530,70 +555,87 @@ export default function TransactionRoomScreen() {
 						inverted={true}
 						keyExtractor={(item, index) => index.toString()}
 						contentContainerStyle={{ flexGrow: 1 }}
-						renderItem={({ item: inter }) => (
-							<View key={inter.timestamp.getTime()} className="mb-2 space-y-2">
-								{inter.type !== "message" ?
-									<EventChip type={inter.type} from={inter.from} />
-									:
-									<View className="flex flex-row gap-2 items-center justify-start">
-										<Avatar.Text label={getInitials(inter.from)} size={35} />
-										<View className="flex flex-col items-start justify-start">
-											<Text
-												variant="titleSmall"
-												className="w-full font-bold"
-											>
-												{inter.from}
-											</Text>
-											<Text
-												variant="bodyMedium"
-												className="w-full text-pretty"
-											>
-												{inter.data.message}
-											</Text>
-											<Text variant="bodySmall" className="text-slate-400">
-												{inter.timestamp.toLocaleString()}
-											</Text>
+						renderItem={({ item: inter }) => {
+							switch (inter.type) {
+								case "message":
+									return (
+										<View className="flex flex-row gap-2 items-center justify-start">
+											<Avatar.Text label={getInitials(inter.from)} size={35} />
+											<View className="flex flex-col items-start justify-start">
+												<Text
+													variant="titleSmall"
+													className="w-full font-bold"
+												>
+													{inter.from}
+												</Text>
+												<Text
+													variant="bodyMedium"
+													className="w-full text-pretty"
+												>
+													{inter.data.message}
+												</Text>
+												<Text variant="bodySmall" className="text-slate-400">
+													{inter.timestamp.toLocaleString()}
+												</Text>
+											</View>
 										</View>
-									</View>
-								}
-								{inter.type === "payment_requested" && (
-									<PaymentRequestCard
-										style={{ backgroundColor: theme.colors.background }}
-										userData={userData}
-										timestamp={inter.timestamp}
-										from={inter.from}
-										amount={inter.data.amount}
-										platform={inter.data.platform}
-										currency={inter.data.currency}
-										status={inter.data.status}
-										onPayment={() => {
-											setPaymentDetails({
-												id: inter.data.id,
-												amount: inter.data.amount,
-												currency: inter.data.currency,
-												platform: inter.data.platform,
-												accountName: inter.data.accountName,
-												accountNumber: inter.data.accountNumber,
-											});
-											setActionsModalRoute("SendPayment");
+									)
+								case "payment_requested":
+									return (
+										<View key={inter.timestamp.getTime()} className="mb-2 space-y-2">
+											<EventChip type={inter.type} from={inter.from} />
+											<PaymentRequestCard
+												style={{ backgroundColor: theme.colors.background }}
+												userData={userData}
+												timestamp={inter.timestamp}
+												from={inter.from}
+												amount={inter.data.amount}
+												platform={inter.data.platform}
+												currency={inter.data.currency}
+												status={inter.data.status}
+												onPayment={() => {
+													setPaymentDetails({
+														id: inter.data.id,
+														amount: inter.data.amount,
+														currency: inter.data.currency,
+														platform: inter.data.platform,
+														accountName: inter.data.accountName,
+														accountNumber: inter.data.accountNumber,
+													});
+													setActionsModalRoute("SendPayment");
 
-											actionsModalRef.current?.present()
-										}}
-									/>
-								)}
-								{inter.type === "payment_sent" && (
-									<PaymentSentCard
-										style={{ backgroundColor: theme.colors.background }}
-										id={inter.data.id}
-										userData={userData}
-										timestamp={inter.timestamp}
-										from={inter.from}
-										status={inter.data.status}
-										onConfirm={() => confirmPayment(inter.data.id)}
-									/>
-								)}
-							</View>
-						)}
+													actionsModalRef.current?.present()
+												}}
+											/>
+										</View>
+									)
+								case "payment_sent":
+									const { data: receiptURL } = supabase.storage
+										.from("receipts")
+										.getPublicUrl(inter.data.receipt);
+
+									if (receiptURL) {
+										return (
+											<View key={inter.timestamp.getTime()} className="mb-2 space-y-2">
+												<EventChip type={inter.type} from={inter.from} />
+												<PaymentSentCard
+													style={{ backgroundColor: theme.colors.background }}
+													id={inter.data.id}
+													userData={userData}
+													timestamp={inter.timestamp}
+													from={inter.from}
+													status={inter.data.status}
+													receiptURL={receiptURL.publicUrl}
+													onConfirm={() => confirmPayment(inter.data.id)}
+												/>
+											</View>
+										)
+									}
+
+									
+								default: return null;
+							}
+						}}
 					/>
 					: null}
 				<View className="flex flex-row gap-2 mb-2 items-start justify-center">
@@ -669,8 +711,8 @@ export default function TransactionRoomScreen() {
 						{actionsModalRoute === "SendPayment" && (
 							<SendPaymentRoute
 								paymentDetails={paymentDetails}
-								receiptURI={receiptURI}
-								setReceiptURI={setReceiptURI}
+								receipt={receipt}
+								setReceipt={setReceipt}
 								pickReceipt={pickReceipt}
 								sendPayment={() => sendPayment(paymentDetails.id)}
 							/>

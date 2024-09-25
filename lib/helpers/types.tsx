@@ -72,7 +72,7 @@ export type Interaction =
     from: string;
     data: {
         id: string;
-        proof: string;
+        receipt: string;
         status: "pending" | "confirmed";
     };
 }
