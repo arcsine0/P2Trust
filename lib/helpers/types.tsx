@@ -114,11 +114,10 @@ export type TimelineEvent = {
     type: string;
     from: string;
     data: {
-        eventType: string;
-        amount: number | null;
-        currency: string | null;
-        platform: string | null;
-        merchantName: string | null;
-        merchantNumber: string | null;
+        amount?: number | null;
+        currency?: string | null;
+        platform?: string | null;
+        merchantName?: string | null;
+        merchantNumber?: string | null;
     };
 }

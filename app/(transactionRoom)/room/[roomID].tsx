@@ -454,6 +454,12 @@ export default function TransactionRoomScreen() {
 											: inter
 									));
 
+									setInteractions(curr => curr?.map(inter =>
+										inter.type === "payment_requested" && inter.data.id === payloadData.data.id
+											? { ...inter, data: { ...inter.data, status: "completed" } }
+											: inter
+									));
+
 									setInteractions(curr => [...(curr || []), {
 										timestamp: new Date(Date.now()),
 										type: "payment_confirmed",
@@ -493,7 +499,7 @@ export default function TransactionRoomScreen() {
 						const payloadData = payload.payload;
 
 						try {
-							switch(payloadData.type) {
+							switch (payloadData.type) {
 								case "product_sent":
 									setInteractions(curr => [...(curr || []), {
 										timestamp: new Date(Date.now()),
@@ -585,30 +591,42 @@ export default function TransactionRoomScreen() {
 			}
 		}).filter((value, index, self) => self.indexOf(value) === index) as string[];
 
-		const { error } = await supabase
-			.from("transactions")
-			.update({
-				total_amount: 0,
-				status: "completed",
-				platforms: platforms,
-				timeline: interactionsJSON,
-			})
-			.eq("id", roomID);
-
-		if (!error) {
-			setShowFinishDialog(false);
-
-			interactionsChannel.send({
-				type: "broadcast",
-				event: "transaction",
-				payload: {
-					data: {
-						eventType: "transaction_completed",
-					}
+		const totalPaidAmount = interactions?.filter(inter => inter.type === "payment_requested" && inter.data.status === "completed")
+			.map(inter => {
+				if (inter.type === "payment_requested") {
+					return inter.data.amount;
+				} else {
+					return 0;
 				}
-			});
-		} else {
-			console.log(error);
+			})
+			.reduce((accumulator, currentValue) => accumulator + currentValue, 0)
+
+		if (platforms && totalPaidAmount) {
+			const { error } = await supabase
+				.from("transactions")
+				.update({
+					total_amount: totalPaidAmount,
+					status: totalPaidAmount > 0 ? "completed" : "cancelled",
+					platforms: platforms,
+					timeline: interactionsJSON,
+				})
+				.eq("id", roomID);
+
+			if (!error) {
+				setShowFinishDialog(false);
+
+				interactionsChannel.send({
+					type: "broadcast",
+					event: "transaction",
+					payload: {
+						data: {
+							eventType: "transaction_completed",
+						}
+					}
+				});
+			} else {
+				console.log(error);
+			}
 		}
 	}
 
@@ -780,67 +798,67 @@ export default function TransactionRoomScreen() {
 									}
 
 
-								default: 
+								default:
 									return (
 										<View key={inter.timestamp.getTime()} className="mb-2 space-y-2">
 											<EventChip type={inter.type} from={inter.from} />
 										</View>
 									)
-								
+
 							}
 						}}
 					/>
 					: null}
-				{interactions && 
-				interactions.some(inter => inter.type === "payment_confirmed" && inter.from === userData?.username) && 
-				!hasSentProduct && (
-					<View className="flex flex-col p-2 items-start justify-center">
-						<Text variant="titleSmall" className="font-semibold">Have you sent the buyer the purchased product?</Text>
-						<View className="flex flex-row space-x-2 items-center justify-center">
-							<Button
-								className="rounded-lg grow"
-								icon={"check"}
-								mode="contained"
-								onPress={() => sendProductStatus()}
-							>
-								Yes
-							</Button>
-							<Button
-								className="rounded-lg grow"
-								icon={"close"}
-								mode="contained"
-								onPress={() => setHasSentProduct(false)}
-							>
-								No
-							</Button>
+				{interactions &&
+					interactions.some(inter => inter.type === "payment_confirmed" && inter.from === userData?.username) &&
+					!hasSentProduct && (
+						<View className="flex flex-col p-2 items-start justify-center">
+							<Text variant="titleSmall" className="font-semibold">Have you sent the buyer the purchased product?</Text>
+							<View className="flex flex-row space-x-2 items-center justify-center">
+								<Button
+									className="rounded-lg grow"
+									icon={"check"}
+									mode="contained"
+									onPress={() => sendProductStatus()}
+								>
+									Yes
+								</Button>
+								<Button
+									className="rounded-lg grow"
+									icon={"close"}
+									mode="contained"
+									onPress={() => setHasSentProduct(false)}
+								>
+									No
+								</Button>
+							</View>
 						</View>
-					</View>
-				)}
-				{interactions && 
-				interactions.some(inter => inter.type === "product_sent" && inter.from === merchantData?.username) && 
-				!hasReceivedProduct && (
-					<View className="flex flex-col p-2 items-start justify-center">
-						<Text variant="titleSmall" className="font-semibold">Have you received the purchased product?</Text>
-						<View className="flex flex-row space-x-2 items-center justify-center">
-							<Button
-								className="rounded-lg grow"
-								icon={"check"}
-								mode="contained"
-								onPress={() => sendProductConfirmation()}
-							>
-								Yes
-							</Button>
-							<Button
-								className="rounded-lg grow"
-								icon={"close"}
-								mode="contained"
-								onPress={() => setHasReceivedProduct(false)}
-							>
-								No
-							</Button>
+					)}
+				{interactions &&
+					interactions.some(inter => inter.type === "product_sent" && inter.from === merchantData?.username) &&
+					!hasReceivedProduct && (
+						<View className="flex flex-col p-2 items-start justify-center">
+							<Text variant="titleSmall" className="font-semibold">Have you received the purchased product?</Text>
+							<View className="flex flex-row space-x-2 items-center justify-center">
+								<Button
+									className="rounded-lg grow"
+									icon={"check"}
+									mode="contained"
+									onPress={() => sendProductConfirmation()}
+								>
+									Yes
+								</Button>
+								<Button
+									className="rounded-lg grow"
+									icon={"close"}
+									mode="contained"
+									onPress={() => setHasReceivedProduct(false)}
+								>
+									No
+								</Button>
+							</View>
 						</View>
-					</View>
-				)}
+					)}
 				<View className="flex flex-row space-x-2 items-start justify-center">
 					<TextInput
 						className="grow rounded-lg overflow-scroll"

@@ -14,7 +14,13 @@ import { Ionicons, Octicons } from "@expo/vector-icons";
 import { getInitials, formatISODate, formatTimeDifference } from "@/lib/helpers/functions";
 
 export default function TransactionDetailsScreen() {
-    const [transactionData, setTransactionData] = useState<Transaction | null>(null)
+    const [transactionData, setTransactionData] = useState<Transaction | undefined>(undefined)
+    const [transactionTimeline, setTransactionTimeline] = useState<TimelineEvent[] | undefined>(undefined);
+
+    const [transactionLength, setTransactionLength] = useState<{
+        startTime: number,
+        endTime: number,
+    } | undefined>(undefined);
 
     const { transactionID } = useLocalSearchParams<{ transactionID: string }>();
 
@@ -22,24 +28,33 @@ export default function TransactionDetailsScreen() {
     const theme = useTheme();
 
     const getTransactionData = async () => {
-        const { data, error } = await supabase
-            .from("transactions")
-            .select("*")
-            .eq("id", transactionID);
+        try {
+            const { data, error } = await supabase
+                .from("transactions")
+                .select("*")
+                .eq("id", transactionID);
 
-        if (!error) {
-            setTransactionData(data[0]);
+            if (!error) {
+                setTransactionData(data[0]);
+                setTransactionTimeline(data[0].timeline);
+                setTransactionLength({
+                    startTime: Date.parse(data[0].timeline[0].timestamp),
+                    endTime: Date.parse(data[0].timeline[data[0].timeline.length - 1].timestamp),
+                });
 
-            navigation.setOptions({
-                headerLeft: () => (
-                    <View className="flex flex-col mb-2 items-start justify-center">
-                        <Text variant="titleMedium" className="font-bold">Transaction Details</Text>
-                        <Text variant="bodyMedium">ID: {data[0].id}</Text>
-                        <Text variant="bodyMedium">{formatISODate(data[0].created_at.toLocaleString())}</Text>
-                    </View>
-                ),
-            });
-        } else {
+                navigation.setOptions({
+                    headerLeft: () => (
+                        <View className="flex flex-col mb-2 items-start justify-center">
+                            <Text variant="titleMedium" className="font-bold">Transaction Details</Text>
+                            <Text variant="bodyMedium">ID: {data[0].id}</Text>
+                            <Text variant="bodyMedium">{formatISODate(data[0].created_at.toLocaleString())}</Text>
+                        </View>
+                    ),
+                });
+            } else {
+                console.log(error);
+            }
+        } catch (error) {
             console.log(error);
         }
     }
@@ -77,7 +92,7 @@ export default function TransactionDetailsScreen() {
                                         </View>
                                         <View></View>
                                         <View className="flex flex-col items-end justify-center">
-                                            <Text variant="titleMedium" className="font-bold text-green-500">PHP100</Text>
+                                            <Text variant="titleMedium" className="font-bold text-green-500">PHP{transactionData.total_amount}</Text>
                                             <Text variant="bodyMedium" className="text-slate-400">Received</Text>
                                         </View>
                                     </View>
@@ -99,7 +114,7 @@ export default function TransactionDetailsScreen() {
                                         </View>
                                         <View></View>
                                         <View className="flex flex-col items-end justify-center">
-                                            <Text variant="titleMedium" className="font-bold text-red-500">-PHP100</Text>
+                                            <Text variant="titleMedium" className="font-bold text-red-500">-PHP{transactionData.total_amount}</Text>
                                             <Text variant="bodyMedium" className="text-slate-400">Sent</Text>
                                         </View>
                                     </View>
@@ -111,34 +126,41 @@ export default function TransactionDetailsScreen() {
                                         <Text variant="titleMedium" className="font-bold">Transaction Timeline</Text>
                                         <View className="flex flex-row gap-2 items-center justify-end">
                                             <Octicons name="clock" size={15} color={"#94a3b8"} />
-                                            <Text variant="bodyMedium" className="text-slate-400">0 mins</Text>
+                                            {transactionLength ?
+                                                <Text variant="bodyMedium" className="text-slate-400">{Math.round((transactionLength.endTime - transactionLength.startTime) / (1000 * 60))} mins</Text>
+                                                :
+                                                <Text variant="bodyMedium" className="text-slate-400">0 mins</Text>
+                                            }
+
                                         </View>
                                     </View>
                                     <Divider className="my-2" />
                                     <View className="space-y-2">
-                                        {JSON.parse(transactionData.timeline).sort(
-                                            (a: TimelineEvent, b: TimelineEvent) => Date.parse(a.timestamp) - Date.parse(b.timestamp)
-                                        ).map((event: TimelineEvent, i: number, arr: TimelineEvent[]) => {
-                                            const startTime = Date.parse(arr[0].timestamp);
-                                            const endTime = Date.parse(arr[arr.length - 1].timestamp);
-
+                                        {transactionTimeline && transactionLength && transactionTimeline.sort(
+                                            (a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp)
+                                        ).map((event, i) => {
                                             return (
                                                 <View key={i} className="flex flex-row">
                                                     <View className="flex flex-col items-center mr-4">
                                                         <View className="w-3 h-3 rounded-full" style={{ backgroundColor: theme.colors.primary }}></View>
-                                                        {i !== JSON.parse(transactionData.timeline).length - 1 &&
+                                                        {i !== transactionTimeline.length - 1 &&
                                                             <View className="w-0.5 h-10" style={{ backgroundColor: theme.colors.primary }}></View>
                                                         }
                                                     </View>
                                                     <View className="flex flex-row items-start justify-between">
                                                         <View className="w-full">
                                                             <Text variant="titleMedium" className="font-bold">
-                                                                {event.data.eventType === "user_joined" ? "User Joined" : null}
-                                                                {event.data.eventType === "user_left" ? "User Left" : null}
-                                                                {event.data.eventType === "payment_requested" ? "User Requested Payment" : null}
-                                                                {event.data.eventType === "payment_sent" ? "User Sent Payment" : null}
+                                                                {event.type === "user_joined" ? "User Joined" : null}
+                                                                {event.type === "user_left" ? "User Left" : null}
+                                                                {event.type === "payment_requested" ? "User Requested Payment" : null}
+                                                                {event.type === "payment_request_cancelled" ? "User Cancelled Payment" : null}
+                                                                {event.type === "payment_sent" ? "User Sent Payment" : null}
+                                                                {event.type === "payment_confirmed" ? "User Confirmed Payment" : null}
+                                                                {event.type === "payment_denied" ? "User Denied Payment" : null}
+                                                                {event.type === "product_sent" ? "User Sent Product" : null}
+                                                                {event.type === "product_received" ? "User Received Product" : null}
                                                             </Text>
-                                                            <Text variant="bodyMedium" className="text-slate-400">{formatTimeDifference(event.timestamp, startTime, endTime)}</Text>
+                                                            <Text variant="bodyMedium" className="text-slate-400">{formatTimeDifference(event.timestamp, transactionLength.startTime, transactionLength.endTime)}</Text>
                                                             <Text variant="bodyMedium">{event.from}</Text>
                                                         </View>
                                                     </View>

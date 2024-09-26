@@ -149,7 +149,7 @@ export default function HomeScreen({ navigation }: Props) {
 								</View>
 								<View className="flex flex-row items-center justify-between">
 									<View className="flex flex-row space-x-2 items-center justify-start">
-										<Text variant="titleMedium" className="font-semibold text-slate-400">PHP</Text>
+										<Text variant="titleMedium" className="font-semibold text-slate-400">Total Amount:</Text>
 										<Text variant="titleMedium" className="font-bold">{transaction.total_amount}</Text>
 									</View>
 									<Icon source="chevron-right" size={20} color={"#94a3b8"} />
