@@ -56,6 +56,10 @@ export default function TransactionRoomScreen() {
 	const [showActionsMenu, setShowActionsMenu] = useState(false);
 	const [showFinishDialog, setShowFinishDialog] = useState(false);
 
+	const [hasSentProduct, setHasSentProduct] = useState<boolean>(false);
+	const [hasReceivedProduct, setHasReceivedProduct] = useState<boolean>(false);
+
+
 	const [actionsModalRoute, setActionsModalRoute] = useState("RequestPayment");
 	const actionsModalRef = useRef<BottomSheetModal>(null);
 
@@ -93,6 +97,7 @@ export default function TransactionRoomScreen() {
 					amount: requestDetails.amount,
 					currency: requestDetails.currency,
 					platform: requestDetails.platform,
+					transaction_id: roomID,
 				})
 				.select();
 
@@ -193,6 +198,7 @@ export default function TransactionRoomScreen() {
 							.update({
 								status: "paid",
 								paid_at: new Date().toISOString(),
+								receipt: receiptData.path,
 							})
 							.eq("id", id);
 
@@ -209,6 +215,7 @@ export default function TransactionRoomScreen() {
 									}
 								}
 							}).then(() => {
+								setReceipt(undefined);
 								actionsModalRef.current?.close();
 							});
 						} else {
@@ -254,6 +261,78 @@ export default function TransactionRoomScreen() {
 			} else {
 				console.log(error);
 			}
+		} catch (error) {
+			console.log(error);
+		}
+	}
+
+	const denyPayment = async (id: string | undefined) => {
+		if (!id) return
+
+		try {
+			const { error } = await supabase
+				.from("payments")
+				.update({
+					status: "denied",
+					confirmed_at: new Date().toISOString(),
+				})
+				.eq("id", id)
+
+			if (!error) {
+				interactionsChannel.send({
+					type: "broadcast",
+					event: "payment",
+					payload: {
+						type: "payment_denied",
+						data: {
+							id: id,
+							from: userData?.username,
+						}
+					}
+				});
+			} else {
+				console.log(error);
+			}
+		} catch (error) {
+			console.log(error);
+		}
+	}
+
+	const sendProductStatus = async () => {
+		try {
+			interactionsChannel.send({
+				type: "broadcast",
+				event: "product",
+				payload: {
+					type: "product_sent",
+					data: {
+						id: userData?.id,
+						from: userData?.username,
+					}
+				}
+			}).then(() => {
+				setHasSentProduct(true);
+			});
+		} catch (error) {
+			console.log(error);
+		}
+	}
+
+	const sendProductConfirmation = async () => {
+		try {
+			interactionsChannel.send({
+				type: "broadcast",
+				event: "product",
+				payload: {
+					type: "product_received",
+					data: {
+						id: userData?.id,
+						from: userData?.username,
+					}
+				}
+			}).then(() => {
+				setHasReceivedProduct(true);
+			});
 		} catch (error) {
 			console.log(error);
 		}
@@ -386,6 +465,57 @@ export default function TransactionRoomScreen() {
 
 									break;
 
+								case "payment_denied":
+									setInteractions(curr => curr?.map(inter =>
+										inter.type === "payment_sent" && inter.data.id === payloadData.data.id
+											? { ...inter, data: { ...inter.data, status: "denied" } }
+											: inter
+									));
+
+									setInteractions(curr => [...(curr || []), {
+										timestamp: new Date(Date.now()),
+										type: "payment_denied",
+										from: payloadData.data.from,
+										data: {
+											id: payloadData.data.id,
+										},
+									}]);
+
+									break;
+								default: break;
+
+							}
+						} catch (error) {
+							console.log(error);
+						}
+					})
+					.on("broadcast", { event: "product" }, async (payload) => {
+						const payloadData = payload.payload;
+
+						try {
+							switch(payloadData.type) {
+								case "product_sent":
+									setInteractions(curr => [...(curr || []), {
+										timestamp: new Date(Date.now()),
+										type: "product_sent",
+										from: payloadData.data.from,
+										data: {
+											id: payloadData.data.id,
+										},
+									}]);
+
+									break;
+								case "product_received":
+									setInteractions(curr => [...(curr || []), {
+										timestamp: new Date(Date.now()),
+										type: "product_received",
+										from: payloadData.data.from,
+										data: {
+											id: payloadData.data.id,
+										},
+									}]);
+
+									break;
 								default: break;
 							}
 						} catch (error) {
@@ -447,11 +577,11 @@ export default function TransactionRoomScreen() {
 			(a, b) => a.timestamp.getTime() - b.timestamp.getTime()
 		));
 
-		const platforms = interactions?.filter(inter => inter.type === "payment_requested").map((inter) => {
+		const platforms = interactions?.filter(inter => inter.type === "payment_requested" && inter.data.status === "completed").map((inter) => {
 			if (inter.type === "payment_requested") {
 				return inter.data.platform;
 			} else {
-				return "";
+				return null;
 			}
 		}).filter((value, index, self) => self.indexOf(value) === index) as string[];
 
@@ -459,7 +589,7 @@ export default function TransactionRoomScreen() {
 			.from("transactions")
 			.update({
 				total_amount: 0,
-				status: "complete",
+				status: "completed",
 				platforms: platforms,
 				timeline: interactionsJSON,
 			})
@@ -492,6 +622,7 @@ export default function TransactionRoomScreen() {
 	useEffect(() => {
 		getRoomData();
 		setInteractions([]);
+		setReceipt(undefined);
 
 		navigation.setOptions({
 			headerLeft: () => (
@@ -522,6 +653,21 @@ export default function TransactionRoomScreen() {
 		}
 	}, []);
 
+	// useEffect(() => {
+	// 	if (interactions) {
+	// 		interactions.forEach((inter) => {
+	// 			if (inter.type === "payment_confirmed") {
+	// 				console.log("Confirmation ID: ", inter.data.id)
+	// 				console.log("User ID: ", userData?.id)
+	// 			}
+	// 			if (inter.type === "product_sent") {
+	// 				console.log("Product Sent ID: ", inter.data.id);
+	// 				console.log("Merchant ID: ", merchantData?.id);
+	// 			}
+	// 		});
+	// 	}
+	// }, [interactions])
+
 	const SendProofRoute = () => (
 		<View>
 			<Text variant="titleLarge">Test</Text>
@@ -544,11 +690,11 @@ export default function TransactionRoomScreen() {
 			<KeyboardAvoidingView
 				behavior={Platform.OS === "ios" ? "padding" : "height"}
 				keyboardVerticalOffset={100}
-				className="flex w-full h-full"
+				className="flex w-full h-full space-y-2"
 			>
 				{interactions ?
 					<FlatList
-						className="w-full mb-2"
+						className="w-full"
 						data={interactions.sort(
 							(a, b) => b.timestamp.getTime() - a.timestamp.getTime()
 						)}
@@ -627,18 +773,75 @@ export default function TransactionRoomScreen() {
 													status={inter.data.status}
 													receiptURL={receiptURL.publicUrl}
 													onConfirm={() => confirmPayment(inter.data.id)}
+													onDeny={() => denyPayment(inter.data.id)}
 												/>
 											</View>
 										)
 									}
 
-									
-								default: return null;
+
+								default: 
+									return (
+										<View key={inter.timestamp.getTime()} className="mb-2 space-y-2">
+											<EventChip type={inter.type} from={inter.from} />
+										</View>
+									)
+								
 							}
 						}}
 					/>
 					: null}
-				<View className="flex flex-row gap-2 mb-2 items-start justify-center">
+				{interactions && 
+				interactions.some(inter => inter.type === "payment_confirmed" && inter.from === userData?.username) && 
+				!hasSentProduct && (
+					<View className="flex flex-col p-2 items-start justify-center">
+						<Text variant="titleSmall" className="font-semibold">Have you sent the buyer the purchased product?</Text>
+						<View className="flex flex-row space-x-2 items-center justify-center">
+							<Button
+								className="rounded-lg grow"
+								icon={"check"}
+								mode="contained"
+								onPress={() => sendProductStatus()}
+							>
+								Yes
+							</Button>
+							<Button
+								className="rounded-lg grow"
+								icon={"close"}
+								mode="contained"
+								onPress={() => setHasSentProduct(false)}
+							>
+								No
+							</Button>
+						</View>
+					</View>
+				)}
+				{interactions && 
+				interactions.some(inter => inter.type === "product_sent" && inter.from === merchantData?.username) && 
+				!hasReceivedProduct && (
+					<View className="flex flex-col p-2 items-start justify-center">
+						<Text variant="titleSmall" className="font-semibold">Have you received the purchased product?</Text>
+						<View className="flex flex-row space-x-2 items-center justify-center">
+							<Button
+								className="rounded-lg grow"
+								icon={"check"}
+								mode="contained"
+								onPress={() => sendProductConfirmation()}
+							>
+								Yes
+							</Button>
+							<Button
+								className="rounded-lg grow"
+								icon={"close"}
+								mode="contained"
+								onPress={() => setHasReceivedProduct(false)}
+							>
+								No
+							</Button>
+						</View>
+					</View>
+				)}
+				<View className="flex flex-row space-x-2 items-start justify-center">
 					<TextInput
 						className="grow rounded-lg overflow-scroll"
 						label="Message"

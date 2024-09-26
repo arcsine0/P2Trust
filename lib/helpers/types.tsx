@@ -73,12 +73,20 @@ export type Interaction =
     data: {
         id: string;
         receipt: string;
-        status: "pending" | "confirmed";
+        status: "pending" | "confirmed" | "denied";
     };
 }
 | {
     timestamp: Date;
-    type: "payment_confirmed";
+    type: "payment_confirmed" | "payment_denied";
+    from: string;
+    data: {
+        id: string;
+    };
+}
+| {
+    timestamp: Date;
+    type: "product_sent" | "product_received";
     from: string;
     data: {
         id: string;

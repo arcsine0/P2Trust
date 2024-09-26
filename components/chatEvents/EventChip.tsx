@@ -23,6 +23,7 @@ const EventChip: FC<EventChipProps> = ({ type, from }) => {
         case "payment_requested":
             iconString = "cash-plus";
             chipText = "has sent a payment request";
+            break;
         case "payment_sent":
             iconString = "cash-fast";
             chipText = "has sent the payment";
@@ -31,10 +32,22 @@ const EventChip: FC<EventChipProps> = ({ type, from }) => {
             iconString = "cash-check";
             chipText = "has confirmed the payment";
             break
+        case "payment_denied":
+            iconString = "cash-remove";
+            chipText = "has denied the payment";
+            break
         case "payment_request_cancelled":
             iconString = "cash-refund";
             chipText = "has cancelled the payment request";
             break
+        case "product_sent":
+            iconString = "store-check";
+            chipText = "has sent the product / completed the service";
+            break;
+        case "product_received":
+            iconString = "hand-coin";
+            chipText = "has received the product / completed the service";
+            break;
         default:
             iconString = "information";
             chipText = "did something";

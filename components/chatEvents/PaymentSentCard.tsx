@@ -18,12 +18,13 @@ interface PaymentSentCardProps {
     platform?: string;
     currency?: string;
     amount?: Float;
-    status: "pending" | "confirmed";
+    status: "pending" | "confirmed" | "denied";
     receiptURL: string;
     onConfirm?: () => void;
+    onDeny?: () => void;
 }
 
-const PaymentSentCard: FC<PaymentSentCardProps> = ({ style, id, userData, timestamp, from, platform, currency, status, receiptURL, onConfirm }) => {
+const PaymentSentCard: FC<PaymentSentCardProps> = ({ style, id, userData, timestamp, from, platform, currency, status, receiptURL, onConfirm, onDeny }) => {
     let currencySymbol;
 
     switch (currency) {
@@ -32,8 +33,6 @@ const PaymentSentCard: FC<PaymentSentCardProps> = ({ style, id, userData, timest
         case "EUR": currencySymbol = "euro-sign"; break;
         default: currencySymbol = "dollar-sign"; break;
     }
-
-    console.log(receiptURL)
 
     if (userData) {
         return (
@@ -61,18 +60,37 @@ const PaymentSentCard: FC<PaymentSentCardProps> = ({ style, id, userData, timest
                     <Text variant="titleSmall" className="font-bold">Proof of Payment</Text>
                     <Image
                         source={{ uri: receiptURL }}
+                        contentFit="contain"
+                        className="w-full"
                     />
                     {userData.username !== from ?
-                        <Button
-                            className="rounded-lg w-full"
-                            icon={"check"}
-                            mode="contained"
-                            onPress={onConfirm}
-                            disabled={status === "confirmed"}
-                        >
-                            {status === "pending" && "Confirm"}
-                            {status === "confirmed" && "Confirmed"}
-                        </Button>
+                        <View className="flex flex-row space-x-2 items-center justify-center">
+                            {status !== "denied" && (
+                                <Button
+                                    className="rounded-lg grow"
+                                    icon={"check"}
+                                    mode="contained"
+                                    onPress={onConfirm}
+                                    disabled={status === "confirmed"} 
+                                >
+                                    {status === "pending" && "Confirm"}
+                                    {status === "confirmed" && "Confirmed"}
+                                </Button>
+                            )}
+                            {status !== "confirmed" && (
+                                <Button
+                                    className="rounded-lg grow"
+                                    icon={"close"}
+                                    mode="contained"
+                                    onPress={onDeny}
+                                    disabled={status === "denied"} 
+                                >
+                                    {status === "pending" && "Deny"}
+                                    {status === "denied" && "Denied"}
+                                </Button>
+                            )}
+                        </View>
+                        
                     : null}
                 </Card.Content>
             </Card>
