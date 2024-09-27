@@ -2,10 +2,8 @@ import { useState, useEffect, useRef, useContext } from "react";
 import { View, ScrollView } from "react-native";
 import { useTheme, Text, Avatar, Chip, Icon, IconButton, Card, Button, TouchableRipple, Badge } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useIsFocused } from "@react-navigation/native";
 
 import { router, useFocusEffect } from "expo-router";
-import * as Notifications from "expo-notifications";
 
 import { BottomSheetModal, BottomSheetView, BottomSheetScrollView } from "@gorhom/bottom-sheet";
 
@@ -17,25 +15,13 @@ import { useMerchantData } from "@/lib/context/MerchantContext";
 import { Request } from "@/lib/helpers/types";
 import { getInitials } from "@/lib/helpers/functions";
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
-
 import QRCode from "react-qr-code";
 
 export default function TransactionHomeScreen() {
-    const [roomID, setRoomID] = useState("");
-
-    const [expanded, setExpanded] = useState(false);
-    const [showRequests, setShowRequests] = useState(false);
     const [showBadge, setShowBadge] = useState(false);
 
     const { userData, requests, setRequests, queue, setQueue } = useUserData();
     const { setMerchantData, setRole } = useMerchantData();
-
-    const isFocused = useIsFocused();
-    const wasFocused = useRef(false);
-
-    const notificationsListener = useRef<Notifications.Subscription>();
-    const responseListener = useRef<Notifications.Subscription>();
 
     const theme = useTheme();
     const requestsModalRef = useRef<BottomSheetModal>(null);
@@ -106,14 +92,10 @@ export default function TransactionHomeScreen() {
                 const { data: transactionData, error: transactionError } = await supabase
                     .from("transactions")
                     .insert({
-                        merchant: JSON.stringify({
-                            id: userData.id,
-                            username: userData.username,
-                        }),
-                        client: JSON.stringify({
-                            id: currentRequest.sender_id,
-                            username: currentRequest.sender_name,
-                        })
+                        merchantID: userData.id,
+                        merchantName: userData.username,
+                        clientID: currentRequest.sender_id,
+                        clientName: currentRequest.sender_name,
                     })
                     .select()
 
@@ -130,6 +112,8 @@ export default function TransactionHomeScreen() {
 
                         router.navigate(`/(transactionRoom)/room/${transactionData[0].id}`);
                     });
+                } else {
+                    console.log("Transaction Error: ", transactionError);
                 }
             }
         }

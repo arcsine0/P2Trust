@@ -138,13 +138,13 @@ export default function HomeScreen({ navigation }: Props) {
 								<View className="flex flex-col space-y-2">
 									<View className="flex flex-row space-x-2 items-center justify-start">
 										<Icon source="store" size={20} color={"#60a5fa"} />
-										<Avatar.Text label={getInitials(JSON.parse(transaction.merchant).username)} size={20} />
-										<Text variant="titleMedium" className="font-semibold">{JSON.parse(transaction.merchant).username}</Text>
+										<Avatar.Text label={getInitials(transaction.merchantName)} size={20} />
+										<Text variant="titleMedium" className="font-semibold">{transaction.merchantName}</Text>
 									</View>
 									<View className="flex flex-row space-x-2 items-center justify-start">
 										<Icon source="account" size={20} color={"#4ade80"} />
-										<Avatar.Text label={getInitials(JSON.parse(transaction.client).username)} size={20} />
-										<Text variant="titleMedium" className="font-semibold">{JSON.parse(transaction.client).username}</Text>
+										<Avatar.Text label={getInitials(transaction.clientName)} size={20} />
+										<Text variant="titleMedium" className="font-semibold">{transaction.clientName}</Text>
 									</View>
 								</View>
 								<View className="flex flex-row items-center justify-between">

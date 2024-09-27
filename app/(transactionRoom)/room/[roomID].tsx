@@ -601,7 +601,7 @@ export default function TransactionRoomScreen() {
 			})
 			.reduce((accumulator, currentValue) => accumulator + currentValue, 0)
 
-		if (platforms && totalPaidAmount) {
+		if (totalPaidAmount !== undefined) {		
 			const { error } = await supabase
 				.from("transactions")
 				.update({

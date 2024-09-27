@@ -35,12 +35,11 @@ export default function TransactionScanScreen() {
 				if (qrData.auth === "P2Trust") {
 					const { data, error } = await supabase
 						.from("accounts")
-						.select()
+						.select("id")
 						.eq("id", qrData.id);
 
 					if (!error) {
-						setMerchantData(data[0]);
-						router.navigate("/(transactionRoom)/lobby")
+						router.navigate(`/(transactionRoom)/merchant/${qrData.id}`)
 					} else {
 						setQRError("Account of QR Code does not exist");
 						setHasScanned(false);

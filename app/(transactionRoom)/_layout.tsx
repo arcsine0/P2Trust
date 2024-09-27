@@ -7,8 +7,6 @@ import { MerchantProvider, useMerchantData } from "@/lib/context/MerchantContext
 import { getInitials } from "@/lib/helpers/functions";
 
 export default function TransactionLayout() {
-    const { merchantData } = useMerchantData();
-
     return (
         <MerchantProvider>
             <Stack screenOptions={{ headerShown: true }}>
@@ -21,10 +19,6 @@ export default function TransactionLayout() {
                     options={{ title: "Scan QR" }}
                 />
                 <Stack.Screen
-                    name="lobby"
-                    options={{ title: "Merchant Info" }}
-                />
-                <Stack.Screen
                     name="room/[roomID]"
                     options={{
                         headerBackVisible: false,
@@ -32,7 +26,14 @@ export default function TransactionLayout() {
                         
                     }}
                 />
-                {/* Add more Stack.Screen components for other transaction screens */}
+                <Stack.Screen
+                    name="merchant/[merchantID]"
+                    options={{
+                        headerBackVisible: true,
+                        headerTitle: "",
+                        
+                    }}
+                />
             </Stack>
         </MerchantProvider>
     );

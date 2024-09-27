@@ -12,44 +12,7 @@ import { supabase } from "@/supabase/config";
 
 import { useUserData } from "@/lib/context/UserContext";
 import { useMerchantData } from "@/lib/context/MerchantContext";
-import { RoomData, UserData } from "@/lib/helpers/types";
-
-const getInitials = (name: string) => {
-    if (name) {
-        const words = name.trim().split(" ");
-        let initials = "";
-
-        for (let i = 0; i < Math.min(words.length, 2); i++) {
-            if (words[i].length > 0) {
-                initials += words[i][0].toUpperCase();
-            }
-        }
-
-        return initials;
-    } else {
-        return "N/A"
-    }
-}
-
-const sendPushNotification = async (pushToken: string, name: string) => {
-    const message = {
-        to: pushToken,
-        sound: "default",
-        title: `${name} would like to start a transaction with you`,
-        body: "Accept or Reject the request in the Transactions Page!",
-    };
-
-    await fetch("https://exp.host/--/api/v2/push/send", {
-        method: "POST",
-        headers: {
-            Accept: "application/json",
-            "Accept-encoding": "gzip, deflate",
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(message),
-    })
-        .catch(err => console.log(err));
-}
+import { getInitials } from "@/lib/helpers/functions";
 
 export default function TransactionLobbyScreen() {
     const [roomID, setRoomID] = useState("");

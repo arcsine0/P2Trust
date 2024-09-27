@@ -64,7 +64,7 @@ export default function TransactionDetailsScreen() {
     }, []);
 
     return (
-        <SafeAreaView className="flex flex-col w-full h-full px-2 pb-2 items-center justify-start">
+        <SafeAreaView className="flex flex-col w-full h-full pb-2 items-center justify-start">
             <KeyboardAvoidingView
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
                 keyboardVerticalOffset={100}
@@ -72,15 +72,15 @@ export default function TransactionDetailsScreen() {
             >
                 <ScrollView className="w-full">
                     {transactionData ?
-                        <View className="flex flex-col items-center justify-start">
+                        <View className="flex flex-col px-2 items-center justify-start">
                             <Card className="w-full mb-2" style={{ backgroundColor: theme.colors.background }}>
                                 <Card.Content className="flex flex-col">
                                     <Text variant="titleMedium" className="font-bold">Merchant</Text>
                                     <View className="flex flex-row items-center justify-between">
                                         <View className="flex flex-row items-center gap-3">
-                                            <Avatar.Text label={getInitials(JSON.parse(transactionData.merchant).username)} size={35} />
+                                            <Avatar.Text label={getInitials(transactionData.merchantName)} size={35} />
                                             <View className="flex flex-col w-1/2">
-                                                <Text variant="titleMedium" className="font-bold">{JSON.parse(transactionData.merchant).username}</Text>
+                                                <Text variant="titleMedium" className="font-bold">{transactionData.merchantName}</Text>
                                                 <Text variant="bodySmall" className="text-slate-400">ID: 123123</Text>
                                                 <View className="flex flex-row gap-1 items-center">
                                                     <Ionicons name="thumbs-up-sharp" size={10} color={"#22c55e"} />
@@ -100,9 +100,9 @@ export default function TransactionDetailsScreen() {
                                     <Text variant="titleMedium" className="font-bold">Client</Text>
                                     <View className="flex flex-row items-center justify-between">
                                         <View className="flex flex-row items-center gap-3">
-                                            <Avatar.Text label={getInitials(JSON.parse(transactionData.client).username)} size={35} />
+                                            <Avatar.Text label={getInitials(transactionData.clientName)} size={35} />
                                             <View className="flex flex-col w-1/2">
-                                                <Text variant="titleMedium" className="font-bold">{JSON.parse(transactionData.client).username}</Text>
+                                                <Text variant="titleMedium" className="font-bold">{transactionData.clientName}</Text>
                                                 <Text variant="bodySmall" className="text-slate-400">ID: 123123</Text>
                                                 <View className="flex flex-row gap-1 items-center">
                                                     <Ionicons name="thumbs-up-sharp" size={10} color={"#22c55e"} />
@@ -120,7 +120,7 @@ export default function TransactionDetailsScreen() {
                                     </View>
                                 </Card.Content>
                             </Card>
-                            <Card className="w-full mb-2">
+                            <Card className="w-full mb-2 rounded-lg">
                                 <Card.Content className="flex flex-col" style={{ backgroundColor: theme.colors.background }}>
                                     <View className="flex flex-row w-full items-center justify-between">
                                         <Text variant="titleMedium" className="font-bold">Transaction Timeline</Text>
@@ -150,6 +150,7 @@ export default function TransactionDetailsScreen() {
                                                     <View className="flex flex-row items-start justify-between">
                                                         <View className="w-full">
                                                             <Text variant="titleMedium" className="font-bold">
+                                                                {event.type === "transaction_started" ? "Transaction Started" : null}
                                                                 {event.type === "user_joined" ? "User Joined" : null}
                                                                 {event.type === "user_left" ? "User Left" : null}
                                                                 {event.type === "payment_requested" ? "User Requested Payment" : null}
@@ -173,15 +174,7 @@ export default function TransactionDetailsScreen() {
                         </View>
                         : null}
                 </ScrollView>
-                <View className="w-full flex flex-row space-x-1">
-                    <Button
-                        className="rounded-lg"
-                        icon="thumbs-up-down"
-                        mode="contained"
-                        onPress={() => { }}
-                    >
-                        Rate
-                    </Button>
+                <View className="w-full px-2 flex flex-row space-x-1">
                     <Button
                         className="rounded-lg grow"
                         icon="comment-multiple"

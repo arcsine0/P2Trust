@@ -15,12 +15,22 @@ export type RoomData = {
 export type Transaction = {
 	id: string;
 	created_at: Date;
-	merchant: string;
-	client: string;
+	merchantID: string;
+    merchantName: string;
+	clientID: string;
+	clientName: string;
 	total_amount: number;
 	status: string;
     platforms: string[];
     timeline: string;
+}
+
+export type TransactionListItem = {
+    id: string;
+    created_at: Date;
+    clientName: string;
+    total_amount: number;
+    status: string;
 }
 
 export type Request = {
