@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useWindowDimensions, Platform, View, KeyboardAvoidingView, FlatList, ScrollView } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme, Text, ProgressBar, Avatar, Icon, Card, Button, Divider } from "react-native-paper";
+import { useTheme, Text, ProgressBar, Avatar, Icon, Card, Button, Divider, TouchableRipple } from "react-native-paper";
 
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
 
@@ -77,19 +77,22 @@ export default function TransactionDetailsScreen() {
                                 <Card.Content className="flex flex-col">
                                     <Text variant="titleMedium" className="font-bold">Merchant</Text>
                                     <View className="flex flex-row items-center justify-between">
-                                        <View className="flex flex-row items-center gap-3">
-                                            <Avatar.Text label={getInitials(transactionData.merchantName)} size={35} />
-                                            <View className="flex flex-col w-1/2">
-                                                <Text variant="titleMedium" className="font-bold">{transactionData.merchantName}</Text>
-                                                <Text variant="bodySmall" className="text-slate-400">ID: 123123</Text>
-                                                <View className="flex flex-row gap-1 items-center">
-                                                    <Ionicons name="thumbs-up-sharp" size={10} color={"#22c55e"} />
-                                                    <Text variant="bodySmall">0</Text>
-                                                    <Ionicons name="thumbs-down-sharp" size={10} color={"#ef4444"} />
-                                                    <Text variant="bodySmall">0</Text>
+                                        <TouchableRipple onPress={() => router.navigate(`/(transactionRoom)/merchant/${transactionData.merchantID}`)}>
+                                            <View className="flex flex-row items-center gap-3">
+                                                <Avatar.Text label={getInitials(transactionData.merchantName)} size={35} />
+                                                <View className="flex flex-col w-1/2">
+                                                    <Text variant="titleMedium" className="font-bold">{transactionData.merchantName}</Text>
+                                                    <Text variant="bodySmall" className="text-slate-400">ID: 123123</Text>
+                                                    <View className="flex flex-row gap-1 items-center">
+                                                        <Ionicons name="thumbs-up-sharp" size={10} color={"#22c55e"} />
+                                                        <Text variant="bodySmall">0</Text>
+                                                        <Ionicons name="thumbs-down-sharp" size={10} color={"#ef4444"} />
+                                                        <Text variant="bodySmall">0</Text>
+                                                    </View>
                                                 </View>
                                             </View>
-                                        </View>
+                                        </TouchableRipple>
+
                                         <View></View>
                                         <View className="flex flex-col items-end justify-center">
                                             <Text variant="titleMedium" className="font-bold text-green-500">PHP{transactionData.total_amount}</Text>
@@ -99,19 +102,22 @@ export default function TransactionDetailsScreen() {
                                     <Divider className="my-2" />
                                     <Text variant="titleMedium" className="font-bold">Client</Text>
                                     <View className="flex flex-row items-center justify-between">
-                                        <View className="flex flex-row items-center gap-3">
-                                            <Avatar.Text label={getInitials(transactionData.clientName)} size={35} />
-                                            <View className="flex flex-col w-1/2">
-                                                <Text variant="titleMedium" className="font-bold">{transactionData.clientName}</Text>
-                                                <Text variant="bodySmall" className="text-slate-400">ID: 123123</Text>
-                                                <View className="flex flex-row gap-1 items-center">
-                                                    <Ionicons name="thumbs-up-sharp" size={10} color={"#22c55e"} />
-                                                    <Text variant="bodySmall">0</Text>
-                                                    <Ionicons name="thumbs-down-sharp" size={10} color={"#ef4444"} />
-                                                    <Text variant="bodySmall">0</Text>
+                                        <TouchableRipple onPress={() => router.navigate(`/(transactionRoom)/merchant/${transactionData.clientID}`)}>
+                                            <View className="flex flex-row items-center gap-3">
+                                                <Avatar.Text label={getInitials(transactionData.clientName)} size={35} />
+                                                <View className="flex flex-col w-1/2">
+                                                    <Text variant="titleMedium" className="font-bold">{transactionData.clientName}</Text>
+                                                    <Text variant="bodySmall" className="text-slate-400">ID: 123123</Text>
+                                                    <View className="flex flex-row gap-1 items-center">
+                                                        <Ionicons name="thumbs-up-sharp" size={10} color={"#22c55e"} />
+                                                        <Text variant="bodySmall">0</Text>
+                                                        <Ionicons name="thumbs-down-sharp" size={10} color={"#ef4444"} />
+                                                        <Text variant="bodySmall">0</Text>
+                                                    </View>
                                                 </View>
                                             </View>
-                                        </View>
+                                        </TouchableRipple>
+
                                         <View></View>
                                         <View className="flex flex-col items-end justify-center">
                                             <Text variant="titleMedium" className="font-bold text-red-500">-PHP{transactionData.total_amount}</Text>

@@ -207,7 +207,10 @@ export default function TransactionLobbyScreen() {
                                             key={transaction.id}
                                             className="w-full"
                                             style={{ backgroundColor: theme.colors.background }}
-                                            onPress={() => router.navigate(`/transaction/${transaction.id}`)}
+                                            onPress={() => {
+                                                console.log("routing to: ", transaction.id)
+                                                router.navigate(`/transaction/${transaction.id}`);
+                                            }}
                                         >
                                             <Card.Content className="flex flex-row p-2 w-full items-center justify-between rounded-lg">
                                                 <View className="flex flex-row space-x-2 items-center justify-start">
