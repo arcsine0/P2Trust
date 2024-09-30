@@ -671,21 +671,6 @@ export default function TransactionRoomScreen() {
 		}
 	}, []);
 
-	// useEffect(() => {
-	// 	if (interactions) {
-	// 		interactions.forEach((inter) => {
-	// 			if (inter.type === "payment_confirmed") {
-	// 				console.log("Confirmation ID: ", inter.data.id)
-	// 				console.log("User ID: ", userData?.id)
-	// 			}
-	// 			if (inter.type === "product_sent") {
-	// 				console.log("Product Sent ID: ", inter.data.id);
-	// 				console.log("Merchant ID: ", merchantData?.id);
-	// 			}
-	// 		});
-	// 	}
-	// }, [interactions])
-
 	const SendProofRoute = () => (
 		<View>
 			<Text variant="titleLarge">Test</Text>

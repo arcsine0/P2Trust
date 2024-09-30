@@ -3,13 +3,16 @@ import React, { createContext, useContext } from "react";
 import { View } from "react-native";
 import { CommonActions } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { BottomNavigation, useTheme, Text, IconButton } from "react-native-paper";
+import { BottomNavigation, useTheme, Text, Avatar } from "react-native-paper";
 
 import { TabBarIcon } from "@/components/navigation/TabBarIcon";
 
 import HomeScreen from "./index";
 import HistoryScreen from "./history";
 import SettingsScreen from "./settings";
+
+import { useUserData } from "@/lib/context/UserContext";
+import { getInitials } from "@/lib/helpers/functions";
 
 type TabParamList = {
 	Home: undefined;
@@ -21,6 +24,7 @@ const Tab = createBottomTabNavigator<TabParamList>();
 
 export default function TabLayout() {
 	const theme = useTheme();
+	const { userData } = useUserData();
 
 	return (
 		<Tab.Navigator
@@ -70,17 +74,20 @@ export default function TabLayout() {
 					tabBarIcon: ({ color, size }) => {
 						return <TabBarIcon name="home" color={color} size={size} />;
 					},
-					headerTitle: () => <Text variant="headlineSmall" className="font-semibold">Live Feed</Text>,
-					headerRight: () => (
-						<View className="flex flex-row">
-							<IconButton
-								icon="sort-variant"
-							/>
-							<IconButton
-								icon="dots-vertical"
-							/>
+					headerTitle: "",
+					headerLeft: () => (
+						<View className="flex flex-row gap-2 ml-2 items-center justify-start">
+							{userData ?
+								<Avatar.Text label={getInitials(userData.username)} size={30} />
+								:
+								<Avatar.Text label="N/A" size={30} />
+							}
+							<View className="flex flex-col items-start justify-center">
+								<Text variant="titleMedium" className="font-bold">{userData?.username || "N/A"}</Text>
+								<Text variant="bodySmall">ID: 123123</Text>
+							</View>
 						</View>
-					)
+					),
 				})}
 			/>
 			<Tab.Screen
@@ -91,7 +98,20 @@ export default function TabLayout() {
 					tabBarIcon: ({ color, size }) => {
 						return <TabBarIcon name="history" color={color} size={size} />;
 					},
-					headerTitle: () => <Text variant="headlineSmall" className="font-semibold">History</Text>,
+					headerTitle: "",
+					headerLeft: () => (
+						<View className="flex flex-row gap-2 ml-2 items-center justify-start">
+							{userData ?
+								<Avatar.Text label={getInitials(userData.username)} size={30} />
+								:
+								<Avatar.Text label="N/A" size={30} />
+							}
+							<View className="flex flex-col items-start justify-center">
+								<Text variant="titleMedium" className="font-bold">{userData?.username || "N/A"}</Text>
+								<Text variant="bodySmall">ID: 123123</Text>
+							</View>
+						</View>
+					),
 				}}
 			/>
 			<Tab.Screen
@@ -102,7 +122,7 @@ export default function TabLayout() {
 					tabBarIcon: ({ color, size }) => {
 						return <TabBarIcon name="gear" color={color} size={size} />;
 					},
-					headerTitle: () => <Text variant="headlineSmall" className="font-semibold">Settings</Text>,
+					headerTitle: () => <Text variant="headlineSmall" className="font-bold">Settings</Text>,
 				}}
 			/>
 		</Tab.Navigator>

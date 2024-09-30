@@ -6,15 +6,13 @@ import { useTheme, Text, Card, Avatar, Chip, IconButton, FAB, Icon, Divider } fr
 import { useIsFocused } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
-import { router } from "expo-router";
+import { router, useNavigation } from "expo-router";
 
 import { supabase } from "@/supabase/config";
 
 import { useUserData } from "@/lib/context/UserContext";
 import { Transaction } from "@/lib/helpers/types";
 import { formatISODate } from "@/lib/helpers/functions";
-
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type TabParamList = {
 	Home: undefined;
@@ -45,13 +43,14 @@ const getInitials = (name: string) => {
 	}
 }
 
-export default function HomeScreen({ navigation }: Props) {
+export default function HomeScreen() {
 	const [transactions, setTransactions] = useState<Transaction[]>([]);
 
 	const { userData } = useUserData();
 
 	const isFocused = useIsFocused();
 	const theme = useTheme();
+	const navigation = useNavigation();
 
 	const getTransactions = async () => {
 		const { data, error } = await supabase
@@ -65,12 +64,9 @@ export default function HomeScreen({ navigation }: Props) {
 		}
 	}
 
-	const redirectToTransactions = () => {
-		AsyncStorage.setItem("roomState", "1");
-		router.navigate("/(transactionRoom)");
-	}
-
 	useEffect(() => {
+		getTransactions();
+
 		navigation.setOptions({
 			headerRight: () => (
 				<View className="flex flex-row">
@@ -85,10 +81,6 @@ export default function HomeScreen({ navigation }: Props) {
 				</View>
 			)
 		});
-	}, [navigation]);
-
-	useEffect(() => {
-		getTransactions();
 
 		const liveFeedChannel = supabase
 			.channel("live-feed")
@@ -102,21 +94,22 @@ export default function HomeScreen({ navigation }: Props) {
 	}, [isFocused]);
 
 	return (
-		<SafeAreaView className="flex flex-col w-screen h-screen gap-2 p-2 items-start justify-start">
+		<SafeAreaView className="flex flex-col w-screen h-screen pb-2 items-start justify-start">
 			{isFocused ?
 				<FAB
 					icon={"send"}
-					onPress={() => redirectToTransactions()}
+					onPress={() => router.navigate("/(transactionRoom)")}
 					className="absolute right-0 bottom-0 mb-36 mr-2 z-50"
 				/>
 				: null}
+			<Text variant="headlineSmall" className="font-bold px-2">Live Feed</Text>
 			<ScrollView className="w-full">
-				<View className="flex flex-col p-2 gap-4">
+				<View className="flex flex-col p-2 space-y-4">
 					{transactions && transactions.map((transaction: Transaction, i) => (
 						<Card
 							key={i}
 							onPress={() => router.navigate(`/transaction/${transaction.id}`)}
-							style={{ 
+							style={{
 								backgroundColor: theme.colors.background,
 								borderColor: transaction.status === "completed" ? "#22c55e" : "#ef4444",
 							}}

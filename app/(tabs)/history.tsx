@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Platform, View, KeyboardAvoidingView, FlatList, ScrollView } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme, Text, Searchbar, Card, Chip, Icon } from "react-native-paper";
+import { useTheme, Text, Searchbar, Card, Chip, Icon, IconButton } from "react-native-paper";
 import { Dropdown } from "react-native-element-dropdown";
 
 import { router, useNavigation } from "expo-router";
@@ -13,7 +13,7 @@ import { useUserData } from "@/lib/context/UserContext";
 
 import { FontAwesome6 } from "@expo/vector-icons";
 
-import { Request, Transaction } from "@/lib/helpers/types";
+import { Transaction } from "@/lib/helpers/types";
 import { FilterOptions } from "@/lib/helpers/collections";
 import { getInitials } from "@/lib/helpers/functions";
 
@@ -25,6 +25,7 @@ export default function TransactionHistoryScreen() {
 	const { userData } = useUserData();
 
 	const theme = useTheme();
+	const navigation = useNavigation();
 
 	const getTransactions = async () => {
 		try {
@@ -46,6 +47,17 @@ export default function TransactionHistoryScreen() {
 
 	useEffect(() => {
 		getTransactions();
+
+		navigation.setOptions({
+			headerRight: () => (
+				<View className="flex flex-row">
+					<IconButton
+						icon="dots-vertical"
+						onPress={() => console.log("Dots Pressed")}
+					/>
+				</View>
+			)
+		});
 	}, []);
 
 	return (
