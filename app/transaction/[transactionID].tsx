@@ -44,7 +44,7 @@ export default function TransactionDetailsScreen() {
 
                 navigation.setOptions({
                     headerLeft: () => (
-                        <View className="flex flex-col mb-2 items-start justify-center">
+                        <View className="flex flex-col mt-4 mb-2 items-start justify-center">
                             <Text variant="titleMedium" className="font-bold">Transaction Details</Text>
                             <Text variant="bodyMedium">ID: {data[0].id}</Text>
                             <Text variant="bodyMedium">{formatISODate(data[0].created_at.toLocaleString())}</Text>
@@ -72,18 +72,18 @@ export default function TransactionDetailsScreen() {
             >
                 <ScrollView className="w-full">
                     {transactionData ?
-                        <View className="flex flex-col px-2 items-center justify-start">
-                            <Card className="w-full mb-2" style={{ backgroundColor: theme.colors.background }}>
+                        <View className="flex flex-col px-4 pt-1 space-y-2 items-center justify-start">
+                            <Card className="w-full" style={{ backgroundColor: theme.colors.background }}>
                                 <Card.Content className="flex flex-col">
                                     <Text variant="titleMedium" className="font-bold">Merchant</Text>
                                     <View className="flex flex-row items-center justify-between">
                                         <TouchableRipple onPress={() => router.navigate(`/(transactionRoom)/merchant/${transactionData.merchantID}`)}>
-                                            <View className="flex flex-row items-center gap-3">
+                                            <View className="flex flex-row items-center space-x-3">
                                                 <Avatar.Text label={getInitials(transactionData.merchantName)} size={35} />
                                                 <View className="flex flex-col w-1/2">
                                                     <Text variant="titleMedium" className="font-bold">{transactionData.merchantName}</Text>
                                                     <Text variant="bodySmall" className="text-slate-400">ID: 123123</Text>
-                                                    <View className="flex flex-row gap-1 items-center">
+                                                    <View className="flex flex-row space-x-1 items-center">
                                                         <Ionicons name="thumbs-up-sharp" size={10} color={"#22c55e"} />
                                                         <Text variant="bodySmall">0</Text>
                                                         <Ionicons name="thumbs-down-sharp" size={10} color={"#ef4444"} />
@@ -103,12 +103,12 @@ export default function TransactionDetailsScreen() {
                                     <Text variant="titleMedium" className="font-bold">Client</Text>
                                     <View className="flex flex-row items-center justify-between">
                                         <TouchableRipple onPress={() => router.navigate(`/(transactionRoom)/merchant/${transactionData.clientID}`)}>
-                                            <View className="flex flex-row items-center gap-3">
+                                            <View className="flex flex-row items-center space-x-3">
                                                 <Avatar.Text label={getInitials(transactionData.clientName)} size={35} />
                                                 <View className="flex flex-col w-1/2">
                                                     <Text variant="titleMedium" className="font-bold">{transactionData.clientName}</Text>
                                                     <Text variant="bodySmall" className="text-slate-400">ID: 123123</Text>
-                                                    <View className="flex flex-row gap-1 items-center">
+                                                    <View className="flex flex-row space-x-1 items-center">
                                                         <Ionicons name="thumbs-up-sharp" size={10} color={"#22c55e"} />
                                                         <Text variant="bodySmall">0</Text>
                                                         <Ionicons name="thumbs-down-sharp" size={10} color={"#ef4444"} />
@@ -126,8 +126,8 @@ export default function TransactionDetailsScreen() {
                                     </View>
                                 </Card.Content>
                             </Card>
-                            <Card className="w-full mb-2 rounded-lg">
-                                <Card.Content className="flex flex-col" style={{ backgroundColor: theme.colors.background }}>
+                            <Card className="w-full" style={{ backgroundColor: theme.colors.background }}>
+                                <Card.Content className="flex flex-col">
                                     <View className="flex flex-row w-full items-center justify-between">
                                         <Text variant="titleMedium" className="font-bold">Transaction Timeline</Text>
                                         <View className="flex flex-row gap-2 items-center justify-end">
@@ -180,7 +180,7 @@ export default function TransactionDetailsScreen() {
                         </View>
                         : null}
                 </ScrollView>
-                <View className="w-full px-2 flex flex-row space-x-1">
+                <View className="w-full px-4 flex flex-row space-x-1">
                     <Button
                         className="rounded-lg grow"
                         icon="comment-multiple"

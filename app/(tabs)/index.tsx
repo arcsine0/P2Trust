@@ -102,9 +102,9 @@ export default function HomeScreen() {
 					className="absolute right-0 bottom-0 mb-36 mr-2 z-50"
 				/>
 				: null}
-			<Text variant="headlineSmall" className="font-bold px-2">Live Feed</Text>
+			<Text variant="headlineSmall" className="font-bold px-4 mb-2">Live Feed</Text>
 			<ScrollView className="w-full">
-				<View className="flex flex-col p-2 space-y-4">
+				<View className="flex flex-col px-4 space-y-2">
 					{transactions && transactions.map((transaction: Transaction, i) => (
 						<Card
 							key={i}

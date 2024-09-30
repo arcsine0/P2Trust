@@ -162,7 +162,7 @@ export default function TransactionLobbyScreen() {
             >
                 <ScrollView className="w-full">
                     {merchantData ?
-                        <View className="flex flex-col px-2 py-1 w-full h-full space-y-2 items-center justify-start">
+                        <View className="flex flex-col px-4 py-1 w-full h-full space-y-2 items-center justify-start">
                             <Card className="w-full" style={{ backgroundColor: theme.colors.background }}>
                                 <Card.Content className="flex flex-col space-y-2 w-full justify-center items-start">
                                     <View className="flex flex-row items-center gap-5">
@@ -244,7 +244,7 @@ export default function TransactionLobbyScreen() {
                 >
                     Invite Request Rejected or Expired
                 </Snackbar>
-                <View className="w-full px-2 flex flex-row space-x-1">
+                <View className="w-full px-4 flex flex-row space-x-1">
                     <Button
                         className="rounded-lg"
                         icon="thumbs-up-down"
