@@ -1,16 +1,164 @@
-import { useState } from "react";
-import { View, ScrollView } from "react-native";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Platform, View, KeyboardAvoidingView, FlatList, ScrollView } from "react-native";
+
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTheme, Text, Searchbar, Card, Chip, Icon } from "react-native-paper";
+import { Dropdown } from "react-native-element-dropdown";
 
-import { useTheme, Text, Card, Avatar, Chip, Icon } from "react-native-paper";
+import { router, useNavigation } from "expo-router";
 
-import { MaterialCommunityIcons as MCI } from "@expo/vector-icons";
-export default function HistoryScreen() {
-	const [inputSearch, setInputSearch] = useState("")
+import { supabase } from "@/supabase/config";
+
+import { useUserData } from "@/lib/context/UserContext";
+
+import { FontAwesome6 } from "@expo/vector-icons";
+
+import { Request, Transaction } from "@/lib/helpers/types";
+import { FilterOptions } from "@/lib/helpers/collections";
+import { getInitials } from "@/lib/helpers/functions";
+
+export default function TransactionHistoryScreen() {
+	const [transactions, setTransactions] = useState<Transaction[] | undefined>(undefined);
+	const [searchQuery, setSearchQuery] = useState<string>("");
+	const [filterOption, setFilterOption] = useState<string>("All");
+
+	const { userData } = useUserData();
+
+	const theme = useTheme();
+
+	const getTransactions = async () => {
+		try {
+			if (userData) {
+				const { data, error } = await supabase
+					.from("transactions")
+					.select("*")
+					.or(`merchantID.eq.${userData.id},clientID.eq.${userData.id}`)
+					.order("created_at", { ascending: false });
+
+				if (!error) {
+					setTransactions(data);
+				}
+			}
+		} catch (error) {
+			console.log(error);
+		}
+	}
+
+	useEffect(() => {
+		getTransactions();
+	}, []);
 
 	return (
-		<SafeAreaView className="flex flex-col w-screen h-screen gap-2 p-2 items-start justify-start">
-			
+		<SafeAreaView className="flex flex-col w-full h-full pb-2 items-start justify-start">
+			<KeyboardAvoidingView
+				behavior={Platform.OS === "ios" ? "padding" : "height"}
+				keyboardVerticalOffset={100}
+				className="flex w-full h-full"
+			>
+				{userData ?
+					<View className="flex flex-col space-y-2 w-full h-full">
+						<Text variant="headlineSmall" className="font-bold px-2">Transaction History</Text>
+						<View className="flex flex-row px-2 space-x-2 items-center justify-center">
+							<Searchbar
+								placeholder="Search Transactions..."
+								onChangeText={setSearchQuery}
+								value={searchQuery}
+								className="rounded-lg grow"
+								style={{
+									backgroundColor: theme.colors.background,
+									height: 50
+								}}
+								inputStyle={{
+									minHeight: 0
+								}}
+								elevation={1}
+							/>
+							<Dropdown
+								style={{
+									backgroundColor: theme.colors.background,
+									height: 50,
+									borderRadius: 0.5,
+								}}
+								data={FilterOptions}
+								value={filterOption}
+								onChange={value => setFilterOption(value.value)}
+								labelField="label"
+								valueField="value"
+							/>
+						</View>
+						<ScrollView className="w-full">
+							<View className="flex flex-col p-2 space-y-2 w-full">
+								{transactions && transactions.map((trans) => (
+									<Card
+										key={trans.id}
+										className="w-full"
+										style={{ backgroundColor: theme.colors.background }}
+										onPress={() => router.navigate(`/transaction/${trans.id}`)}
+									>
+										<Card.Content className="flex flex-col space-y-2">
+											<View className="flex flex-row w-full justify-between items-center">
+												<View className="flex flex-row space-x-2 items-center">
+													<FontAwesome6
+														name={"dollar-sign"}
+														size={25}
+														color={"#94a3b8"}
+													/>
+													<Text variant="titleLarge" className="font-bold">{trans.total_amount}</Text>
+												</View>
+												{trans.status === "completed" ?
+													<Chip
+														icon="check"
+														className="bg-green-200 text-green-200"
+														compact={true}
+													>
+														<Text variant="bodySmall">{trans.status}</Text>
+													</Chip>
+													:
+													<Chip
+														icon="close"
+														className="bg-red-200 text-red-200"
+														compact={true}
+													>
+														<Text variant="bodySmall">{trans.status}</Text>
+													</Chip>
+												}
+											</View>
+											<View className="flex flex-row items-center justify-between">
+												<View className="flex flex-col items-start justify-center">
+													<View className="flex flex-row space-x-1 items-center">
+														<Icon source="store" size={20} color={theme.colors.primary} />
+														{trans.merchantID === userData.id ?
+															<Text variant="titleSmall" className="font-bold">You (Merchant)</Text>
+															:
+															<Text variant="titleSmall" className="font-bold">{trans.merchantName}</Text>
+														}
+													</View>
+
+													<View className="flex flex-row space-x-1 items-center">
+														<Icon source="account" size={20} color={theme.colors.primary} />
+														{trans.clientID === userData.id ?
+															<Text variant="bodyMedium" className="font-semibold text-slate-400">You (Client)</Text>
+															:
+															<Text variant="bodyMedium" className="font-semibold text-slate-400">{trans.clientName}</Text>
+														}
+													</View>
+												</View>
+												<View className="flex flex-col items-end justify-start">
+													<Text variant="bodyMedium" className="font-semibold text-slate-400">{new Date(trans.created_at).toLocaleDateString()}</Text>
+													<Text variant="bodyMedium" className="font-semibold text-slate-400">{new Date(trans.created_at).toLocaleTimeString()}</Text>
+												</View>
+											</View>
+											<View className="flex flex-row items-center justify-end">
+												<Icon source="chevron-right" size={20} color={"#94a3b8"} />
+											</View>
+										</Card.Content>
+									</Card>
+								))}
+							</View>
+						</ScrollView>
+					</View>
+					: null}
+			</KeyboardAvoidingView>
 		</SafeAreaView>
 	);
 }
