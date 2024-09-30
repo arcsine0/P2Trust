@@ -95,13 +95,6 @@ export default function HomeScreen() {
 
 	return (
 		<SafeAreaView className="flex flex-col w-screen h-screen pb-2 items-start justify-start">
-			{isFocused ?
-				<FAB
-					icon={"send"}
-					onPress={() => router.navigate("/(transactionRoom)")}
-					className="absolute right-0 bottom-0 mb-36 mr-2 z-50"
-				/>
-				: null}
 			<Text variant="headlineSmall" className="font-bold px-4 mb-2">Live Feed</Text>
 			<ScrollView className="w-full">
 				<View className="flex flex-col px-4 space-y-2">
