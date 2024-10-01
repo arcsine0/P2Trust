@@ -115,7 +115,15 @@ export type Interaction =
     type: "transaction";
     from: string;
     data: {
-        type: "transaction_started" | "transaction_completed" | "transaction_failed",
+        type: "transaction_started" | "transaction_completed" | "transaction_cancelled",
+    };
+}
+| {
+    timestamp: Date;
+    type: "transaction";
+    from: string;
+    data: {
+        type: "closure_initiated",
     };
 };
 

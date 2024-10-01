@@ -31,9 +31,12 @@ import { getInitials, formatISODate } from "@/lib/helpers/functions";
 
 export default function TransactionRoomScreen() {
 	const [interactions, setInteractions] = useState<Interaction[] | undefined>([]);
+	const [connectedUsers, setConnectedUsers] = useState<string[]>([]);
 
 	const [message, setMessage] = useState("");
 	const [activePaymentRequestID, setActivePaymentRequestID] = useState<string | undefined>(undefined);
+
+	const [totalTradedAmount, setTotalTradedAmount] = useState<Float>(0);
 
 	const [requestDetails, setRequestDetails] = useState<RequestDetails>({
 		amount: 100,
@@ -55,6 +58,7 @@ export default function TransactionRoomScreen() {
 
 	const [showActionsMenu, setShowActionsMenu] = useState(false);
 	const [showFinishDialog, setShowFinishDialog] = useState(false);
+	const [showFinishConfirmationDialog, setShowFinishConfirmationDialog] = useState(false);
 
 	const [hasSentProduct, setHasSentProduct] = useState<boolean>(false);
 	const [hasReceivedProduct, setHasReceivedProduct] = useState<boolean>(false);
@@ -62,6 +66,7 @@ export default function TransactionRoomScreen() {
 
 	const [actionsModalRoute, setActionsModalRoute] = useState("RequestPayment");
 	const actionsModalRef = useRef<BottomSheetModal>(null);
+	const ratingsModalRef = useRef<BottomSheetModal>(null);
 
 	const { userData, setQueue } = useUserData();
 	const { merchantData, role } = useMerchantData();
@@ -238,15 +243,16 @@ export default function TransactionRoomScreen() {
 		if (!id) return;
 
 		try {
-			const { error } = await supabase
+			const { data, error } = await supabase
 				.from("payments")
 				.update({
 					status: "confirmed",
 					confirmed_at: new Date().toISOString(),
 				})
 				.eq("id", id)
+				.select();
 
-			if (!error) {
+			if (!error && data) {
 				interactionsChannel.send({
 					type: "broadcast",
 					event: "payment",
@@ -255,6 +261,7 @@ export default function TransactionRoomScreen() {
 						data: {
 							id: id,
 							from: userData?.username,
+							amount: data[0].amount,
 						}
 					}
 				});
@@ -338,6 +345,52 @@ export default function TransactionRoomScreen() {
 		}
 	}
 
+	const initiateTransactionClosure = () => {
+		interactionsChannel.send({
+			type: "broadcast",
+			event: "transaction",
+			payload: {
+				type: "closure_initiated",
+				data: {
+					id: userData?.id,
+					from: userData?.username,
+				}
+			}
+		});
+	}
+
+	const finishTransaction = async () => {
+		const interactionsJSON = JSON.stringify(interactions?.filter(inter => inter.type !== "message").sort(
+			(a, b) => a.timestamp.getTime() - b.timestamp.getTime()
+		));
+
+		const platforms = interactions?.filter(inter => inter.type === "payment_requested" && inter.data.status === "completed").map((inter) => {
+			if (inter.type === "payment_requested") {
+				return inter.data.platform;
+			} else {
+				return null;
+			}
+		}).filter((value, index, self) => self.indexOf(value) === index) as string[];
+
+		if (totalTradedAmount !== undefined) {
+			const { error } = await supabase
+				.from("transactions")
+				.update({
+					total_amount: totalTradedAmount,
+					status: totalTradedAmount > 0 ? "completed" : "cancelled",
+					platforms: platforms,
+					timeline: interactionsJSON,
+				})
+				.eq("id", roomID);
+
+			if (!error) {
+				setShowFinishConfirmationDialog(false);
+			} else {
+				console.log(error);
+			}
+		}
+	}
+
 	const pickReceipt = async () => {
 		const result = await ImagePicker.launchImageLibraryAsync({
 			mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -367,14 +420,32 @@ export default function TransactionRoomScreen() {
 										type: "user_joined",
 										from: payloadData.from,
 									}]);
+
+									setConnectedUsers(prevConnectedUsers => {
+										if (!prevConnectedUsers.includes(payloadData.from)) {
+											return [...prevConnectedUsers, payloadData.from];
+										} else {
+											return prevConnectedUsers;
+										}
+									});
+
 									break;
+								case "left":
+									setInteractions(curr => [...(curr || []), {
+										timestamp: new Date(Date.now()),
+										type: "user_left",
+										from: payloadData.from,
+									}]);
+
+									setConnectedUsers(prevConnectedUsers => {
+										return prevConnectedUsers.filter(user => user !== payloadData.from);
+									});
+
 								default: break;
 							}
 						} catch (error) {
 							console.log(error);
 						}
-
-
 					})
 					.on("broadcast", { event: "message" }, (payload) => {
 						const payloadData = payload.payload;
@@ -469,6 +540,8 @@ export default function TransactionRoomScreen() {
 										},
 									}]);
 
+									setTotalTradedAmount(totalTradedAmount + payloadData.data.amount);
+
 									break;
 
 								case "payment_denied":
@@ -532,23 +605,38 @@ export default function TransactionRoomScreen() {
 						const payloadData = payload.payload;
 
 						try {
-							switch (payloadData.data.eventType) {
-								case "transaction_started":
-									break;
-								case "transaction_completed":
-									interactionsChannel.unsubscribe();
-									supabase.removeChannel(interactionsChannel);
-
-									setQueue(prevQueue => {
-										if (prevQueue) {
-											return prevQueue.filter(req => req.sender_id !== merchantData?.id);
+							switch (payloadData.type) {
+								case "closure_initiated":
+									if (payloadData.data.id === userData?.id) {
+										if (role === "client") {
+											setShowFinishDialog(false);
+											ratingsModalRef.current?.present();
 										} else {
-											return [];
+											setQueue(prevQueue => {
+												if (prevQueue) {
+													return prevQueue.filter(req => req.sender_id !== merchantData?.id);
+												} else {
+													return [];
+												}
+											});
+
+											router.navigate("/(transactionRoom)");
 										}
-									});
+									} else {
+										setShowFinishConfirmationDialog(true);
+									}
 
-									router.navigate("/(transactionRoom)");
+									setInteractions(curr => [...(curr || []), {
+										timestamp: new Date(Date.now()),
+										type: "transaction",
+										from: payloadData.data.from,
+										data: {
+											type: totalTradedAmount > 0 ? "transaction_completed" : "transaction_cancelled",
+										},
+									}]);
 
+									break;
+								case "transaction_started":
 									break;
 								case "transaction_cancelled":
 									break;
@@ -570,63 +658,19 @@ export default function TransactionRoomScreen() {
 									type: "join"
 								}
 							});
+
+							setConnectedUsers(prevConnectedUsers => {
+								if (!prevConnectedUsers.includes(userData.username)) {
+									return [...prevConnectedUsers, userData.username];
+								} else {
+									return prevConnectedUsers;
+								}
+							});
 						}
 					});
 			}
 		} catch (err) {
 			console.log(err);
-		}
-	}
-
-	const finishTransaction = async () => {
-		const interactionsJSON = JSON.stringify(interactions?.filter(inter => inter.type !== "message").sort(
-			(a, b) => a.timestamp.getTime() - b.timestamp.getTime()
-		));
-
-		const platforms = interactions?.filter(inter => inter.type === "payment_requested" && inter.data.status === "completed").map((inter) => {
-			if (inter.type === "payment_requested") {
-				return inter.data.platform;
-			} else {
-				return null;
-			}
-		}).filter((value, index, self) => self.indexOf(value) === index) as string[];
-
-		const totalPaidAmount = interactions?.filter(inter => inter.type === "payment_requested" && inter.data.status === "completed")
-			.map(inter => {
-				if (inter.type === "payment_requested") {
-					return inter.data.amount;
-				} else {
-					return 0;
-				}
-			})
-			.reduce((accumulator, currentValue) => accumulator + currentValue, 0)
-
-		if (totalPaidAmount !== undefined) {		
-			const { error } = await supabase
-				.from("transactions")
-				.update({
-					total_amount: totalPaidAmount,
-					status: totalPaidAmount > 0 ? "completed" : "cancelled",
-					platforms: platforms,
-					timeline: interactionsJSON,
-				})
-				.eq("id", roomID);
-
-			if (!error) {
-				setShowFinishDialog(false);
-
-				interactionsChannel.send({
-					type: "broadcast",
-					event: "transaction",
-					payload: {
-						data: {
-							eventType: "transaction_completed",
-						}
-					}
-				});
-			} else {
-				console.log(error);
-			}
 		}
 	}
 
@@ -666,10 +710,29 @@ export default function TransactionRoomScreen() {
 		})
 
 		return () => {
-			interactionsChannel.unsubscribe();
-			supabase.removeChannel(interactionsChannel);
+			if (connectedUsers?.length < 2) {
+				finishTransaction();
+
+				interactionsChannel.unsubscribe();
+				supabase.removeChannel(interactionsChannel);
+			}
+
+			interactionsChannel.send({
+				type: "broadcast",
+				event: "user",
+				payload: {
+					from: userData?.username,
+					type: "left"
+				}
+			}).then(() => {
+				interactionsChannel.unsubscribe();
+			});
 		}
 	}, []);
+
+	// useEffect(() => {
+	// 	console.log("connected users: ", connectedUsers);
+	// }, [connectedUsers])
 
 	const SendProofRoute = () => (
 		<View>
@@ -926,6 +989,27 @@ export default function TransactionRoomScreen() {
 						{actionsModalRoute === "SendProof" && SendProofRoute()}
 					</BottomSheetView>
 				</BottomSheetModal>
+				<BottomSheetModal
+					ref={ratingsModalRef}
+					index={0}
+					snapPoints={["60%"]}
+					enablePanDownToClose={true}
+					backdropComponent={renderBackdrop}
+				>
+					<BottomSheetView>
+						<Button
+							className="rounded-lg w-full"
+							icon={"send"}
+							mode="contained"
+							onPress={() => {
+								ratingsModalRef.current?.close();
+								router.navigate("/(transactionRoom)");
+							}}
+						>
+							Submit
+						</Button>
+					</BottomSheetView>
+				</BottomSheetModal>
 				<Portal>
 					<Dialog visible={showFinishDialog} onDismiss={() => setShowFinishDialog(false)}>
 						<Dialog.Title>
@@ -934,11 +1018,47 @@ export default function TransactionRoomScreen() {
 							</Chip>
 						</Dialog.Title>
 						<Dialog.Content>
-							<Text variant="bodyMedium">Are you sure you want to finish the transaction? This action cannot be undone.</Text>
+							{totalTradedAmount && totalTradedAmount > 0 ?
+								<Text variant="bodyMedium">Are you sure you want to finish the transaction? This action cannot be undone.</Text>
+								:
+								<Text variant="bodyMedium">Are you sure you want to cancel the transaction? This action cannot be undone.</Text>
+							}
 						</Dialog.Content>
 						<Dialog.Actions>
 							<Button onPress={() => setShowFinishDialog(false)}>Cancel</Button>
-							<Button onPress={() => finishTransaction()}>Finish</Button>
+							<Button onPress={() => initiateTransactionClosure()}>Finish</Button>
+						</Dialog.Actions>
+					</Dialog>
+					<Dialog visible={showFinishConfirmationDialog} onDismiss={() => setShowFinishConfirmationDialog(false)}>
+						<Dialog.Title>
+							<Text variant="titleLarge" className="font-bold">Notice</Text>
+						</Dialog.Title>
+						<Dialog.Content>
+							{totalTradedAmount && totalTradedAmount > 0 ?
+								<Text variant="bodyMedium">{merchantData?.username} has ended the transaction.</Text>
+								:
+								<Text variant="bodyMedium">{merchantData?.username} has cancelled the transaction.</Text>
+							}
+						</Dialog.Content>
+						<Dialog.Actions>
+							<Button onPress={() => {
+								if (role === "client") {
+									setShowFinishConfirmationDialog(false);
+									ratingsModalRef.current?.present();
+								} else {
+									setQueue(prevQueue => {
+										if (prevQueue) {
+											return prevQueue.filter(req => req.sender_id !== merchantData?.id);
+										} else {
+											return [];
+										}
+									});
+
+									router.navigate("/(transactionRoom)");
+								}
+							}}>
+								Okay
+							</Button>
 						</Dialog.Actions>
 					</Dialog>
 				</Portal>
