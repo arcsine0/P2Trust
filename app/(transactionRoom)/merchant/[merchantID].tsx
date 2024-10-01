@@ -14,12 +14,19 @@ import { useMerchantData } from "@/lib/context/MerchantContext";
 import { getInitials, formatISODate } from "@/lib/helpers/functions";
 import { TransactionListItem } from "@/lib/helpers/types";
 
+import RatingsBar from "@/components/analytics/RatingBar";
+
 import { Ionicons, Octicons } from "@expo/vector-icons";
 
 export default function TransactionLobbyScreen() {
     const [roomID, setRoomID] = useState("");
 
     const [transactionList, setTransactionList] = useState<TransactionListItem[] | undefined>(undefined)
+    const [ratings, setRatings] = useState<{
+        positive: number,
+        negative: number,
+        total: number,
+    } | undefined>(undefined);
 
     const [requestState, setRequestState] = useState("Join Queue  ");
     const [requestDisabled, setRequestDisabled] = useState(false);
@@ -148,9 +155,29 @@ export default function TransactionLobbyScreen() {
         }
     }
 
+    const getMerchantRatings = async () => {
+        if (merchantID) {
+            const { data, error } = await supabase
+                .from("ratings")
+                .select("*")
+                .eq(`merchant_id`, merchantID);
+            
+            if (!error && data) {
+                setRatings({
+                    positive: data.filter((rating) => rating.rating === "UP").length,
+                    negative: data.filter((rating) => rating.rating === "DOWN").length,
+                    total: data.length,
+                });
+            } else {
+                console.log("Ratings error: ", error);
+            }
+        }
+    }
+
     useEffect(() => {
         loadMerchantData();
         loadMerchantTransactions();
+        getMerchantRatings();
     }, []);
 
     return (
@@ -170,17 +197,27 @@ export default function TransactionLobbyScreen() {
                                         <View className="flex">
                                             <Text variant="titleLarge" className="font-bold">{merchantData.username}</Text>
                                             <Text variant="bodyMedium" className="text-ellipsis">Merchant ID: 123123</Text>
-                                            <View className="flex flex-row gap-1 items-center">
-                                                <Ionicons name="thumbs-up-sharp" size={10} color={"#22c55e"} />
-                                                <Text variant="bodySmall">0</Text>
-                                                <Ionicons name="thumbs-down-sharp" size={10} color={"#ef4444"} />
-                                                <Text variant="bodySmall">0</Text>
+                                            <View className="flex flex-row space-x-2 items-center justify-start">
+                                                <Octicons name="clock" size={10} />
+                                                <Text variant="bodySmall">Online 5 mins ago</Text>
                                             </View>
                                         </View>
                                     </View>
-                                    <View className="flex flex-row space-x-2 items-center justify-start">
-                                        <Octicons name="clock" size={15} />
-                                        <Text variant="bodyMedium">Online 5 mins ago</Text>
+
+                                </Card.Content>
+                            </Card>
+                            <Card className="w-full" style={{ backgroundColor: theme.colors.background }}>
+                                <Card.Content className="flex flex-col space-y-2 w-full">
+                                    <Text variant="titleMedium" className="font-bold">Client Ratings</Text>
+                                    <View className="flex items-center justify-center">
+                                        {ratings && (
+                                            <RatingsBar
+                                                positive={ratings.positive}
+                                                negative={ratings.negative}
+                                                total={ratings.total}
+                                                height={20}
+                                            />
+                                        )}
                                     </View>
                                 </Card.Content>
                             </Card>
@@ -189,12 +226,12 @@ export default function TransactionLobbyScreen() {
                                     <Text variant="titleMedium" className="font-bold">Merchant Analytics</Text>
                                     <View className="flex flex-row items-center justify-center">
                                         <View className="flex flex-col w-1/2 items-start justify-center">
-                                            <Text variant="bodyMedium">Total Transactions</Text>
+                                            <Text variant="bodyMedium">Transactions</Text>
                                             <Text variant="titleSmall" className="font-bold">{transactionList ? transactionList.length : 0}</Text>
                                         </View>
                                         <View className="flex flex-col w-1/2 items-start justify-center">
-                                            <Text variant="bodyMedium">Average Volume</Text>
-                                            <Text variant="titleSmall" className="font-bold">{transactionList ? transactionList.reduce((a, b) => a + b.total_amount, 0) / transactionList.length : 0}</Text>
+                                            <Text variant="bodyMedium">Avg. Amount Vol.</Text>
+                                            <Text variant="titleSmall" className="font-bold">{transactionList ? transactionList.filter(transaction => transaction.status === "completed").reduce((a, b) => a + b.total_amount, 0) / transactionList.length : 0}</Text>
                                         </View>
                                     </View>
                                 </Card.Content>

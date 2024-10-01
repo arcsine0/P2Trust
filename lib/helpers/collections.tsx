@@ -14,3 +14,20 @@ export const FilterOptions = [
 	{ label: "Completed", value: "Completed" },
 	{ label: "Cancelled", value: "Cancelled" },
 ];
+
+export const PositiveTags = [
+	"Fast Replies", 
+	"Easy Transaction", 
+	"Friendly", 
+	"Professional", 
+	"Fair Pricing",
+];
+
+export const NegativeTags = [
+	"Slow Replies", 
+	"Difficult Transaction", 
+	"Unprofessional", 
+	"Overpriced", 
+	"Scam", 
+	"Impersonator",
+]

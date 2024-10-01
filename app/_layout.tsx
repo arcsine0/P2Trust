@@ -41,7 +41,7 @@ export default function RootLayout() {
 								options={{ 
 									headerTitle: "", 
 									headerLeft: () => (
-										<View className="flex flex-col items-start justify-center">
+										<View className="flex flex-col mt-4 mb-2 items-start justify-center">
 											<Text variant="titleMedium" className="font-bold">Transaction Details</Text>
 											<Text variant="bodyMedium">ID: </Text>
 											<Text variant="bodyMedium">{Date.now()}</Text>

@@ -117,14 +117,6 @@ export type Interaction =
     data: {
         type: "transaction_started" | "transaction_completed" | "transaction_cancelled",
     };
-}
-| {
-    timestamp: Date;
-    type: "transaction";
-    from: string;
-    data: {
-        type: "closure_initiated",
-    };
 };
 
 export type TimelineEvent = {

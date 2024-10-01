@@ -35,11 +35,13 @@ export default function TransactionDetailsScreen() {
                 .eq("id", transactionID);
 
             if (!error) {
+                const timeline = JSON.parse(data[0].timeline);
+
                 setTransactionData(data[0]);
-                setTransactionTimeline(data[0].timeline);
+                setTransactionTimeline(timeline);
                 setTransactionLength({
-                    startTime: Date.parse(data[0].timeline[0].timestamp),
-                    endTime: Date.parse(data[0].timeline[data[0].timeline.length - 1].timestamp),
+                    startTime: Date.parse(timeline[0].timestamp),
+                    endTime: Date.parse(timeline[timeline.length - 1].timestamp),
                 });
 
                 navigation.setOptions({
@@ -180,7 +182,7 @@ export default function TransactionDetailsScreen() {
                         </View>
                         : null}
                 </ScrollView>
-                <View className="w-full px-4 flex flex-row space-x-1">
+                <View className="w-full px-4 pt-2 flex flex-row space-x-1">
                     <Button
                         className="rounded-lg grow"
                         icon="comment-multiple"

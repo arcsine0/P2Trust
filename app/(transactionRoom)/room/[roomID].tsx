@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useWindowDimensions, Platform, View, KeyboardAvoidingView, FlatList } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme, Text, TextInput, Avatar, Chip, Card, Button, Menu, Dialog, Portal, Icon, TouchableRipple } from "react-native-paper";
+import { useTheme, Text, TextInput, Avatar, Chip, Card, Button, Menu, Dialog, Portal, IconButton, TouchableRipple, Divider } from "react-native-paper";
 import { Dropdown } from "react-native-element-dropdown";
 
 import { Image } from "expo-image";
@@ -28,15 +28,18 @@ import { RequestPaymentRoute, SendPaymentRoute } from "@/components/chatBottomSh
 
 import { Float } from "react-native/Libraries/Types/CodegenTypes";
 import { getInitials, formatISODate } from "@/lib/helpers/functions";
+import { PositiveTags, NegativeTags } from "@/lib/helpers/collections";
 
 export default function TransactionRoomScreen() {
-	const [interactions, setInteractions] = useState<Interaction[] | undefined>([]);
 	const [connectedUsers, setConnectedUsers] = useState<string[]>([]);
 
 	const [message, setMessage] = useState("");
 	const [activePaymentRequestID, setActivePaymentRequestID] = useState<string | undefined>(undefined);
 
 	const [totalTradedAmount, setTotalTradedAmount] = useState<Float>(0);
+
+	const [ratings, setRatings] = useState<"UP" | "DOWN">("UP");
+	const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
 	const [requestDetails, setRequestDetails] = useState<RequestDetails>({
 		amount: 100,
@@ -69,7 +72,7 @@ export default function TransactionRoomScreen() {
 	const ratingsModalRef = useRef<BottomSheetModal>(null);
 
 	const { userData, setQueue } = useUserData();
-	const { merchantData, role } = useMerchantData();
+	const { merchantData, role, interactions, setInteractions } = useMerchantData();
 
 	const { roomID } = useLocalSearchParams<{ roomID: string }>();
 	const layout = useWindowDimensions();
@@ -128,10 +131,10 @@ export default function TransactionRoomScreen() {
 					// commented out for testing
 					// setRequestDetails({
 					// 	amount: 0,
-					// 	currency: '',
-					// 	platform: '',
-					// 	accountNumber: '',
-					// 	accountName: '',
+					// 	currency: "",
+					// 	platform: "",
+					// 	accountNumber: "",
+					// 	accountName: "",
 					// });
 
 					actionsModalRef.current?.close();
@@ -253,6 +256,7 @@ export default function TransactionRoomScreen() {
 				.select();
 
 			if (!error && data) {
+				console.log(data[0].amount);
 				interactionsChannel.send({
 					type: "broadcast",
 					event: "payment",
@@ -350,7 +354,7 @@ export default function TransactionRoomScreen() {
 			type: "broadcast",
 			event: "transaction",
 			payload: {
-				type: "closure_initiated",
+				type: "transaction_completed",
 				data: {
 					id: userData?.id,
 					from: userData?.username,
@@ -384,9 +388,40 @@ export default function TransactionRoomScreen() {
 				.eq("id", roomID);
 
 			if (!error) {
-				setShowFinishConfirmationDialog(false);
+				interactionsChannel.send({
+					type: "broadcast",
+					event: "transaction",
+					payload: {
+						type: "transaction_completed",
+						data: {
+							id: userData?.id,
+							from: userData?.username,
+						}
+					}
+				});
 			} else {
 				console.log(error);
+			}
+		}
+	}
+
+	const submitRatings = async () => {
+		if (userData && merchantData) {
+			const { error } = await supabase
+				.from("ratings")
+				.insert({
+					transaction_id: roomID,
+					merchant_id: merchantData.id,
+					client_id: userData.id,
+					rating: ratings,
+					tags: selectedTags,
+				});
+
+			if (!error) {
+				ratingsModalRef.current?.close();
+				router.navigate("/(transactionRoom)");
+			} else {
+				console.log("Ratings error: ", error);
 			}
 		}
 	}
@@ -606,7 +641,7 @@ export default function TransactionRoomScreen() {
 
 						try {
 							switch (payloadData.type) {
-								case "closure_initiated":
+								case "transaction_completed":
 									if (payloadData.data.id === userData?.id) {
 										if (role === "client") {
 											setShowFinishDialog(false);
@@ -711,10 +746,10 @@ export default function TransactionRoomScreen() {
 
 		return () => {
 			if (connectedUsers?.length < 2) {
-				finishTransaction();
-
 				interactionsChannel.unsubscribe();
 				supabase.removeChannel(interactionsChannel);
+
+				setInteractions([])
 			}
 
 			interactionsChannel.send({
@@ -729,10 +764,6 @@ export default function TransactionRoomScreen() {
 			});
 		}
 	}, []);
-
-	// useEffect(() => {
-	// 	console.log("connected users: ", connectedUsers);
-	// }, [connectedUsers])
 
 	const SendProofRoute = () => (
 		<View>
@@ -997,17 +1028,84 @@ export default function TransactionRoomScreen() {
 					backdropComponent={renderBackdrop}
 				>
 					<BottomSheetView>
-						<Button
-							className="rounded-lg w-full"
-							icon={"send"}
-							mode="contained"
-							onPress={() => {
-								ratingsModalRef.current?.close();
-								router.navigate("/(transactionRoom)");
-							}}
-						>
-							Submit
-						</Button>
+						<View className="flex flex-col w-full px-4 space-y-2">
+							<Text variant="titleLarge" className="font-bold">Rate your Experience</Text>
+							<Text variant="bodyMedium">How was your transaction with <Text className="font-bold">{merchantData?.username}</Text></Text>
+							<Divider />
+							<View className="flex flex-row space-x-4 items-center justify-center">
+								<IconButton
+									icon="thumb-up-outline"
+									iconColor={ratings === "UP" ? "#22c55e" : "gray"}
+									// containerColor={ratings === "UP" ? "#bbf7d0" : "#gray"}
+									style={{ borderColor: ratings === "UP" ? "#22c55e" : "gray" }}
+									size={30}
+									mode="outlined"
+									onPress={() => {
+										setRatings("UP");
+										setSelectedTags([]);
+									}}
+								/>
+								<IconButton
+									icon="thumb-down-outline"
+									iconColor={ratings === "DOWN" ? "#ef4444" : "gray"}
+									// containerColor={ratings === "DOWN" ? "#fecaca" : "#gray"}
+									style={{ borderColor: ratings === "DOWN" ? "#ef4444" : "gray" }}
+									size={30}
+									mode="outlined"
+									onPress={() => {
+										setRatings("DOWN");
+										setSelectedTags([]);
+									}}
+								/>
+							</View>
+							<Text variant="titleSmall" className="font-bold">Select tags that describe your experience:</Text>
+							<View className="flex flex-row items-center space-x-1 space-y-1 flex-wrap">
+								{ratings === "UP" ?
+									PositiveTags.map((tag, i) => (
+										<Chip
+											key={i}
+											compact={true}
+											selected={selectedTags.includes(tag) ? true : false}
+											selectedColor={selectedTags.includes(tag) ? "#22c55e" : "black"}
+											showSelectedCheck={false}
+											style={{ backgroundColor: selectedTags.includes(tag) ? "#bbf7d0" : "#e2e8f0" }}
+											onPress={() => setSelectedTags(prev =>
+												prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+											)}
+										>
+											{tag}
+										</Chip>
+									))
+									:
+									NegativeTags.map((tag, i) => (
+										<Chip
+											key={i}
+											compact={true}
+											selected={selectedTags.includes(tag) ? true : false}
+											selectedColor={selectedTags.includes(tag) ? "#ef4444" : "black"}
+											showSelectedCheck={false}
+											style={{ backgroundColor: selectedTags.includes(tag) ? "#fecaca" : "#e2e8f0" }}
+											onPress={() => setSelectedTags(prev =>
+												prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+											)}
+										>
+											{tag}
+										</Chip>
+									))
+								}
+							</View>
+							<Divider />
+							<Button
+								className="rounded-lg w-full"
+								icon={"send"}
+								// buttonColor={ratings === "UP" ? "#22c55e" : "ef4444"}
+								mode="contained"
+								onPress={() => submitRatings()}
+								disabled={selectedTags.length !== 0 ? false : true}
+							>
+								Submit Rating
+							</Button>
+						</View>
 					</BottomSheetView>
 				</BottomSheetModal>
 				<Portal>
@@ -1026,7 +1124,7 @@ export default function TransactionRoomScreen() {
 						</Dialog.Content>
 						<Dialog.Actions>
 							<Button onPress={() => setShowFinishDialog(false)}>Cancel</Button>
-							<Button onPress={() => initiateTransactionClosure()}>Finish</Button>
+							<Button onPress={() => finishTransaction()}>Finish</Button>
 						</Dialog.Actions>
 					</Dialog>
 					<Dialog visible={showFinishConfirmationDialog} onDismiss={() => setShowFinishConfirmationDialog(false)}>

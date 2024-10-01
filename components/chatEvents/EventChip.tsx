@@ -48,6 +48,14 @@ const EventChip: FC<EventChipProps> = ({ type, from }) => {
             iconString = "hand-coin";
             chipText = "has received the product / completed the service";
             break;
+        case "transaction_completed":
+            iconString = "check";
+            chipText = "has ended the transaction";
+            break;
+        case "transaction_cancelled":
+            iconString = "close";
+            chipText = "has cancelled the transaction";
+            break;
         default:
             iconString = "information";
             chipText = "did something";
