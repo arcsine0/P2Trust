@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useContext } from "react";
 import { View, ScrollView } from "react-native";
-import { useTheme, Text, Avatar, Chip, Icon, IconButton, Card, Button, TouchableRipple, Badge } from "react-native-paper";
+import { useTheme, Text, Avatar, Chip, Icon, IconButton, Card, Button, TouchableRipple, ActivityIndicator } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { router, useFocusEffect } from "expo-router";
@@ -22,6 +22,8 @@ export default function TransactionHomeScreen() {
 
     const { userData, requests, setRequests, queue, setQueue } = useUserData();
     const { setMerchantData, setRole } = useMerchantData();
+
+    const [joinRoomLoading, setJoinRoomLoading] = useState<boolean>(false);
 
     const theme = useTheme();
     const requestsModalRef = useRef<BottomSheetModal>(null);
@@ -195,33 +197,36 @@ export default function TransactionHomeScreen() {
                         <TouchableRipple
                             className="flex flex-col p-2 items-center justify-center rounded-lg shadows-md grow"
                             style={{ backgroundColor: theme.colors.primary, opacity: queue && queue.length > 0 ? 1 : 0.75 }}
-                            disabled={queue && queue.length > 0 ? false : true}
+                            disabled={joinRoomLoading && queue && queue.length > 0 ? false : true}
                             onPress={() => createRoom()}
                         >
                             <View className="flex flex-row w-full items-center justify-stretch">
-                                <View className="flex flex-col gap-0 items-start justify-center">
-                                    <Text
-                                        variant="bodySmall"
-                                        style={{ color: theme.colors.background, padding: 0 }}
-                                    >
-                                        Next Client
-                                    </Text>
-                                    <Text
-                                        variant="titleMedium"
-                                        style={{ color: theme.colors.background, padding: 0 }}
-                                    >
-                                        {queue && queue.length > 0 ?
-                                            queue.sort((a, b) => b.created_at.getTime() - a.created_at.getTime())[0].sender_name
-                                            :
-                                            "None"
-                                        }
-                                    </Text>
-                                </View>
-                                {/* <Icon
-                                    source="arrow-right-bold"
-                                    color={theme.colors.background}
-                                    size={30}
-                                /> */}
+                                {!joinRoomLoading ?
+                                    <View className="flex flex-col gap-0 items-start justify-center">
+                                        <Text
+                                            variant="bodySmall"
+                                            style={{ color: theme.colors.background, padding: 0 }}
+                                        >
+                                            Next Client
+                                        </Text>
+                                        <Text
+                                            variant="titleMedium"
+                                            style={{ color: theme.colors.background, padding: 0 }}
+                                        >
+                                            {queue && queue.length > 0 ?
+                                                queue.sort((a, b) => b.created_at.getTime() - a.created_at.getTime())[0].sender_name
+                                                :
+                                                "None"
+                                            }
+                                        </Text>
+                                    </View>
+                                    :
+                                    <View className="flex flex-row space-x-2 items-center">
+                                        <ActivityIndicator animating={true} color="gray" />
+                                        <Text variant="bodyMedium" className="font-bold text-white">Creating the room...</Text>
+                                    </View>
+                                }
+
                             </View>
                         </TouchableRipple>
                         <BottomSheetModal

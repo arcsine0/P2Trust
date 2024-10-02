@@ -1,8 +1,10 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { useWindowDimensions, Platform, View, KeyboardAvoidingView, FlatList, ScrollView } from "react-native";
+import { useState, useEffect } from "react";
+import { useWindowDimensions, Platform, View, KeyboardAvoidingView, ScrollView } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme, Text, ProgressBar, Avatar, Icon, Card, Button, Divider, TouchableRipple } from "react-native-paper";
+import { useTheme, Text, Avatar, Card, Button, Divider, TouchableRipple } from "react-native-paper";
+
+import SkeletonLoading from "expo-skeleton-loading";
 
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
 
@@ -180,7 +182,9 @@ export default function TransactionDetailsScreen() {
                                 </Card.Content>
                             </Card>
                         </View>
-                        : null}
+                        :
+                        null
+                    }
                 </ScrollView>
                 <View className="w-full px-4 pt-2 flex flex-row space-x-1">
                     <Button

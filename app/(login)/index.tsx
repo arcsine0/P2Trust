@@ -1,6 +1,6 @@
 import { useContext, useState } from "react";
 import { View, ScrollView, TouchableOpacity } from "react-native";
-import { useTheme, Text, TextInput, Button, Divider } from "react-native-paper";
+import { useTheme, Text, TextInput, Button, Divider, ActivityIndicator } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { router } from "expo-router";
@@ -13,11 +13,18 @@ export default function LoginScreen() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("test1234");
 
+    const [defaultLoginLoading, setDefaultLoginLoading] = useState<boolean>(false);
+    const [googleLoginLoading, setGoogleLoginLoading] = useState<boolean>(false);
+    const [facebookLoginLoading, setFacebookLoginLoading] = useState<boolean>(false);
+    const [phoneLoginLoading, setPhoneLoginLoading] = useState<boolean>(false);
+
     const { userData, setUserData } = useUserData();
 
     const theme = useTheme();
 
     const userLogin = async () => {
+        setDefaultLoginLoading(true);
+
         const { data: { session }, error } = await supabase.auth.signInWithPassword({
             email: email,
             password: password,
@@ -31,12 +38,14 @@ export default function LoginScreen() {
                     .eq("id", session.user.id);
 
                 if (!error) {
+                    setDefaultLoginLoading(false);
                     setUserData(data[0]);
                     
                     router.push("/(tabs)");
                 }
             }
         } else {
+            setDefaultLoginLoading(false);
             console.log(error.message);
         }
     }
@@ -76,9 +85,17 @@ export default function LoginScreen() {
                 icon={"account-arrow-right-outline"}
                 mode="contained"
                 elevation={3}
+                disabled={defaultLoginLoading}
                 onPress={() => userLogin()}
             >
-                Login
+                {!defaultLoginLoading ? 
+                    <Text variant="bodyMedium" className="font-bold text-white">Login</Text>
+                :
+                    <View className="flex flex-row space-x-2 items-center">
+                        <ActivityIndicator animating={true} color="gray" />
+                        <Text variant="bodyMedium" className="font-bold text-white">Logging In...</Text>
+                    </View>
+                }
             </Button>
             <Divider className="w-full" />
             <Button
