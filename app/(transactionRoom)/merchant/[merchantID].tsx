@@ -281,15 +281,7 @@ export default function TransactionLobbyScreen() {
                 >
                     Invite Request Rejected or Expired
                 </Snackbar>
-                <View className="w-full px-4 flex flex-row space-x-1">
-                    <Button
-                        className="rounded-lg"
-                        icon="thumbs-up-down"
-                        mode="contained"
-                        onPress={() => { }}
-                    >
-                        Rate
-                    </Button>
+                <View className="w-full px-4 pt-2 flex flex-row space-x-1">
                     <Button
                         className="rounded-lg grow"
                         icon="cash-fast"

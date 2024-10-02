@@ -1,5 +1,5 @@
 import { useContext, useState } from "react";
-import { View, ScrollView, TouchableHighlight } from "react-native";
+import { View, ScrollView, TouchableOpacity } from "react-native";
 import { useTheme, Text, TextInput, Button, Divider } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -8,8 +8,6 @@ import { router } from "expo-router";
 import { supabase } from "@/supabase/config";
 
 import { useUserData } from "@/lib/context/UserContext";
-
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function LoginScreen() {
     const [email, setEmail] = useState("");
@@ -43,11 +41,23 @@ export default function LoginScreen() {
         }
     }
 
+    const loginWithGoogle = async () => {
+
+    }
+
+    const loginWithFacebook = async () => {
+
+    }
+
+    const loginWithPhone = async () => {
+
+    }
+
     return (
-        <SafeAreaView className="flex flex-col w-screen h-screen gap-3 px-4 items-start justify-center">
-            <Text variant="displaySmall" className="font-bold">Sign In</Text>
+        <SafeAreaView className="flex flex-col w-screen h-screen space-y-3 px-4 items-center justify-end">
+            <Text variant="displaySmall" className="font-bold">P2Trust</Text>
             <TextInput
-                className="w-full"
+                className="w-full rounded-lg"
                 mode="outlined"
                 label="Email"
                 placeholder="example@email.com"
@@ -55,32 +65,67 @@ export default function LoginScreen() {
                 onChangeText={setEmail}
             />
             <TextInput
-                className="w-full"
+                className="w-full rounded-lg"
                 mode="outlined"
                 label="Password"
                 value={password}
                 onChangeText={setPassword}
             />
             <Button
-                className="w-full"
+                className="w-full rounded-lg"
                 icon={"account-arrow-right-outline"}
                 mode="contained"
+                elevation={3}
                 onPress={() => userLogin()}
             >
                 Login
             </Button>
             <Divider className="w-full" />
-            {/* <View className="flex flex-row w-full justify-center items-center">
-                <Text variant="labelLarge" style={{ color: theme.colors.primary }}>or</Text>
-            </View> */}
             <Button
-                className="w-full"
-                icon={"account-plus-outline"}
+                className="w-full rounded-lg"
+                icon={"google-plus"}
                 mode="contained"
-                onPress={() => router.push("/(login)/registerIdentifier")}
+                buttonColor={theme.colors.background}
+                textColor="black"
+                labelStyle={{ fontWeight: "bold" }}
+                elevation={3}
+                onPress={() => loginWithGoogle()}
             >
-                Create an Account
+                Continue with Google
             </Button>
+            <Button
+                className="w-full rounded-lg"
+                icon={"facebook"}
+                mode="contained"
+                buttonColor={theme.colors.background}
+                textColor="black"
+                labelStyle={{ fontWeight: "bold" }}
+                elevation={3}
+                onPress={() => loginWithFacebook()}
+            >
+                Continue with Facebook
+            </Button>
+            <Button
+                className="w-full rounded-lg"
+                icon={"phone"}
+                mode="contained"
+                buttonColor={theme.colors.background}
+                textColor="black"
+                labelStyle={{ fontWeight: "bold" }}
+                elevation={3}
+                onPress={() => loginWithPhone()}
+            >
+                Continue with Phone Number
+            </Button>
+            <Divider className="w-full" />
+            <View className="flex flex-col space-y-1 items-center">
+                <Text variant="bodyMedium">Don't have an account?</Text>
+                <TouchableOpacity
+                    onPress={() => router.push("/(login)/registerIdentifier")}
+                >
+                    <Text variant="bodyMedium" className="font-bold" style={{ color: theme.colors.primary }}>Create an account</Text>
+                </TouchableOpacity>
+            </View>
         </SafeAreaView>
     );
 }
