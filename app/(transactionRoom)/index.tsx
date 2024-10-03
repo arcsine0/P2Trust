@@ -81,6 +81,8 @@ export default function TransactionHomeScreen() {
 
     const createRoom = async () => {
         if (requests && queue && userData) {
+            setJoinRoomLoading(true);
+
             const currentRequest = queue.sort((a, b) => b.created_at.getTime() - a.created_at.getTime())[0];
 
             const { data: merchantData, error: merchantError } = await supabase
@@ -111,6 +113,7 @@ export default function TransactionHomeScreen() {
                         }
                     }).then(async () => {
                         setRole("merchant");
+                        setJoinRoomLoading(false);
 
                         router.navigate(`/(transactionRoom)/room/${transactionData[0].id}`);
                     });
@@ -197,7 +200,7 @@ export default function TransactionHomeScreen() {
                         <TouchableRipple
                             className="flex flex-col p-2 items-center justify-center rounded-lg shadows-md grow"
                             style={{ backgroundColor: theme.colors.primary, opacity: queue && queue.length > 0 ? 1 : 0.75 }}
-                            disabled={joinRoomLoading && queue && queue.length > 0 ? false : true}
+                            disabled={!joinRoomLoading && queue && queue.length > 0 ? false : true}
                             onPress={() => createRoom()}
                         >
                             <View className="flex flex-row w-full items-center justify-stretch">
