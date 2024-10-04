@@ -1,21 +1,36 @@
 import { Stack } from "expo-router";
-import { View } from "react-native";
 
-import { Avatar, Button, Text } from "react-native-paper";
+import { Avatar } from "react-native-paper";
+import { View, Text } from "react-native-ui-lib";
 
+import { useUserData } from "@/lib/context/UserContext";
 import { MerchantProvider, useMerchantData } from "@/lib/context/MerchantContext";
 import { getInitials } from "@/lib/helpers/functions";
 
 export default function TransactionLayout() {
+    const { userData } = useUserData();
+
     return (
         <MerchantProvider>
             <Stack screenOptions={{ headerShown: true }}>
                 <Stack.Screen
                     name="index"
                     options={{
-                        headerBackVisible: true,
                         headerTitle: "",
-                        
+                        headerLeft: () => (
+                            <View className="flex flex-row space-x-2 items-center justify-start">
+                                {userData ?
+                                    <Avatar.Text label={getInitials(userData.username)} size={30} />
+                                    :
+                                    <Avatar.Text label="N/A" size={30} />
+                                }
+                                <View className="flex flex-col items-start justify-center">
+                                    <Text bodyLarge className="font-bold">{userData?.username || "N/A"}</Text>
+                                    <Text bodySmall>ID: 123123</Text>
+                                </View>
+                            </View>
+                        ),
+
                     }}
                 />
                 <Stack.Screen
@@ -23,7 +38,7 @@ export default function TransactionLayout() {
                     options={{
                         headerBackVisible: true,
                         headerTitle: "Scan QR",
-                        
+
                     }}
                 />
                 <Stack.Screen
@@ -31,7 +46,7 @@ export default function TransactionLayout() {
                     options={{
                         headerBackVisible: false,
                         headerTitle: "",
-                        
+
                     }}
                 />
                 <Stack.Screen
@@ -39,7 +54,7 @@ export default function TransactionLayout() {
                     options={{
                         headerBackVisible: true,
                         headerTitle: "",
-                        
+
                     }}
                 />
             </Stack>

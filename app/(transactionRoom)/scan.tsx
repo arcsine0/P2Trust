@@ -123,15 +123,6 @@ export default function TransactionScanScreen() {
 						size={20}
 						onPress={() => toggleCameraFacing()}
 					/>
-					<Button
-						className="rounded-lg"
-						onPress={() => pickImage()}
-					>
-						<View className="flex flex-row space-x-2 items-center">
-							<MaterialCommunityIcons name="file-upload" size={20} color={"white"} />
-							<Text buttonSmall white>Upload QR</Text>
-						</View>
-					</Button>
 				</View>
 			</CameraView>
 		</SafeAreaView>

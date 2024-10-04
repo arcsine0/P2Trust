@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef, useContext } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ScrollView } from "react-native";
-import { useTheme, Avatar, Icon, IconButton, TouchableRipple, ActivityIndicator } from "react-native-paper";
+import { useTheme, Avatar, IconButton, ActivityIndicator } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Colors, View, Text, Card, Button, Chip } from "react-native-ui-lib";
+import { Colors, View, Text, Card, Button, Chip, Picker } from "react-native-ui-lib";
 
 import { router, useNavigation } from "expo-router";
 
@@ -14,6 +14,9 @@ import { supabase } from "@/supabase/config";
 import { useUserData } from "@/lib/context/UserContext";
 import { useMerchantData } from "@/lib/context/MerchantContext";
 
+import * as ImagePicker from "expo-image-picker";
+import { scanFromURLAsync } from "expo-camera";
+
 import { Request } from "@/lib/helpers/types";
 import { getInitials } from "@/lib/helpers/functions";
 
@@ -23,6 +26,8 @@ import QRCode from "react-qr-code";
 
 export default function TransactionHomeScreen() {
     const [showBadge, setShowBadge] = useState(false);
+
+    const [QRError, setQRError] = useState<string>("");
 
     const { userData, requests, setRequests, queue, setQueue } = useUserData();
     const { setMerchantData, setRole } = useMerchantData();
@@ -130,6 +135,55 @@ export default function TransactionHomeScreen() {
         }
     }
 
+    const loadMerchantData = async (qrValue: string) => {
+        try {
+            const qrData = JSON.parse(qrValue);
+
+            try {
+                if (qrData.auth === "P2Trust") {
+                    const { data, error } = await supabase
+                        .from("accounts")
+                        .select("id")
+                        .eq("id", qrData.id);
+
+                    if (!error) {
+                        router.navigate(`/(transactionRoom)/merchant/${qrData.id}`)
+                    } else {
+                        setQRError("Account of QR Code does not exist");
+                    }
+                } else {
+                    setQRError("Invalid QR Code");
+                }
+            } catch (error) {
+                setQRError("Invalid QR Code");
+            }
+        } catch (error) {
+            setQRError("Scanned Image has no data");
+        }
+    }
+
+    const pickImage = async () => {
+        let result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            // allowsEditing: true,
+            quality: 1,
+        });
+
+        if (result && result.assets && result.assets[0].uri) {
+            try {
+                const scannedResults = await scanFromURLAsync(result.assets[0].uri);
+
+                if (scannedResults) {
+                    loadMerchantData(scannedResults[0].data);
+                } else {
+                    setQRError("No QR found in image");
+                }
+            } catch (error) {
+                setQRError("No QR found in image");
+            }
+        }
+    }
+
     useEffect(() => {
         requestsChannel
             .on("broadcast", { event: "request" }, (payload) => {
@@ -149,6 +203,13 @@ export default function TransactionHomeScreen() {
             headerRight: () => (
                 <View className="flex flex-row">
                     <IconButton
+                        icon="account-plus-outline"
+                        onPress={() => {
+                            requestsModalRef.current?.present();
+                            setShowBadge(false);
+                        }}
+                    />
+                    <IconButton
                         icon="dots-vertical"
                         onPress={() => console.log("Dots Pressed")}
                     />
@@ -162,116 +223,107 @@ export default function TransactionHomeScreen() {
     }, []);
 
     return (
-        <SafeAreaView className="flex flex-col w-screen h-screen space-y-2 px-4 items-start justify-start">
+        <SafeAreaView className="flex flex-col w-full h-full pb-2 items-start justify-start">
             {userData ?
-                <View className="flex flex-col w-full h-full space-y-2 items-center justify-start">
-                    <Card
-                        style={{ backgroundColor: Colors.bgDefault }}
-                        className="flex flex-col w-full p-4 space-y-2 justify-center items-start"
-                        elevation={10}
-                    >
-                        <View className="flex flex-row items-center gap-5">
-                            <Avatar.Text label={getInitials(userData.username)} size={50} />
-                            <View className="flex">
-                                <Text h4>{userData.username}</Text>
-                                <Text bodySmall className="text-ellipsis">ID: 123123</Text>
+                <View className="flex flex-col w-full h-full px-4 space-y-2 items-center justify-between">
+                    <View className="flex flex-col flex-1 w-full space-y-2 items-center justify-center">
+                        <Card
+                            style={{ backgroundColor: Colors.bgDefault }}
+                            className="flex flex-col w-full p-4 space-y-2"
+                            elevation={10}
+                        >
+                            <View className="flex justify-center items-center border-2 rounded-lg p-5">
+                                <QRCode
+                                    size={256}
+                                    className="h-auto w-full"
+                                    value={JSON.stringify({
+                                        auth: "P2Trust",
+                                        id: userData.id
+                                    })}
+                                />
                             </View>
-                        </View>
-                    </Card>
-                    <Card
-                        style={{ backgroundColor: Colors.bgDefault }}
-                        className="flex flex-col p-4 space-y-2"
-                        elevation={10}
-                    >
-                        <View className="flex justify-center items-center border-2 rounded-lg p-5">
-                            <QRCode
-                                size={256}
-                                className="h-auto w-full"
-                                value={JSON.stringify({
-                                    auth: "P2Trust",
-                                    id: userData.id
-                                })}
-                            />
+                            <Text bodySmall gray400 className="text-center">Share this QR code to start a transaction as a merchant</Text>
+                        </Card>
+                        {queue && queue.length > 0 ?
+                            <Card
+                                style={{ backgroundColor: Colors.bgDefault }}
+                                className="flex flex-row w-full p-4 items-center justify-between"
+                                elevation={10}
+                            >
+                                <Text body className="font-bold">Current Client</Text>
+                                <View className="flex flex-row space-x-2 items-center justify-start">
+                                    <Avatar.Text label={getInitials(queue.sort((a, b) => b.created_at.getTime() - a.created_at.getTime())[0].sender_name)} size={20} />
+                                    <Text bodySmall className="font-semibold">{queue.sort((a, b) => b.created_at.getTime() - a.created_at.getTime())[0].sender_name}</Text>
+                                </View>
+                            </Card>
+                            :
+                            null
+                        }
+                    </View>
+                    <View className="flex flex-col w-full space-y-2">
+                        <View className="flex flex-row space-x-2 items-center">
+                            <Button
+                                className="flex-1 rounded-lg"
+                                style={{ backgroundColor: Colors.gray50 }}
+                                outline={true}
+                                outlineColor={Colors.gray900}
+                                onPress={() => router.navigate("/(transactionRoom)/scan")}
+                            >
+                                <View className="flex flex-row space-x-2 items-center">
+                                    <MaterialCommunityIcons name="qrcode-scan" size={20} color={"black"} />
+                                    <Text buttonSmall black>Scan QR Code</Text>
+                                </View>
+                            </Button>
+                            <Button
+                                className="flex-1 rounded-lg"
+                                style={{ backgroundColor: Colors.gray50 }}
+                                outline={true}
+                                outlineColor={Colors.gray900}
+                                onPress={() => pickImage()}
+                            >
+                                <View className="flex flex-row space-x-2 items-center">
+                                    <MaterialCommunityIcons name="file-upload" size={20} color={"black"} />
+                                    <Text buttonSmall black>Upload QR</Text>
+                                </View>
+                            </Button>
                         </View>
                         <Button
                             className="rounded-lg"
-                            onPress={() => router.navigate("/(transactionRoom)/scan")}
-                        >
-                            <View className="flex flex-row space-x-2 items-center">
-                                <MaterialCommunityIcons name="qrcode-scan" size={20} color={"white"} />
-                                <Text buttonSmall white>Scan QR Code</Text>
-                            </View>
-                        </Button>
-                    </Card>
-                    <View className="w-full flex flex-row gap-1 items-center justify-center">
-                        <TouchableRipple
-                            className="flex p-4 items-center justify-center rounded-lg"
-                            style={{ backgroundColor: Colors.primary700 }}
-                            onPress={() => {
-                                requestsModalRef.current?.present();
-                                setShowBadge(false);
-                            }}
-                        >
-                            <View>
-                                <Icon
-                                    source="bell"
-                                    color={theme.colors.background}
-                                    size={25}
-                                />
-                            </View>
-                        </TouchableRipple>
-                        <TouchableRipple
-                            className="flex flex-col p-2 items-center justify-center rounded-lg shadows-md grow"
-                            style={{ backgroundColor: Colors.primary700, opacity: queue && queue.length > 0 ? 1 : 0.75 }}
                             disabled={!joinRoomLoading && queue && queue.length > 0 ? false : true}
                             onPress={() => createRoom()}
                         >
-                            <View className="flex flex-row w-full items-center justify-stretch">
-                                {!joinRoomLoading ?
-                                    <View className="flex flex-col items-start justify-center">
-                                        <Text
-                                            caption
-                                            style={{ color: Colors.bgDefault }}
-                                        >
-                                            Next Client
-                                        </Text>
-                                        <Text
-                                            bodyLarge
-                                            style={{ color: Colors.bgDefault }}
-                                        >
-                                            {queue && queue.length > 0 ?
-                                                queue.sort((a, b) => b.created_at.getTime() - a.created_at.getTime())[0].sender_name
-                                                :
-                                                "None"
-                                            }
-                                        </Text>
-                                    </View>
-                                    :
-                                    <View className="flex flex-row space-x-2 items-center">
-                                        <ActivityIndicator animating={true} color="gray" />
-                                        <Text body className="font-bold text-white">Creating the room...</Text>
-                                    </View>
-                                }
-
-                            </View>
-                        </TouchableRipple>
-                        <BottomSheetModal
-                            ref={requestsModalRef}
-                            index={0}
-                            snapPoints={["45%"]}
-                            enablePanDownToClose={true}
-                        >
-                            <BottomSheetView>
-                                <View className="flex flex-col w-full p-2 gap-2 items-start justify-start">
-                                    <Text h3>Invite Requests</Text>
-                                    {requests && requests.length > 0 ?
-                                        <ScrollView>
+                            {!joinRoomLoading ?
+                                <View className="flex flex-row space-x-2 items-center">
+                                    <Text buttonSmall white>Start Transaction</Text>
+                                    <MaterialCommunityIcons name="arrow-right" size={20} color={"white"} />
+                                </View>
+                                :
+                                <View className="flex flex-row space-x-2 items-center">
+                                    <ActivityIndicator animating={true} size={20} color="white" />
+                                    <Text buttonSmall white>Joining Room...</Text>
+                                </View>
+                            }
+                        </Button>
+                    </View>
+                    <BottomSheetModal
+                        ref={requestsModalRef}
+                        index={0}
+                        snapPoints={["45%"]}
+                        enablePanDownToClose={true}
+                    >
+                        <BottomSheetView>
+                            <View className="flex flex-col w-full px-4 py-2 space-y-2 items-start justify-start">
+                                <Text h3>Invite Requests</Text>
+                                {requests && requests.length > 0 ?
+                                    <ScrollView>
+                                        <View className="flex flex-col w-full space-y-2 ">
                                             {requests.sort((a, b) => b.created_at.getTime() - a.created_at.getTime()).map((req, i) => (
                                                 <Card key={i}
                                                     style={{ backgroundColor: Colors.bgDefault }}
                                                     className="flex flex-row w-full p-4 justify-between items-center"
+                                                    elevation={10}
                                                 >
-                                                    <View className="flex flex-row items-center gap-5">
+                                                    <View className="flex flex-row items-center space-x-3">
                                                         <Avatar.Text label={getInitials(req.sender_name)} size={35} />
                                                         <Text bodyLarge className="font-bold">{req.sender_name}</Text>
                                                     </View>
@@ -279,32 +331,34 @@ export default function TransactionHomeScreen() {
                                                         <IconButton
                                                             icon="check"
                                                             mode="contained"
-                                                            iconColor={theme.colors.primary}
+                                                            iconColor={Colors.primary700}
                                                             size={20}
                                                             onPress={() => acceptRequest(req.sender_id)}
                                                         />
                                                         <IconButton
                                                             icon="trash-can"
                                                             mode="contained"
-                                                            iconColor={theme.colors.primary}
+                                                            iconColor={Colors.primary700}
                                                             size={20}
                                                             onPress={() => rejectRequest(req.sender_id)}
                                                         />
                                                     </View>
                                                 </Card>
                                             ))}
-                                        </ScrollView>
-                                        :
-                                        <Chip
-                                            label={"No Invite Requests"}
-                                            borderRadius={8}
-                                            backgroundColor={Colors.primary200}
-                                        />
-                                    }
-                                </View>
-                            </BottomSheetView>
-                        </BottomSheetModal>
-                    </View>
+                                        </View>
+                                    </ScrollView>
+                                    :
+                                    <View
+                                        style={{ backgroundColor: Colors.gray200 }}
+                                        className="flex flex-col w-full px-10 py-20 space-y-1 items-center justify-center rounded-lg"
+                                    >
+                                        <Text bodyLarge black className="font-semibold">No Invite Requests</Text>
+                                        <Text bodySmall black className="text-center">Ask clients to scan your QR and start transaction</Text>
+                                    </View>
+                                }
+                            </View>
+                        </BottomSheetView>
+                    </BottomSheetModal>
                 </View>
                 : null}
         </SafeAreaView>
