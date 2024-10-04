@@ -1,23 +1,28 @@
 import { FC, Dispatch, SetStateAction } from "react";
-import { View, ViewStyle } from "react-native";
-import { Text, TextInput, Button, Chip } from "react-native-paper";
+import { ViewStyle } from "react-native";
+import { TextInput, Divider, ActivityIndicator } from "react-native-paper";
 import { Dropdown } from "react-native-element-dropdown";
+
+import { View, Text, Button } from "react-native-ui-lib";
 
 import { RequestDetails } from "@/lib/helpers/types";
 import { PaymentPlatforms } from "@/lib/helpers/collections";
 
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+
 interface RequestPaymentRouteProps {
     dropdownStyle?: ViewStyle;
+    disabled: boolean;
     requestDetails: RequestDetails;
     setRequestDetails: Dispatch<SetStateAction<RequestDetails>>;
     sendPaymentRequest: () => void;
 }
 
-const RequestPaymentRoute: FC<RequestPaymentRouteProps> = ({ dropdownStyle, requestDetails, setRequestDetails, sendPaymentRequest }) => {
+const RequestPaymentRoute: FC<RequestPaymentRouteProps> = ({ dropdownStyle, disabled, requestDetails, setRequestDetails, sendPaymentRequest }) => {
     return (
         <View className="flex flex-col w-full p-2 items-center justify-start">
             <View className="flex flex-col w-full gap-2">
-                <Text variant="titleMedium">Transaction Details</Text>
+                <Text bodyLarge className="font-bold">Transaction Details</Text>
                 <TextInput
                     className="rounded-lg overflow-scroll"
                     label="Amount"
@@ -34,7 +39,7 @@ const RequestPaymentRoute: FC<RequestPaymentRouteProps> = ({ dropdownStyle, requ
                     valueField="value"
                     placeholder="Select Payment Platform"
                 />
-                <Text variant="titleMedium">Your Account Details</Text>
+                <Text bodyLarge className="font-bold">Your Account Details</Text>
                 <TextInput
                     className="rounded-lg overflow-scroll"
                     label="Name"
@@ -49,13 +54,23 @@ const RequestPaymentRoute: FC<RequestPaymentRouteProps> = ({ dropdownStyle, requ
                     onChangeText={text => setRequestDetails({ ...requestDetails, accountNumber: text })}
                     keyboardType="default"
                 />
+                <Divider />
                 <Button
-                    className="rounded-lg w-full"
-                    icon={"information"}
-                    mode="contained"
+                    className="rounded-lg"
                     onPress={sendPaymentRequest}
+                    disabled={disabled}
                 >
-                    Send Request
+                    {!disabled ?
+                        <View className="flex flex-row space-x-2 items-center">
+                            <MaterialCommunityIcons name="send" size={20} color={"white"} />
+                            <Text buttonSmall white>Send Request</Text>
+                        </View>
+                        :
+                        <View className="flex flex-row space-x-2 items-center">
+                            <ActivityIndicator animating={true} color="gray" />
+                            <Text buttonSmall white>Sending Request...</Text>
+                        </View>
+                    }
                 </Button>
             </View>
         </View>

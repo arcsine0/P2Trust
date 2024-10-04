@@ -1,6 +1,8 @@
 import { FC, Dispatch, SetStateAction } from "react";
-import { View, ViewStyle } from "react-native";
-import { Text, Button, Icon, TouchableRipple } from "react-native-paper";
+import { Icon, TouchableRipple, ActivityIndicator } from "react-native-paper";
+
+import { View, Text, Button } from "react-native-ui-lib";
+
 import { Image } from "expo-image";
 
 import { ImagePickerAsset } from "expo-image-picker";
@@ -8,7 +10,10 @@ import { ImagePickerAsset } from "expo-image-picker";
 import { RequestDetails } from "@/lib/helpers/types";
 import { PaymentPlatforms } from "@/lib/helpers/collections";
 
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+
 interface SendPaymentRouteProps {
+    disabled: boolean;
     paymentDetails: RequestDetails;
     receipt: ImagePickerAsset | undefined;
     setReceipt: Dispatch<SetStateAction<ImagePickerAsset | undefined>>;
@@ -16,13 +21,13 @@ interface SendPaymentRouteProps {
     sendPayment: () => void;
 }
 
-const SendPaymentRoute: FC<SendPaymentRouteProps> = ({ paymentDetails, receipt, setReceipt, pickReceipt, sendPayment }) => {
+const SendPaymentRoute: FC<SendPaymentRouteProps> = ({ disabled, paymentDetails, receipt, setReceipt, pickReceipt, sendPayment }) => {
     return (
         <View className="flex flex-col space-y-2 p-4 items-start justify-start">
-            <Text variant="titleLarge" className="font-bold">Payment Details</Text>
+            <Text bodyLarge className="font-bold">Payment Details</Text>
             <View className="flex flex-row w-full items-center justify-between">
-                <Text variant="bodySmall" className="text-slate-400">Requested Amount</Text>
-                <Text variant="titleMedium" className="font-bold">
+                <Text body gray400>Requested Amount</Text>
+                <Text body className="font-bold">
                     {
                         paymentDetails.currency === "PHP" ? "₱" :
                             paymentDetails.currency === "USD" ? "$" :
@@ -32,20 +37,20 @@ const SendPaymentRoute: FC<SendPaymentRouteProps> = ({ paymentDetails, receipt, 
                 </Text>
             </View>
             <View className="flex flex-row w-full items-center justify-between">
-                <Text variant="bodySmall" className="text-slate-400">Platform</Text>
-                <Text variant="titleMedium" className="font-bold">{paymentDetails.platform}</Text>
+                <Text body gray400>Platform</Text>
+                <Text body className="font-bold">{paymentDetails.platform}</Text>
             </View>
             <View className="flex flex-row w-full items-center justify-between">
-                <Text variant="bodySmall" className="text-slate-400">Account Name</Text>
-                <Text variant="titleMedium" className="font-bold">{paymentDetails.accountName}</Text>
+                <Text body gray400>Account Name</Text>
+                <Text body className="font-bold">{paymentDetails.accountName}</Text>
             </View>
             <View className="flex flex-row w-full items-center justify-between">
-                <Text variant="bodySmall" className="text-slate-400">Account Number</Text>
-                <Text variant="titleMedium" className="font-bold">{paymentDetails.accountNumber}</Text>
+                <Text body gray400>Account Number</Text>
+                <Text body className="font-bold">{paymentDetails.accountNumber}</Text>
             </View>
             <View className="flex flex-col w-full space-y-1">
                 <View className="flex flex-row w-full items-center justify-between">
-                    <Text variant="bodySmall" className="text-slate-400">Upload Receipt</Text>
+                    <Text body gray400>Upload Receipt</Text>
                     <TouchableRipple onPress={() => setReceipt(undefined)}>
                         <View className="flex flex-row space-x-1 items-center justify-center">
                             <Icon
@@ -53,7 +58,7 @@ const SendPaymentRoute: FC<SendPaymentRouteProps> = ({ paymentDetails, receipt, 
                                 size={15}
                                 color={"#94a3b8"}
                             />
-                            <Text variant="bodySmall" className="text-slate-400">Reset</Text>
+                            <Text caption gray400>Reset</Text>
                         </View>
 
                     </TouchableRipple>
@@ -70,7 +75,7 @@ const SendPaymentRoute: FC<SendPaymentRouteProps> = ({ paymentDetails, receipt, 
                                     size={20}
                                     color={"#94a3b8"}
                                 />
-                                <Text variant="titleSmall" className="text-slate-400">Upload Receipt</Text>
+                                <Text bodyLarge gray400>Upload Receipt</Text>
                             </View>
                         </TouchableRipple>
                         :
@@ -83,13 +88,21 @@ const SendPaymentRoute: FC<SendPaymentRouteProps> = ({ paymentDetails, receipt, 
                 </View>
             </View>
             <Button
-                className="rounded-lg w-full"
-                icon={"information"}
-                mode="contained"
-                disabled={!receipt ? true : false}
+                className="w-full rounded-lg"
                 onPress={sendPayment}
+                disabled={disabled}
             >
-                Mark payment as sent
+                {!disabled ?
+                    <View className="flex flex-row space-x-2 items-center">
+                        <MaterialCommunityIcons name="send" size={20} color={"white"} />
+                        <Text buttonSmall white>Send Payment</Text>
+                    </View>
+                    :
+                    <View className="flex flex-row space-x-2 items-center">
+                        <ActivityIndicator animating={true} color="gray" />
+                        <Text buttonSmall white>Sending Payment...</Text>
+                    </View>
+                }
             </Button>
         </View>
     )

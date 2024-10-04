@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useWindowDimensions, Platform, KeyboardAvoidingView, FlatList } from "react-native";
+import { useWindowDimensions, Platform, KeyboardAvoidingView, FlatList, TouchableOpacity } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme, TextInput, Avatar, Chip, Menu, Dialog, Portal, IconButton, Divider, ActivityIndicator } from "react-native-paper";
+import { useTheme, TextInput, Avatar, Chip, Menu, Portal, IconButton, Divider, ActivityIndicator, TouchableRipple } from "react-native-paper";
 
-import { View, Text, Button } from "react-native-ui-lib";
+import { Colors, View, Text, Button, ActionSheet, Dialog } from "react-native-ui-lib";
 
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
@@ -61,9 +61,18 @@ export default function TransactionRoomScreen() {
 
 	const [receipt, setReceipt] = useState<ImagePicker.ImagePickerAsset | undefined>(undefined);
 
-	const [showActionsMenu, setShowActionsMenu] = useState(false);
-	const [showFinishDialog, setShowFinishDialog] = useState(false);
-	const [showFinishConfirmationDialog, setShowFinishConfirmationDialog] = useState(false);
+	const [showActionsMenu, setShowActionsMenu] = useState<boolean>(false);
+	const [showRequestModal, setShowRequestModal] = useState<boolean>(false);
+	const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
+	const [showFinishDialog, setShowFinishDialog] = useState<boolean>(false);
+	const [showFinishConfirmationDialog, setShowFinishConfirmationDialog] = useState<boolean>(false);
+
+	const [isPaymentRequestSending, setIsPaymentRequestSending] = useState<boolean>(false);
+	const [isPaymentRequestCancelling, setIsPaymentRequestCancelling] = useState<boolean>(false);
+	const [isPaymentSending, setIsPaymentSending] = useState<boolean>(false);
+	const [isPaymentConfirmSending, setIsPaymentConfirmSending] = useState<boolean>(false);
+	const [isProductSentSending, setIsProductSentSending] = useState<boolean>(false);
+	const [isProductConfirmSending, setIsProductConfirmSending] = useState<boolean>(false);
 
 	const [hasSentProduct, setHasSentProduct] = useState<boolean>(false);
 	const [hasReceivedProduct, setHasReceivedProduct] = useState<boolean>(false);
@@ -102,6 +111,8 @@ export default function TransactionRoomScreen() {
 	}
 
 	const sendPaymentRequest = async () => {
+		setIsPaymentRequestSending(true);
+
 		try {
 			const { data, error } = await supabase
 				.from("payments")
@@ -133,6 +144,7 @@ export default function TransactionRoomScreen() {
 					}
 				}).then(() => {
 					setActivePaymentRequestID(data[0].id);
+					setIsPaymentRequestSending(false);
 
 					// commented out for testing
 					// setRequestDetails({
@@ -143,7 +155,7 @@ export default function TransactionRoomScreen() {
 					// 	accountName: "",
 					// });
 
-					actionsModalRef.current?.close();
+					setShowRequestModal(false);
 				});
 			} else {
 				console.log(error);
@@ -154,6 +166,8 @@ export default function TransactionRoomScreen() {
 	}
 
 	const cancelPaymentRequest = async (id: string | undefined) => {
+		setIsPaymentRequestCancelling(true);
+
 		try {
 			if (id) {
 				const { error } = await supabase
@@ -174,6 +188,7 @@ export default function TransactionRoomScreen() {
 						}
 					}).then(() => {
 						setActivePaymentRequestID(undefined);
+						setIsPaymentRequestCancelling(false);
 					})
 
 				} else {
@@ -186,7 +201,12 @@ export default function TransactionRoomScreen() {
 	}
 
 	const sendPayment = async (id: string | undefined) => {
-		if (!id) return;
+		setIsPaymentSending(true);
+
+		if (!id) {
+			setIsPaymentSending(false);
+			return;
+		};
 
 
 		if (receipt) {
@@ -230,7 +250,8 @@ export default function TransactionRoomScreen() {
 								}
 							}).then(() => {
 								setReceipt(undefined);
-								actionsModalRef.current?.close();
+								setIsPaymentSending(false);
+								setShowPaymentModal(false);
 							});
 						} else {
 							console.log("Supabase transaction update error: ", error);
@@ -249,7 +270,12 @@ export default function TransactionRoomScreen() {
 	}
 
 	const confirmPayment = async (id: string | undefined) => {
-		if (!id) return;
+		setIsPaymentConfirmSending(true);
+
+		if (!id) {
+			setIsPaymentConfirmSending(false);
+			return;
+		}
 
 		try {
 			const { data, error } = await supabase
@@ -262,7 +288,6 @@ export default function TransactionRoomScreen() {
 				.select();
 
 			if (!error && data) {
-				console.log(data[0].amount);
 				interactionsChannel.send({
 					type: "broadcast",
 					event: "payment",
@@ -274,7 +299,9 @@ export default function TransactionRoomScreen() {
 							amount: data[0].amount,
 						}
 					}
-				});
+				}).then(() => {
+					setIsPaymentConfirmSending(false);
+				})
 			} else {
 				console.log(error);
 			}
@@ -284,7 +311,12 @@ export default function TransactionRoomScreen() {
 	}
 
 	const denyPayment = async (id: string | undefined) => {
-		if (!id) return
+		setIsPaymentConfirmSending(true);
+
+		if (!id) {
+			setIsPaymentConfirmSending(false);
+			return;
+		}
 
 		try {
 			const { error } = await supabase
@@ -306,7 +338,9 @@ export default function TransactionRoomScreen() {
 							from: userData?.username,
 						}
 					}
-				});
+				}).then(() => {
+					setIsPaymentConfirmSending(false);
+				})
 			} else {
 				console.log(error);
 			}
@@ -316,6 +350,8 @@ export default function TransactionRoomScreen() {
 	}
 
 	const sendProductStatus = async () => {
+		setIsProductSentSending(true);
+
 		try {
 			interactionsChannel.send({
 				type: "broadcast",
@@ -329,6 +365,7 @@ export default function TransactionRoomScreen() {
 				}
 			}).then(() => {
 				setHasSentProduct(true);
+				setIsProductSentSending(false);
 			});
 		} catch (error) {
 			console.log(error);
@@ -336,6 +373,8 @@ export default function TransactionRoomScreen() {
 	}
 
 	const sendProductConfirmation = async () => {
+		setIsProductConfirmSending(true);
+
 		try {
 			interactionsChannel.send({
 				type: "broadcast",
@@ -349,6 +388,7 @@ export default function TransactionRoomScreen() {
 				}
 			}).then(() => {
 				setHasReceivedProduct(true);
+				setIsProductConfirmSending(false);
 			});
 		} catch (error) {
 			console.log(error);
@@ -715,13 +755,6 @@ export default function TransactionRoomScreen() {
 		}
 	}
 
-	const showActionsModal = (route: string) => {
-		setActionsModalRoute(route);
-		setShowActionsMenu(false);
-
-		actionsModalRef.current?.present();
-	}
-
 	useEffect(() => {
 		getRoomData();
 		setInteractions([]);
@@ -815,9 +848,9 @@ export default function TransactionRoomScreen() {
 							switch (inter.type) {
 								case "message":
 									return (
-										<View className="flex flex-row gap-2 items-center justify-start">
+										<View className="flex flex-row space-x-3 items-center justify-start">
 											<Avatar.Text label={getInitials(inter.from)} size={35} />
-											<View className="flex flex-col items-start justify-start">
+											<View className="flex flex-col space-y-1 items-start justify-start">
 												<Text
 													bodyLarge
 													className="w-full font-bold"
@@ -858,9 +891,8 @@ export default function TransactionRoomScreen() {
 														accountName: inter.data.accountName,
 														accountNumber: inter.data.accountNumber,
 													});
-													setActionsModalRoute("SendPayment");
-
-													actionsModalRef.current?.present()
+													
+													setShowPaymentModal(true);
 												}}
 											/>
 										</View>
@@ -909,6 +941,8 @@ export default function TransactionRoomScreen() {
 							<View className="flex flex-row space-x-2 items-center justify-center">
 								<Button
 									className="rounded-lg grow"
+									avoidInnerPadding={true}
+									avoidMinWidth={true}
 									onPress={() => sendProductStatus()}
 								>
 									<View className="flex flex-row space-x-2 items-center">
@@ -955,7 +989,7 @@ export default function TransactionRoomScreen() {
 							</View>
 						</View>
 					)}
-				<View className="flex flex-row space-x-2 items-start justify-center">
+				<View className="flex flex-row w-full space-x-2 items-center">
 					<TextInput
 						className="grow rounded-lg overflow-scroll"
 						label="Message"
@@ -963,90 +997,79 @@ export default function TransactionRoomScreen() {
 						onChangeText={text => setMessage(text)}
 						onSubmitEditing={() => sendMessage(message, userData?.username || "N/A")}
 						multiline
+						dense
 					/>
-					<View className="flex flex-col items-start justify-center">
-						<Button
-							className="rounded-lg mb-2 w-full"
-							onPress={() => sendMessage(message, userData?.username || "N/A")}
-							disabled={!message && isMessageSending}
-						>
-							{!isMessageSending ?
-								<View className="flex flex-row space-x-2 items-center">
-									<MaterialCommunityIcons name="send" size={20} color={"white"} />
-									<Text buttonSmall white>Send</Text>
-								</View>
-								:
-								<View className="flex flex-row space-x-2 items-center">
-									<ActivityIndicator animating={true} size={20} color="gray" />
-									<Text buttonSmall white>Sending</Text>
-								</View>
-							}
-
-						</Button>
-						<Menu
-							visible={showActionsMenu}
-							onDismiss={() => setShowActionsMenu(false)}
-							anchor={
+					<Button
+						className="rounded-full"
+						backgroundColor={Colors.primary700}
+						disabled={!message && isMessageSending}
+						round={true}
+						onPress={() => sendMessage(message, userData?.username || "N/A")}
+					>
+						<MaterialCommunityIcons name="send" size={20} color={"white"} />
+					</Button>
+					<Button
+						className="rounded-full"
+						backgroundColor={Colors.primary700}
+						round={true}
+						onPress={() => setShowActionsMenu(true)}
+					>
+						<MaterialCommunityIcons name="information" size={20} color={"white"} />
+					</Button>
+					<ActionSheet
+						visible={showActionsMenu}
+						title="Select Transaction Action"
+						onDismiss={() => setShowActionsMenu(false)}
+						options={[
+							{
+								label: activePaymentRequestID ? "Cancel Payment Request" : "Send Payment Request", onPress: () => {
+									if (activePaymentRequestID) {
+										cancelPaymentRequest(activePaymentRequestID)
+									} else {
+										setShowActionsMenu(false);
+										setShowRequestModal(true);
+									}
+								}
+							},
+							{ label: "Show Payment Confirmation", onPress: () => { }, disabled: true },
+							{ label: "Show Product Confirmation", onPress: () => { }, disabled: true },
+						]}
+						renderAction={(option, index, onOptionPress) => (
+							<View
+								key={index}
+								className="w-full"
+							>
 								<Button
-									className="rounded-lg w-full"
-									onPress={() => setShowActionsMenu(true)}
+									className="w-full p-4"
+									backgroundColor={Colors.bgDefault}
+									fullWidth={true}
+									disabled={option.disabled}
+									disabledBackgroundColor={Colors.gray100}
+									onPress={() => onOptionPress(index)}
 								>
-									<View className="flex flex-row space-x-2 items-center">
-										<MaterialCommunityIcons name="information" size={20} color={"white"} />
-										<Text buttonSmall white>Actions</Text>
+									<View className="flex flex-row w-full space-x-2 items-center">
+										{index === 0 &&
+											<MaterialCommunityIcons name={activePaymentRequestID ? "cash-remove" : "cash-fast"} size={20} color={Colors.primary700} />
+										}
+										{index === 1 &&
+											<MaterialCommunityIcons name="cash-check" size={20} color={option.disabled ? Colors.gray200 : Colors.primary700} />
+										}
+										{index === 2 &&
+											<MaterialCommunityIcons name="truck-check" size={20} color={option.disabled ? Colors.gray200 : Colors.primary700} />
+										}
+										<Text
+											body
+											className="font-bold"
+											color={option.disabled ? Colors.gray200 : Colors.gray900}
+										>
+											{option.label}
+										</Text>
 									</View>
 								</Button>
-							}>
-							{activePaymentRequestID ? (
-								<Menu.Item
-									onPress={() => cancelPaymentRequest(activePaymentRequestID)}
-									title="Cancel Request"
-									leadingIcon="cash-remove"
-								/>
-							) : (
-								<Menu.Item
-									onPress={() => showActionsModal("RequestPayment")}
-									title="Request Payments"
-									leadingIcon="cash-plus"
-								/>
-							)}
-							<Menu.Item
-								onPress={() => showActionsModal("SendProof")}
-								title="Send Proof"
-								leadingIcon="account-cash"
-							/>
-						</Menu>
-
-					</View>
+							</View>
+						)}
+					/>
 				</View>
-				<BottomSheetModal
-					ref={actionsModalRef}
-					index={0}
-					snapPoints={["60%"]}
-					enablePanDownToClose={true}
-					backdropComponent={renderBackdrop}
-				>
-					<BottomSheetView>
-						{actionsModalRoute === "RequestPayment" && (
-							<RequestPaymentRoute
-								dropdownStyle={{ borderWidth: 0.5, borderRadius: 8, padding: 10, backgroundColor: theme.colors.primaryContainer }}
-								requestDetails={requestDetails}
-								setRequestDetails={setRequestDetails}
-								sendPaymentRequest={sendPaymentRequest}
-							/>
-						)}
-						{actionsModalRoute === "SendPayment" && (
-							<SendPaymentRoute
-								paymentDetails={paymentDetails}
-								receipt={receipt}
-								setReceipt={setReceipt}
-								pickReceipt={pickReceipt}
-								sendPayment={() => sendPayment(paymentDetails.id)}
-							/>
-						)}
-						{actionsModalRoute === "SendProof" && SendProofRoute()}
-					</BottomSheetView>
-				</BottomSheetModal>
 				<BottomSheetModal
 					ref={ratingsModalRef}
 					index={0}
@@ -1135,7 +1158,36 @@ export default function TransactionRoomScreen() {
 						</View>
 					</BottomSheetView>
 				</BottomSheetModal>
-				<Portal>
+				<Dialog
+					visible={showRequestModal}
+					onDismiss={() => setShowRequestModal(false)}
+					panDirection="up"
+					containerStyle={{ backgroundColor: Colors.bgDefault, borderRadius: 8, padding: 4 }}
+				>
+					<RequestPaymentRoute
+						disabled={isPaymentRequestSending}
+						dropdownStyle={{ borderWidth: 0.5, borderRadius: 8, padding: 10, backgroundColor: theme.colors.primaryContainer }}
+						requestDetails={requestDetails}
+						setRequestDetails={setRequestDetails}
+						sendPaymentRequest={sendPaymentRequest}
+					/>
+				</Dialog>
+				<Dialog
+					visible={showPaymentModal}
+					onDismiss={() => setShowPaymentModal(false)}
+					panDirection="up"
+					containerStyle={{ backgroundColor: Colors.bgDefault, borderRadius: 8, padding: 4 }}
+				>
+					<SendPaymentRoute
+						disabled={isPaymentSending}
+						paymentDetails={paymentDetails}
+						receipt={receipt}
+						setReceipt={setReceipt}
+						pickReceipt={pickReceipt}
+						sendPayment={() => sendPayment(paymentDetails.id)}
+					/>
+				</Dialog>
+				{/* <Portal>
 					<Dialog visible={showFinishDialog} onDismiss={() => setShowFinishDialog(false)}>
 						<Dialog.Title>
 							<Text h3 className="font-bold">Warning</Text>
@@ -1184,7 +1236,7 @@ export default function TransactionRoomScreen() {
 							</Button>
 						</Dialog.Actions>
 					</Dialog>
-				</Portal>
+				</Portal> */}
 			</KeyboardAvoidingView>
 		</SafeAreaView >
 	);

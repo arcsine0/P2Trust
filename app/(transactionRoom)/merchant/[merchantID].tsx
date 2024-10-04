@@ -310,8 +310,10 @@ export default function TransactionLobbyScreen() {
                         className="rounded-lg grow"
                         onPress={() => transactModalRef.current?.present()}
                     >
-                        <MaterialCommunityIcons name="cash-fast" size={20} color={"white"} />
-                        <Text buttonSmall white>Transact</Text>
+                        <View className="flex flex-row space-x-2 items-center">
+                            <MaterialCommunityIcons name="cash-fast" size={20} color={"white"} />
+                            <Text buttonSmall white>Transact</Text>
+                        </View>
                     </Button>
                 </View>
                 <BottomSheetModal
