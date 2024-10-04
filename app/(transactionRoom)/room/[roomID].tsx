@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useWindowDimensions, Platform, View, KeyboardAvoidingView, FlatList } from "react-native";
+import { useWindowDimensions, Platform, KeyboardAvoidingView, FlatList } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme, Text, TextInput, Avatar, Chip, Button, Menu, Dialog, Portal, IconButton, Divider } from "react-native-paper";
+import { useTheme, TextInput, Avatar, Chip, Menu, Dialog, Portal, IconButton, Divider, ActivityIndicator } from "react-native-paper";
+
+import { View, Text, Button } from "react-native-ui-lib";
 
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 
-import { FontAwesome6 } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { router, useNavigation, useLocalSearchParams } from "expo-router";
 
@@ -19,7 +21,7 @@ import { decode } from "base64-arraybuffer";
 import { useUserData } from "@/lib/context/UserContext";
 import { useMerchantData } from "@/lib/context/MerchantContext";
 
-import { Interaction, RequestDetails } from "@/lib/helpers/types";
+import { RequestDetails } from "@/lib/helpers/types";
 
 import { EventChip, PaymentRequestCard, PaymentSentCard } from "@/components/chatEvents";
 import { RequestPaymentRoute, SendPaymentRoute } from "@/components/chatBottomSheetRoutes";
@@ -38,6 +40,8 @@ export default function TransactionRoomScreen() {
 
 	const [ratings, setRatings] = useState<"UP" | "DOWN">("UP");
 	const [selectedTags, setSelectedTags] = useState<string[]>([]);
+
+	const [isMessageSending, setIsMessageSending] = useState<boolean>(false);
 
 	const [requestDetails, setRequestDetails] = useState<RequestDetails>({
 		amount: 100,
@@ -64,7 +68,6 @@ export default function TransactionRoomScreen() {
 	const [hasSentProduct, setHasSentProduct] = useState<boolean>(false);
 	const [hasReceivedProduct, setHasReceivedProduct] = useState<boolean>(false);
 
-
 	const [actionsModalRoute, setActionsModalRoute] = useState("RequestPayment");
 	const actionsModalRef = useRef<BottomSheetModal>(null);
 	const ratingsModalRef = useRef<BottomSheetModal>(null);
@@ -80,6 +83,8 @@ export default function TransactionRoomScreen() {
 	const interactionsChannel = supabase.channel(`room_${roomID}`);
 
 	const sendMessage = (message: string, sender: string) => {
+		setIsMessageSending(true);
+
 		interactionsChannel.send({
 			type: "broadcast",
 			event: "message",
@@ -89,8 +94,11 @@ export default function TransactionRoomScreen() {
 					message: message,
 				}
 			}
+		}).then(() => {
+			setMessage("");
+			setIsMessageSending(false);
 		});
-		setMessage("");
+
 	}
 
 	const sendPaymentRequest = async () => {
@@ -727,18 +735,19 @@ export default function TransactionRoomScreen() {
 						:
 						<Avatar.Text label="N/A" size={30} />
 					}
-					<Text variant="titleMedium">{merchantData?.username || "N/A"}</Text>
+					<Text h4>{merchantData?.username || "N/A"}</Text>
 				</View>
 			),
 			headerRight: () => (
 				<View className="flex flex-row space-x-2 items-center">
 					<Button
 						className="rounded-lg"
-						icon="check-all"
-						mode="contained"
 						onPress={() => setShowFinishDialog(true)}
 					>
-						Finish
+						<View className="flex flex-row space-x-2 items-center">
+							<MaterialCommunityIcons name="check-all" size={20} color={"white"} />
+							<Text buttonSmall white>Finish</Text>
+						</View>
 					</Button>
 					<IconButton
 						icon="dots-vertical"
@@ -771,7 +780,7 @@ export default function TransactionRoomScreen() {
 
 	const SendProofRoute = () => (
 		<View>
-			<Text variant="titleLarge">Test</Text>
+			<Text h3>Test</Text>
 		</View>
 	)
 
@@ -810,18 +819,18 @@ export default function TransactionRoomScreen() {
 											<Avatar.Text label={getInitials(inter.from)} size={35} />
 											<View className="flex flex-col items-start justify-start">
 												<Text
-													variant="titleSmall"
+													bodyLarge
 													className="w-full font-bold"
 												>
 													{inter.from}
 												</Text>
 												<Text
-													variant="bodyMedium"
+													body
 													className="w-full text-pretty"
 												>
 													{inter.data.message}
 												</Text>
-												<Text variant="bodySmall" className="text-slate-400">
+												<Text caption className="text-slate-400">
 													{inter.timestamp.toLocaleString()}
 												</Text>
 											</View>
@@ -896,23 +905,25 @@ export default function TransactionRoomScreen() {
 					interactions.some(inter => inter.type === "payment_confirmed" && inter.from === userData?.username) &&
 					!hasSentProduct && (
 						<View className="flex flex-col p-2 items-start justify-center">
-							<Text variant="titleSmall" className="font-semibold">Have you sent the buyer the purchased product?</Text>
+							<Text bodyLarge className="font-semibold">Have you sent the buyer the purchased product?</Text>
 							<View className="flex flex-row space-x-2 items-center justify-center">
 								<Button
 									className="rounded-lg grow"
-									icon={"check"}
-									mode="contained"
 									onPress={() => sendProductStatus()}
 								>
-									Yes
+									<View className="flex flex-row space-x-2 items-center">
+										<MaterialCommunityIcons name="check" size={20} color={"white"} />
+										<Text buttonSmall white>Yes</Text>
+									</View>
 								</Button>
 								<Button
 									className="rounded-lg grow"
-									icon={"close"}
-									mode="contained"
 									onPress={() => setHasSentProduct(false)}
 								>
-									No
+									<View className="flex flex-row space-x-2 items-center">
+										<MaterialCommunityIcons name="close" size={20} color={"white"} />
+										<Text buttonSmall white>No</Text>
+									</View>
 								</Button>
 							</View>
 						</View>
@@ -921,23 +932,25 @@ export default function TransactionRoomScreen() {
 					interactions.some(inter => inter.type === "product_sent" && inter.from === merchantData?.username) &&
 					!hasReceivedProduct && (
 						<View className="flex flex-col p-2 items-start justify-center">
-							<Text variant="titleSmall" className="font-semibold">Have you received the purchased product?</Text>
+							<Text bodyLarge className="font-semibold">Have you received the purchased product?</Text>
 							<View className="flex flex-row space-x-2 items-center justify-center">
 								<Button
 									className="rounded-lg grow"
-									icon={"check"}
-									mode="contained"
 									onPress={() => sendProductConfirmation()}
 								>
-									Yes
+									<View className="flex flex-row space-x-2 items-center">
+										<MaterialCommunityIcons name="check" size={20} color={"white"} />
+										<Text buttonSmall white>Yes</Text>
+									</View>
 								</Button>
 								<Button
 									className="rounded-lg grow"
-									icon={"close"}
-									mode="contained"
 									onPress={() => setHasReceivedProduct(false)}
 								>
-									No
+									<View className="flex flex-row space-x-2 items-center">
+										<MaterialCommunityIcons name="close" size={20} color={"white"} />
+										<Text buttonSmall white>No</Text>
+									</View>
 								</Button>
 							</View>
 						</View>
@@ -954,12 +967,21 @@ export default function TransactionRoomScreen() {
 					<View className="flex flex-col items-start justify-center">
 						<Button
 							className="rounded-lg mb-2 w-full"
-							icon={"send"}
-							mode="contained"
 							onPress={() => sendMessage(message, userData?.username || "N/A")}
-							disabled={!message}
+							disabled={!message && isMessageSending}
 						>
-							Send
+							{!isMessageSending ?
+								<View className="flex flex-row space-x-2 items-center">
+									<MaterialCommunityIcons name="send" size={20} color={"white"} />
+									<Text buttonSmall white>Send</Text>
+								</View>
+								:
+								<View className="flex flex-row space-x-2 items-center">
+									<ActivityIndicator animating={true} size={20} color="gray" />
+									<Text buttonSmall white>Sending</Text>
+								</View>
+							}
+
 						</Button>
 						<Menu
 							visible={showActionsMenu}
@@ -967,11 +989,12 @@ export default function TransactionRoomScreen() {
 							anchor={
 								<Button
 									className="rounded-lg w-full"
-									icon={"information"}
-									mode="contained"
 									onPress={() => setShowActionsMenu(true)}
 								>
-									Actions
+									<View className="flex flex-row space-x-2 items-center">
+										<MaterialCommunityIcons name="information" size={20} color={"white"} />
+										<Text buttonSmall white>Actions</Text>
+									</View>
 								</Button>
 							}>
 							{activePaymentRequestID ? (
@@ -1033,8 +1056,8 @@ export default function TransactionRoomScreen() {
 				>
 					<BottomSheetView>
 						<View className="flex flex-col w-full px-4 space-y-2">
-							<Text variant="titleLarge" className="font-bold">Rate your Experience</Text>
-							<Text variant="bodyMedium">How was your transaction with <Text className="font-bold">{merchantData?.username}</Text></Text>
+							<Text h3>Rate your Experience</Text>
+							<Text body>How was your transaction with <Text className="font-bold">{merchantData?.username}</Text></Text>
 							<Divider />
 							<View className="flex flex-row space-x-4 items-center justify-center">
 								<IconButton
@@ -1062,7 +1085,7 @@ export default function TransactionRoomScreen() {
 									}}
 								/>
 							</View>
-							<Text variant="titleSmall" className="font-bold">Select tags that describe your experience:</Text>
+							<Text bodyLarge className="font-bold">Select tags that describe your experience:</Text>
 							<View className="flex flex-row items-center space-x-1 space-y-1 flex-wrap">
 								{ratings === "UP" ?
 									PositiveTags.map((tag, i) => (
@@ -1101,13 +1124,13 @@ export default function TransactionRoomScreen() {
 							<Divider />
 							<Button
 								className="rounded-lg w-full"
-								icon={"send"}
-								// buttonColor={ratings === "UP" ? "#22c55e" : "ef4444"}
-								mode="contained"
 								onPress={() => submitRatings()}
 								disabled={selectedTags.length !== 0 ? false : true}
 							>
-								Submit Rating
+								<View className="flex flex-row space-x-2 items-center">
+									<MaterialCommunityIcons name="send" size={20} color={"white"} />
+									<Text buttonSmall white>Submit Rating</Text>
+								</View>
 							</Button>
 						</View>
 					</BottomSheetView>
@@ -1115,15 +1138,13 @@ export default function TransactionRoomScreen() {
 				<Portal>
 					<Dialog visible={showFinishDialog} onDismiss={() => setShowFinishDialog(false)}>
 						<Dialog.Title>
-							<Chip style={{ backgroundColor: theme.colors.error }}>
-								<Text style={{ color: theme.colors.background }}>Warning</Text>
-							</Chip>
+							<Text h3 className="font-bold">Warning</Text>
 						</Dialog.Title>
 						<Dialog.Content>
 							{totalTradedAmount && totalTradedAmount > 0 ?
-								<Text variant="bodyMedium">Are you sure you want to finish the transaction? This action cannot be undone.</Text>
+								<Text body>Are you sure you want to finish the transaction? This action cannot be undone.</Text>
 								:
-								<Text variant="bodyMedium">Are you sure you want to cancel the transaction? This action cannot be undone.</Text>
+								<Text body>Are you sure you want to cancel the transaction? This action cannot be undone.</Text>
 							}
 						</Dialog.Content>
 						<Dialog.Actions>
@@ -1133,13 +1154,13 @@ export default function TransactionRoomScreen() {
 					</Dialog>
 					<Dialog visible={showFinishConfirmationDialog} onDismiss={() => setShowFinishConfirmationDialog(false)}>
 						<Dialog.Title>
-							<Text variant="titleLarge" className="font-bold">Notice</Text>
+							<Text h3 className="font-bold">Notice</Text>
 						</Dialog.Title>
 						<Dialog.Content>
 							{totalTradedAmount && totalTradedAmount > 0 ?
-								<Text variant="bodyMedium">{merchantData?.username} has ended the transaction.</Text>
+								<Text body>{merchantData?.username} has ended the transaction.</Text>
 								:
-								<Text variant="bodyMedium">{merchantData?.username} has cancelled the transaction.</Text>
+								<Text body>{merchantData?.username} has cancelled the transaction.</Text>
 							}
 						</Dialog.Content>
 						<Dialog.Actions>

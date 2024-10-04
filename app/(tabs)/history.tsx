@@ -74,7 +74,7 @@ export default function TransactionHistoryScreen() {
 						<Text h2 className="px-4">Transaction History</Text>
 						<View className="flex flex-row px-4 space-x-2 items-center justify-center">
 							<Searchbar
-								placeholder="Search Transactions..."
+								placeholder="Search ID..."
 								onChangeText={setSearchQuery}
 								value={searchQuery}
 								className="rounded-lg grow"
@@ -102,7 +102,7 @@ export default function TransactionHistoryScreen() {
 						</View>
 						<ScrollView className="w-full">
 							<View className="flex flex-col px-4 py-2 space-y-2 w-full">
-								{transactions && transactions.map((trans) => (
+								{transactions && transactions.filter(transaction => searchQuery === '' || transaction.id.includes(searchQuery)).map((trans) => (
 									<Card
 										key={trans.id}
 										style={{ backgroundColor: Colors.bgDefault }}

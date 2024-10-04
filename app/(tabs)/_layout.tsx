@@ -3,7 +3,7 @@ import React from "react";
 import { TouchableOpacity, Animated } from "react-native";
 import { useTheme, Avatar, Icon } from "react-native-paper";
 
-import { View, Text } from "react-native-ui-lib";
+import { View, Text, Colors } from "react-native-ui-lib";
 
 import { CurvedBottomBarExpo } from "react-native-curved-bottom-bar";
 
@@ -43,7 +43,7 @@ export default function TabLayout() {
 			<Octicons
 				name={icon}
 				size={25}
-				color={routeName === selectedTab ? theme.colors.primary : "gray"}
+				color={routeName === selectedTab ? Colors.primary700 : Colors.gray400 }
 			/>
 		);
 	}
@@ -59,7 +59,7 @@ export default function TabLayout() {
 					bodySmall
 					className="mt-1"
 					style={{
-						color: routeName === selectedTab ? theme.colors.primary : "gray",
+						color: routeName === selectedTab ? Colors.primary700 : Colors.gray400,
 					}}
 				>
 					{routeName}
@@ -73,9 +73,11 @@ export default function TabLayout() {
 			type="UP"
 			height={70}
 			circleWidth={50}
-			bgColor="white"
+			bgColor={Colors.bgDefault}
+			borderWidth={2}
+			borderColor={Colors.gray200}
 			initialRouteName="Home"
-			renderCircle={({ routeName, selectedTab, navigate }) => (
+			renderCircle={() => (
 				<Animated.View style={{
 					width: 60,
 					height: 60,
@@ -84,7 +86,7 @@ export default function TabLayout() {
 					justifyContent: "center",
 					backgroundColor: "white",
 					borderWidth: 2,
-					borderColor: theme.colors.primary,
+					borderColor: Colors.primary700,
 					padding: 10,
 					bottom: 20,
 				}}>
@@ -101,7 +103,7 @@ export default function TabLayout() {
 						<Icon
 							source="qrcode-scan"
 							size={25}
-							color={theme.colors.primary}
+							color={Colors.primary700}
 						/>
 					</TouchableOpacity>
 				</Animated.View>

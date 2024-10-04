@@ -3,7 +3,7 @@ import { ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme, Avatar, IconButton, Icon } from "react-native-paper";
 
-import { Colors, View, Text, Card, Chip } from "react-native-ui-lib";
+import { Colors, View, Text, Card, Chip, Fader } from "react-native-ui-lib";
 
 import { useIsFocused } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -93,6 +93,7 @@ export default function HomeScreen() {
 
 	return (
 		<SafeAreaView className="flex flex-col w-screen h-screen pb-2 items-start justify-start">
+			<Fader visible={true} position="BOTTOM" />
 			<Text h2 className="px-4 mb-2">Live Feed</Text>
 			<ScrollView className="w-full">
 				<View className="flex flex-col px-4 space-y-4">
