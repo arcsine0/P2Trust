@@ -12,11 +12,19 @@ export default function TransactionLayout() {
             <Stack screenOptions={{ headerShown: true }}>
                 <Stack.Screen
                     name="index"
-                    options={{ title: "Start a Transaction" }}
+                    options={{
+                        headerBackVisible: true,
+                        headerTitle: "",
+                        
+                    }}
                 />
                 <Stack.Screen
                     name="scan"
-                    options={{ title: "Scan QR" }}
+                    options={{
+                        headerBackVisible: true,
+                        headerTitle: "Scan QR",
+                        
+                    }}
                 />
                 <Stack.Screen
                     name="room/[roomID]"

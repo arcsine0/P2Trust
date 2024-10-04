@@ -1,17 +1,15 @@
-import { useNavigation } from "expo-router";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useWindowDimensions, Platform, View, KeyboardAvoidingView, FlatList } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme, Text, TextInput, Avatar, Chip, Card, Button, Menu, Dialog, Portal, IconButton, TouchableRipple, Divider } from "react-native-paper";
-import { Dropdown } from "react-native-element-dropdown";
+import { useTheme, Text, TextInput, Avatar, Chip, Button, Menu, Dialog, Portal, IconButton, Divider } from "react-native-paper";
 
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 
 import { FontAwesome6 } from "@expo/vector-icons";
 
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useNavigation, useLocalSearchParams } from "expo-router";
 
 import { BottomSheetModal, BottomSheetView, BottomSheetBackdrop, BottomSheetBackdropProps } from "@gorhom/bottom-sheet";
 
@@ -733,14 +731,20 @@ export default function TransactionRoomScreen() {
 				</View>
 			),
 			headerRight: () => (
-				<Button
-					className="rounded-lg"
-					icon="check-all"
-					mode="contained"
-					onPress={() => setShowFinishDialog(true)}
-				>
-					Finish
-				</Button>
+				<View className="flex flex-row space-x-2 items-center">
+					<Button
+						className="rounded-lg"
+						icon="check-all"
+						mode="contained"
+						onPress={() => setShowFinishDialog(true)}
+					>
+						Finish
+					</Button>
+					<IconButton
+						icon="dots-vertical"
+						onPress={() => console.log("Dots Pressed")}
+					/>
+				</View>
 			)
 		})
 

@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef, useContext } from "react";
-import { View, ScrollView } from "react-native";
-import { useTheme, Text, Avatar, Chip, Icon, IconButton, Card, Button, TouchableRipple, ActivityIndicator } from "react-native-paper";
+import { ScrollView } from "react-native";
+import { useTheme, Avatar, Icon, IconButton, TouchableRipple, ActivityIndicator } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { router, useFocusEffect } from "expo-router";
+import { Colors, View, Text, Card, Button, Chip } from "react-native-ui-lib";
 
-import { BottomSheetModal, BottomSheetView, BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import { router, useNavigation } from "expo-router";
+
+import { BottomSheetModal, BottomSheetView } from "@gorhom/bottom-sheet";
 
 import { supabase } from "@/supabase/config";
 
@@ -14,6 +16,8 @@ import { useMerchantData } from "@/lib/context/MerchantContext";
 
 import { Request } from "@/lib/helpers/types";
 import { getInitials } from "@/lib/helpers/functions";
+
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import QRCode from "react-qr-code";
 
@@ -26,6 +30,8 @@ export default function TransactionHomeScreen() {
     const [joinRoomLoading, setJoinRoomLoading] = useState<boolean>(false);
 
     const theme = useTheme();
+    const navigation = useNavigation();
+
     const requestsModalRef = useRef<BottomSheetModal>(null);
 
     const requestsChannel = supabase.channel(`requests_channel_${userData?.id}`);
@@ -139,51 +145,68 @@ export default function TransactionHomeScreen() {
             })
             .subscribe();
 
+        navigation.setOptions({
+            headerRight: () => (
+                <View className="flex flex-row">
+                    <IconButton
+                        icon="dots-vertical"
+                        onPress={() => console.log("Dots Pressed")}
+                    />
+                </View>
+            )
+        });
+
         return () => {
             // requestChannel.unsubscribe();
         };
     }, []);
 
     return (
-        <SafeAreaView className="flex flex-col w-screen h-screen gap-2 px-4 items-start justify-start">
+        <SafeAreaView className="flex flex-col w-screen h-screen space-y-2 px-4 items-start justify-start">
             {userData ?
-                <View className="flex flex-col w-full h-full items-center justify-start">
-                    <Card className="w-full mb-2" style={{ backgroundColor: theme.colors.background }}>
-                        <Card.Content className="flex flex-row w-full justify-between items-center">
-                            <View className="flex flex-row items-center gap-5">
-                                <Avatar.Text label={getInitials(userData.username)} size={35} />
-                                <View className="flex">
-                                    <Text variant="titleLarge" className="font-bold">{userData.username}</Text>
-                                    <Text variant="titleSmall" className="font-semibold">{userData.id}</Text>
-                                </View>
+                <View className="flex flex-col w-full h-full space-y-2 items-center justify-start">
+                    <Card
+                        style={{ backgroundColor: Colors.bgDefault }}
+                        className="flex flex-col w-full p-4 space-y-2 justify-center items-start"
+                        elevation={10}
+                    >
+                        <View className="flex flex-row items-center gap-5">
+                            <Avatar.Text label={getInitials(userData.username)} size={50} />
+                            <View className="flex">
+                                <Text h4>{userData.username}</Text>
+                                <Text bodySmall className="text-ellipsis">ID: 123123</Text>
                             </View>
-                        </Card.Content>
+                        </View>
                     </Card>
-                    <Card className="w-full mb-2" style={{ backgroundColor: theme.colors.background }}>
-                        <Card.Content className="flex flex-col gap-3">
-                            <View className="flex justify-center items-center border-2 rounded-lg p-5">
-                                <QRCode
-                                    size={256}
-                                    className="h-auto w-full"
-                                    value={JSON.stringify({
-                                        auth: "P2Trust",
-                                        id: userData.id
-                                    })}
-                                />
+                    <Card
+                        style={{ backgroundColor: Colors.bgDefault }}
+                        className="flex flex-col p-4 space-y-2"
+                        elevation={10}
+                    >
+                        <View className="flex justify-center items-center border-2 rounded-lg p-5">
+                            <QRCode
+                                size={256}
+                                className="h-auto w-full"
+                                value={JSON.stringify({
+                                    auth: "P2Trust",
+                                    id: userData.id
+                                })}
+                            />
+                        </View>
+                        <Button
+                            className="rounded-lg"
+                            onPress={() => router.navigate("/(transactionRoom)/scan")}
+                        >
+                            <View className="flex flex-row space-x-2 items-center">
+                                <MaterialCommunityIcons name="qrcode-scan" size={20} color={"white"} />
+                                <Text buttonSmall white>Scan QR Code</Text>
                             </View>
-                            <Button
-                                icon={"qrcode-scan"}
-                                mode="contained"
-                                onPress={() => router.navigate("/(transactionRoom)/scan")}
-                            >
-                                Scan QR Code
-                            </Button>
-                        </Card.Content>
+                        </Button>
                     </Card>
                     <View className="w-full flex flex-row gap-1 items-center justify-center">
                         <TouchableRipple
                             className="flex p-4 items-center justify-center rounded-lg"
-                            style={{ backgroundColor: showBadge ? theme.colors.primary + "4D" : theme.colors.primary }}
+                            style={{ backgroundColor: Colors.primary700 }}
                             onPress={() => {
                                 requestsModalRef.current?.present();
                                 setShowBadge(false);
@@ -199,22 +222,22 @@ export default function TransactionHomeScreen() {
                         </TouchableRipple>
                         <TouchableRipple
                             className="flex flex-col p-2 items-center justify-center rounded-lg shadows-md grow"
-                            style={{ backgroundColor: theme.colors.primary, opacity: queue && queue.length > 0 ? 1 : 0.75 }}
+                            style={{ backgroundColor: Colors.primary700, opacity: queue && queue.length > 0 ? 1 : 0.75 }}
                             disabled={!joinRoomLoading && queue && queue.length > 0 ? false : true}
                             onPress={() => createRoom()}
                         >
                             <View className="flex flex-row w-full items-center justify-stretch">
                                 {!joinRoomLoading ?
-                                    <View className="flex flex-col gap-0 items-start justify-center">
+                                    <View className="flex flex-col items-start justify-center">
                                         <Text
-                                            variant="bodySmall"
-                                            style={{ color: theme.colors.background, padding: 0 }}
+                                            caption
+                                            style={{ color: Colors.bgDefault }}
                                         >
                                             Next Client
                                         </Text>
                                         <Text
-                                            variant="titleMedium"
-                                            style={{ color: theme.colors.background, padding: 0 }}
+                                            bodyLarge
+                                            style={{ color: Colors.bgDefault }}
                                         >
                                             {queue && queue.length > 0 ?
                                                 queue.sort((a, b) => b.created_at.getTime() - a.created_at.getTime())[0].sender_name
@@ -226,7 +249,7 @@ export default function TransactionHomeScreen() {
                                     :
                                     <View className="flex flex-row space-x-2 items-center">
                                         <ActivityIndicator animating={true} color="gray" />
-                                        <Text variant="bodyMedium" className="font-bold text-white">Creating the room...</Text>
+                                        <Text body className="font-bold text-white">Creating the room...</Text>
                                     </View>
                                 }
 
@@ -240,38 +263,43 @@ export default function TransactionHomeScreen() {
                         >
                             <BottomSheetView>
                                 <View className="flex flex-col w-full p-2 gap-2 items-start justify-start">
-                                    <Text variant="titleLarge" className="font-bold">Invite Requests</Text>
+                                    <Text h3>Invite Requests</Text>
                                     {requests && requests.length > 0 ?
                                         <ScrollView>
                                             {requests.sort((a, b) => b.created_at.getTime() - a.created_at.getTime()).map((req, i) => (
-                                                <Card key={i} className="rounded-lg">
-                                                    <Card.Content className="flex flex-row w-full justify-between items-center">
-                                                        <View className="flex flex-row items-center gap-5">
-                                                            <Avatar.Text label={getInitials(req.sender_name)} size={35} />
-                                                            <Text variant="titleLarge" className="font-bold">{req.sender_name}</Text>
-                                                        </View>
-                                                        <View className="flex flex-row items-center justify-center">
-                                                            <IconButton
-                                                                icon="check"
-                                                                mode="contained"
-                                                                iconColor={theme.colors.primary}
-                                                                size={20}
-                                                                onPress={() => acceptRequest(req.sender_id)}
-                                                            />
-                                                            <IconButton
-                                                                icon="trash-can"
-                                                                mode="contained"
-                                                                iconColor={theme.colors.primary}
-                                                                size={20}
-                                                                onPress={() => rejectRequest(req.sender_id)}
-                                                            />
-                                                        </View>
-                                                    </Card.Content>
+                                                <Card key={i}
+                                                    style={{ backgroundColor: Colors.bgDefault }}
+                                                    className="flex flex-row w-full p-4 justify-between items-center"
+                                                >
+                                                    <View className="flex flex-row items-center gap-5">
+                                                        <Avatar.Text label={getInitials(req.sender_name)} size={35} />
+                                                        <Text bodyLarge className="font-bold">{req.sender_name}</Text>
+                                                    </View>
+                                                    <View className="flex flex-row items-center justify-center">
+                                                        <IconButton
+                                                            icon="check"
+                                                            mode="contained"
+                                                            iconColor={theme.colors.primary}
+                                                            size={20}
+                                                            onPress={() => acceptRequest(req.sender_id)}
+                                                        />
+                                                        <IconButton
+                                                            icon="trash-can"
+                                                            mode="contained"
+                                                            iconColor={theme.colors.primary}
+                                                            size={20}
+                                                            onPress={() => rejectRequest(req.sender_id)}
+                                                        />
+                                                    </View>
                                                 </Card>
                                             ))}
                                         </ScrollView>
                                         :
-                                        <Chip>No Invite Requests</Chip>
+                                        <Chip
+                                            label={"No Invite Requests"}
+                                            borderRadius={8}
+                                            backgroundColor={Colors.primary200}
+                                        />
                                     }
                                 </View>
                             </BottomSheetView>

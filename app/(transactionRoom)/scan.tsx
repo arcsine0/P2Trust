@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
-import { View, ScrollView, TouchableHighlight } from "react-native";
+import { ScrollView, TouchableHighlight } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme, Button, IconButton, Dialog, Portal, Text } from "react-native-paper";
+import { useTheme, IconButton, Dialog, Portal } from "react-native-paper";
+
+import { Colors, View, Text, Button } from "react-native-ui-lib";
 
 import { router } from "expo-router";
 import { CameraView, CameraType, useCameraPermissions, BarcodeScanningResult, scanFromURLAsync } from "expo-camera";
@@ -10,6 +12,8 @@ import * as ImagePicker from "expo-image-picker";
 import { supabase } from "@/supabase/config";
 
 import { useMerchantData } from "@/lib/context/MerchantContext";
+
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 export default function TransactionScanScreen() {
 	const [facing, setFacing] = useState<CameraType>("back");
@@ -94,7 +98,7 @@ export default function TransactionScanScreen() {
 			<Dialog visible={visible} onDismiss={() => setVisible(false)}>
 				<Dialog.Title>Alert</Dialog.Title>
 				<Dialog.Content>
-					<Text variant="bodyMedium">P2Trust needs permission to use camera</Text>
+					<Text body>P2Trust needs permission to use camera</Text>
 				</Dialog.Content>
 				<Dialog.Actions>
 					<Button onPress={requestPermission}>Allow</Button>
@@ -115,17 +119,18 @@ export default function TransactionScanScreen() {
 					<IconButton
 						icon="camera-flip"
 						mode="contained"
-						iconColor={theme.colors.primary}
+						iconColor={Colors.primary700}
 						size={20}
 						onPress={() => toggleCameraFacing()}
 					/>
 					<Button
 						className="rounded-lg"
-						icon={"file-upload"}
-						mode="contained"
 						onPress={() => pickImage()}
 					>
-						Upload Image
+						<View className="flex flex-row space-x-2 items-center">
+							<MaterialCommunityIcons name="file-upload" size={20} color={"white"} />
+							<Text buttonSmall white>Upload QR</Text>
+						</View>
 					</Button>
 				</View>
 			</CameraView>

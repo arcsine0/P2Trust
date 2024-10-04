@@ -1,9 +1,10 @@
 import React from "react";
 
-import { View, TouchableOpacity, StyleSheet, Animated } from "react-native";
-import { useTheme, Text, Avatar, Icon } from "react-native-paper";
+import { TouchableOpacity, Animated } from "react-native";
+import { useTheme, Avatar, Icon } from "react-native-paper";
 
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { View, Text } from "react-native-ui-lib";
+
 import { CurvedBottomBarExpo } from "react-native-curved-bottom-bar";
 
 import { router } from "expo-router";
@@ -12,7 +13,6 @@ import { Octicons } from "@expo/vector-icons";
 
 import HomeScreen from "./index";
 import HistoryScreen from "./history";
-import SettingsScreen from "./settings";
 
 import { useUserData } from "@/lib/context/UserContext";
 import { getInitials } from "@/lib/helpers/functions";
@@ -56,7 +56,7 @@ export default function TabLayout() {
 			>
 				{_renderIcon(routeName, selectedTab)}
 				<Text
-					variant="bodySmall"
+					bodySmall
 					className="mt-1"
 					style={{
 						color: routeName === selectedTab ? theme.colors.primary : "gray",
@@ -123,8 +123,8 @@ export default function TabLayout() {
 								<Avatar.Text label="N/A" size={30} />
 							}
 							<View className="flex flex-col items-start justify-center">
-								<Text variant="titleMedium" className="font-bold">{userData?.username || "N/A"}</Text>
-								<Text variant="bodySmall">ID: 123123</Text>
+								<Text bodyLarge className="font-bold">{userData?.username || "N/A"}</Text>
+								<Text bodySmall>ID: 123123</Text>
 							</View>
 						</View>
 					),
@@ -145,8 +145,8 @@ export default function TabLayout() {
 								<Avatar.Text label="N/A" size={30} />
 							}
 							<View className="flex flex-col items-start justify-center">
-								<Text variant="titleMedium" className="font-bold">{userData?.username || "N/A"}</Text>
-								<Text variant="bodySmall">ID: 123123</Text>
+								<Text bodyLarge className="font-bold">{userData?.username || "N/A"}</Text>
+								<Text bodySmall>ID: 123123</Text>
 							</View>
 						</View>
 					),

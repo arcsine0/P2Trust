@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Platform, View, KeyboardAvoidingView, FlatList, ScrollView } from "react-native";
+import { Platform, KeyboardAvoidingView, FlatList, ScrollView } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme, Text, Searchbar, Card, Chip, Icon, IconButton } from "react-native-paper";
+import { useTheme, Searchbar, Icon, IconButton } from "react-native-paper";
 import { Dropdown } from "react-native-element-dropdown";
+
+import { Colors, View, Text, Card, Chip } from "react-native-ui-lib"
 
 import { router, useNavigation } from "expo-router";
 
@@ -69,7 +71,7 @@ export default function TransactionHistoryScreen() {
 			>
 				{userData ?
 					<View className="flex flex-col space-y-2 w-full h-full">
-						<Text variant="headlineSmall" className="font-bold px-4">Transaction History</Text>
+						<Text h2 className="px-4">Transaction History</Text>
 						<View className="flex flex-row px-4 space-x-2 items-center justify-center">
 							<Searchbar
 								placeholder="Search Transactions..."
@@ -103,67 +105,64 @@ export default function TransactionHistoryScreen() {
 								{transactions && transactions.map((trans) => (
 									<Card
 										key={trans.id}
-										className="w-full"
-										style={{ backgroundColor: theme.colors.background }}
+										style={{ backgroundColor: Colors.bgDefault }}
 										onPress={() => router.navigate(`/transaction/${trans.id}`)}
+										className="flex flex-col p-4 space-y-2"
+										elevation={10}
 									>
-										<Card.Content className="flex flex-col space-y-2">
-											<View className="flex flex-row w-full justify-between items-center">
-												<View className="flex flex-row space-x-2 items-center">
-													<FontAwesome6
-														name={"dollar-sign"}
-														size={25}
-														color={"#94a3b8"}
-													/>
-													<Text variant="titleLarge" className="font-bold">{trans.total_amount}</Text>
-												</View>
-												{trans.status === "completed" ?
-													<Chip
-														icon="check"
-														className="bg-green-200 text-green-200"
-														compact={true}
-													>
-														<Text variant="bodySmall">{trans.status}</Text>
-													</Chip>
-													:
-													<Chip
-														icon="close"
-														className="bg-red-200 text-red-200"
-														compact={true}
-													>
-														<Text variant="bodySmall">{trans.status}</Text>
-													</Chip>
-												}
+										<View className="flex flex-row w-full justify-between items-center">
+											<View className="flex flex-row space-x-2 items-center">
+												<FontAwesome6
+													name={"dollar-sign"}
+													size={25}
+													color={"#94a3b8"}
+												/>
+												<Text h4>{trans.total_amount}</Text>
 											</View>
-											<View className="flex flex-row items-center justify-between">
-												<View className="flex flex-col items-start justify-center">
-													<View className="flex flex-row space-x-1 items-center">
-														<Icon source="store" size={20} color={theme.colors.primary} />
-														{trans.merchantID === userData.id ?
-															<Text variant="titleSmall" className="font-bold">You (Merchant)</Text>
-															:
-															<Text variant="titleSmall" className="font-bold">{trans.merchantName}</Text>
-														}
-													</View>
+											{trans.status === "completed" ?
+												<Chip
+													label={trans.status}
+													borderRadius={8}
+													backgroundColor={Colors.success200}
+													containerStyle={{ borderWidth: 0 }}
+												/>
+												:
+												<Chip
+													label={trans.status}
+													borderRadius={8}
+													backgroundColor={Colors.error200}
+													containerStyle={{ borderWidth: 0 }}
+												/>
+											}
+										</View>
+										<View className="flex flex-row items-center justify-between">
+											<View className="flex flex-col items-start justify-center">
+												<View className="flex flex-row space-x-1 items-center">
+													<Icon source="store" size={20} color={theme.colors.primary} />
+													{trans.merchantID === userData.id ?
+														<Text body className="font-bold">You (Merchant)</Text>
+														:
+														<Text body className="font-bold">{trans.merchantName}</Text>
+													}
+												</View>
 
-													<View className="flex flex-row space-x-1 items-center">
-														<Icon source="account" size={20} color={theme.colors.primary} />
-														{trans.clientID === userData.id ?
-															<Text variant="bodyMedium" className="font-semibold text-slate-400">You (Client)</Text>
-															:
-															<Text variant="bodyMedium" className="font-semibold text-slate-400">{trans.clientName}</Text>
-														}
-													</View>
-												</View>
-												<View className="flex flex-col items-end justify-start">
-													<Text variant="bodyMedium" className="font-semibold text-slate-400">{new Date(trans.created_at).toLocaleDateString()}</Text>
-													<Text variant="bodyMedium" className="font-semibold text-slate-400">{new Date(trans.created_at).toLocaleTimeString()}</Text>
+												<View className="flex flex-row space-x-1 items-center">
+													<Icon source="account" size={20} color={theme.colors.primary} />
+													{trans.clientID === userData.id ?
+														<Text bodySmall gray400 className="font-semibold">You (Client)</Text>
+														:
+														<Text bodySmall gray400 className="font-semibold">{trans.clientName}</Text>
+													}
 												</View>
 											</View>
-											<View className="flex flex-row items-center justify-end">
-												<Icon source="chevron-right" size={20} color={"#94a3b8"} />
+											<View className="flex flex-col items-end justify-start">
+												<Text bodySmall gray400 className="font-semibold">{new Date(trans.created_at).toLocaleDateString()}</Text>
+												<Text bodySmall gray400 className="font-semibold">{new Date(trans.created_at).toLocaleTimeString()}</Text>
 											</View>
-										</Card.Content>
+										</View>
+										<View className="flex flex-row items-center justify-end">
+											<Icon source="chevron-right" size={20} color={"#94a3b8"} />
+										</View>
 									</Card>
 								))}
 							</View>

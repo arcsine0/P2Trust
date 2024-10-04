@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from "react";
-import { View, FlatList, ScrollView, Platform, KeyboardAvoidingView } from "react-native";
+import { FlatList, ScrollView, Platform, KeyboardAvoidingView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme, Text, Avatar, Chip, IconButton, Card, Button, Snackbar, DataTable } from "react-native-paper";
+import { useTheme, Avatar, Snackbar, ActivityIndicator, IconButton } from "react-native-paper";
+
+import { Colors, View, Text, Card, Button } from "react-native-ui-lib";
 
 import { BottomSheetModal, BottomSheetView } from "@gorhom/bottom-sheet";
 
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useNavigation, useLocalSearchParams } from "expo-router";
 
 import { supabase } from "@/supabase/config";
 
@@ -16,7 +18,7 @@ import { TransactionListItem } from "@/lib/helpers/types";
 
 import RatingsBar from "@/components/analytics/RatingBar";
 
-import { Ionicons, Octicons } from "@expo/vector-icons";
+import { MaterialCommunityIcons, Octicons } from "@expo/vector-icons";
 
 export default function TransactionLobbyScreen() {
     const [roomID, setRoomID] = useState("");
@@ -44,6 +46,7 @@ export default function TransactionLobbyScreen() {
     const transactModalRef = useRef<BottomSheetModal>(null);
 
     const theme = useTheme();
+    const navigation = useNavigation();
 
     const requestsChannel = supabase.channel(`requests_channel_${merchantID}`);
 
@@ -109,6 +112,8 @@ export default function TransactionLobbyScreen() {
     }
 
     const joinRoom = async () => {
+        setJoinDisabled(true);
+
         if (userData) {
             const { error } = await supabase
                 .from("requests")
@@ -116,6 +121,8 @@ export default function TransactionLobbyScreen() {
                 .eq("sender_id", userData.id);
 
             if (!error) {
+                setJoinDisabled(false);
+
                 transactModalRef.current?.close();
 
                 setRole("client");
@@ -161,7 +168,7 @@ export default function TransactionLobbyScreen() {
                 .from("ratings")
                 .select("*")
                 .eq(`merchant_id`, merchantID);
-            
+
             if (!error && data) {
                 setRatings({
                     positive: data.filter((rating) => rating.rating === "UP").length,
@@ -178,6 +185,17 @@ export default function TransactionLobbyScreen() {
         loadMerchantData();
         loadMerchantTransactions();
         getMerchantRatings();
+
+        navigation.setOptions({
+            headerRight: () => (
+                <View className="flex flex-row">
+                    <IconButton
+                        icon="dots-vertical"
+                        onPress={() => console.log("Dots Pressed")}
+                    />
+                </View>
+            )
+        });
     }, []);
 
     return (
@@ -190,83 +208,89 @@ export default function TransactionLobbyScreen() {
                 <ScrollView className="w-full">
                     {merchantData ?
                         <View className="flex flex-col px-4 py-1 w-full h-full space-y-2 items-center justify-start">
-                            <Card className="w-full" style={{ backgroundColor: theme.colors.background }}>
-                                <Card.Content className="flex flex-col space-y-2 w-full justify-center items-start">
-                                    <View className="flex flex-row items-center gap-5">
-                                        <Avatar.Text label={getInitials(merchantData.username)} size={50} />
-                                        <View className="flex">
-                                            <Text variant="titleLarge" className="font-bold">{merchantData.username}</Text>
-                                            <Text variant="bodyMedium" className="text-ellipsis">Merchant ID: 123123</Text>
-                                            <View className="flex flex-row space-x-2 items-center justify-start">
-                                                <Octicons name="clock" size={10} />
-                                                <Text variant="bodySmall">Online 5 mins ago</Text>
+                            <Card
+                                style={{ backgroundColor: Colors.bgDefault }}
+                                className="flex flex-col w-full p-4 space-y-2 justify-center items-start"
+                                elevation={10}
+                            >
+                                <View className="flex flex-row items-center gap-5">
+                                    <Avatar.Text label={getInitials(merchantData.username)} size={50} />
+                                    <View className="flex">
+                                        <Text h4>{merchantData.username}</Text>
+                                        <Text bodySmall className="text-ellipsis">Merchant ID: 123123</Text>
+                                        <View className="flex flex-row space-x-2 items-center justify-start">
+                                            <Octicons name="clock" size={10} />
+                                            <Text bodySmall>Online 5 mins ago</Text>
+                                        </View>
+                                    </View>
+                                </View>
+                            </Card>
+                            <Card
+                                style={{ backgroundColor: Colors.bgDefault }}
+                                className="flex flex-col w-full p-4 space-y-2"
+                                elevation={10}
+                            >
+                                <Text bodyLarge className="font-bold">Client Ratings</Text>
+                                <View className="flex items-center justify-center">
+                                    {ratings && (
+                                        <RatingsBar
+                                            positive={ratings.positive}
+                                            negative={ratings.negative}
+                                            total={ratings.total}
+                                            height={20}
+                                        />
+                                    )}
+                                </View>
+                            </Card>
+                            <Card
+                                style={{ backgroundColor: Colors.bgDefault }}
+                                className="flex flex-col w-full p-4 space-y-2 justify-center items-start"
+                                elevation={10}
+                            >
+                                <Text bodyLarge className="font-bold">Merchant Analytics</Text>
+                                <View className="flex flex-row items-center justify-center">
+                                    <View className="flex flex-col w-1/2 items-start justify-center">
+                                        <Text bodySmall>Transactions</Text>
+                                        <Text bodyLarge className="font-bold">{transactionList ? transactionList.length : 0}</Text>
+                                    </View>
+                                    <View className="flex flex-col w-1/2 items-start justify-center">
+                                        <Text bodySmall>Avg. Amount Vol.</Text>
+                                        <Text bodyLarge className="font-bold">{transactionList ? transactionList.filter(transaction => transaction.status === "completed").reduce((a, b) => a + b.total_amount, 0) / transactionList.length : 0}</Text>
+                                    </View>
+                                </View>
+                            </Card>
+                            <Card
+                                style={{ backgroundColor: Colors.bgDefault }}
+                                className="flex flex-col w-full p-4 space-y-1 justify-center items-start"
+                                elevation={10}
+                            >
+                                <Text bodyLarge className="font-bold">Transaction History</Text>
+                                {transactionList ? transactionList.map((transaction) => (
+                                    <Card
+                                        key={transaction.id}
+                                        style={{ backgroundColor: Colors.bgDefault }}
+                                        onPress={() => {
+                                            console.log("routing to: ", transaction.id)
+                                            router.navigate(`/transaction/${transaction.id}`);
+                                        }}
+                                        className="flex flex-row p-4 w-full items-center justify-between rounded-lg"
+                                        elevation={10}
+                                    >
+                                        <View className="flex flex-row space-x-2 items-center justify-start">
+                                            <Avatar.Text label={getInitials(transaction.clientName)} size={25} />
+                                            <View className="flex flex-col items-start justify-center">
+                                                <Text body className="font-bold">{transaction.clientName}</Text>
+                                                <Text caption style={{ color: Colors.gray500 }}>{new Date(transaction.created_at).toLocaleDateString()}</Text>
                                             </View>
                                         </View>
-                                    </View>
-
-                                </Card.Content>
-                            </Card>
-                            <Card className="w-full" style={{ backgroundColor: theme.colors.background }}>
-                                <Card.Content className="flex flex-col space-y-2 w-full">
-                                    <Text variant="titleMedium" className="font-bold">Client Ratings</Text>
-                                    <View className="flex items-center justify-center">
-                                        {ratings && (
-                                            <RatingsBar
-                                                positive={ratings.positive}
-                                                negative={ratings.negative}
-                                                total={ratings.total}
-                                                height={20}
-                                            />
-                                        )}
-                                    </View>
-                                </Card.Content>
-                            </Card>
-                            <Card className="w-full" style={{ backgroundColor: theme.colors.background }}>
-                                <Card.Content className="flex flex-col space-y-2 w-full justify-center items-start">
-                                    <Text variant="titleMedium" className="font-bold">Merchant Analytics</Text>
-                                    <View className="flex flex-row items-center justify-center">
-                                        <View className="flex flex-col w-1/2 items-start justify-center">
-                                            <Text variant="bodyMedium">Transactions</Text>
-                                            <Text variant="titleSmall" className="font-bold">{transactionList ? transactionList.length : 0}</Text>
+                                        <View className="flex flex-row items-center justify-end">
+                                            <View className="flex flex-col items-end justify-center">
+                                                <Text caption>Amount</Text>
+                                                <Text body className="font-bold">{transaction.total_amount}</Text>
+                                            </View>
                                         </View>
-                                        <View className="flex flex-col w-1/2 items-start justify-center">
-                                            <Text variant="bodyMedium">Avg. Amount Vol.</Text>
-                                            <Text variant="titleSmall" className="font-bold">{transactionList ? transactionList.filter(transaction => transaction.status === "completed").reduce((a, b) => a + b.total_amount, 0) / transactionList.length : 0}</Text>
-                                        </View>
-                                    </View>
-                                </Card.Content>
-                            </Card>
-                            <Card className="w-full" style={{ backgroundColor: theme.colors.background }}>
-                                <Card.Content className="flex flex-col space-y-1 w-full justify-center items-start">
-                                    <Text variant="titleMedium" className="font-bold">Transaction History</Text>
-                                    {transactionList ? transactionList.map((transaction) => (
-                                        <Card
-                                            key={transaction.id}
-                                            className="w-full"
-                                            style={{ backgroundColor: theme.colors.background }}
-                                            onPress={() => {
-                                                console.log("routing to: ", transaction.id)
-                                                router.navigate(`/transaction/${transaction.id}`);
-                                            }}
-                                        >
-                                            <Card.Content className="flex flex-row p-2 w-full items-center justify-between rounded-lg">
-                                                <View className="flex flex-row space-x-2 items-center justify-start">
-                                                    <Avatar.Text label={getInitials(transaction.clientName)} size={25} />
-                                                    <View className="flex flex-col items-start justify-center">
-                                                        <Text variant="bodyLarge" className="font-bold">{transaction.clientName}</Text>
-                                                        <Text variant="bodySmall">{new Date(transaction.created_at).toLocaleDateString()}</Text>
-                                                    </View>
-                                                </View>
-                                                <View className="flex flex-row items-center justify-end">
-                                                    <View className="flex flex-col items-end justify-center">
-                                                        <Text variant="bodySmall">Amount</Text>
-                                                        <Text variant="bodyLarge" className="font-bold">{transaction.total_amount}</Text>
-                                                    </View>
-                                                </View>
-                                            </Card.Content>
-                                        </Card>
-                                    )) : null}
-                                </Card.Content>
+                                    </Card>
+                                )) : null}
                             </Card>
                         </View>
                         : null}
@@ -284,11 +308,10 @@ export default function TransactionLobbyScreen() {
                 <View className="w-full px-4 pt-2 flex flex-row space-x-1">
                     <Button
                         className="rounded-lg grow"
-                        icon="cash-fast"
-                        mode="contained"
                         onPress={() => transactModalRef.current?.present()}
                     >
-                        Transact
+                        <MaterialCommunityIcons name="cash-fast" size={20} color={"white"} />
+                        <Text buttonSmall white>Transact</Text>
                     </Button>
                 </View>
                 <BottomSheetModal
@@ -299,37 +322,53 @@ export default function TransactionLobbyScreen() {
                 >
                     <BottomSheetView className="w-full h-full">
                         <View className="flex flex-col w-full px-4 py-2 items-start justify-start">
-                            <Text variant="titleMedium" className="font-bold mb-2">Transaction with {merchantData?.username}</Text>
+                            <Text bodyLarge className="font-bold mb-2">Transaction with {merchantData?.username}</Text>
                             {!joinVisible ?
                                 <Button
                                     className="w-full rounded-lg"
-                                    icon={"account-arrow-up"}
-                                    mode="contained"
                                     onPress={() => requestTransaction()}
                                     disabled={requestDisabled}
                                 >
-                                    {requestState}
+                                    {!requestDisabled ?
+                                        <View className="flex flex-row space-x-2 items-center">
+                                            <MaterialCommunityIcons name="account-arrow-up" size={20} color={"white"} />
+                                            <Text buttonSmall white>{requestState}</Text>
+                                        </View>
+                                        :
+                                        <View className="flex flex-row space-x-2 items-center">
+                                            <ActivityIndicator animating={true} color="gray" />
+                                            <Text buttonSmall white>{requestState}</Text>
+                                        </View>
+                                    }
                                 </Button>
                                 :
                                 <View className="flex flex-col w-full space-y-2 items-start justify-start">
                                     <View className="flex flex-col w-full px-4 py-2 items-center justify-center bg-slate-100 rounded-lg">
-                                        <Text variant="bodyMedium" className="font-bold">Your position in queue</Text>
+                                        <Text body className="font-bold">Your position in queue</Text>
                                         <Text
-                                            variant="bodyLarge"
+                                            bodyLarge
                                             className="font-bold"
-                                            style={{ color: theme.colors.primary }}
+                                            style={{ color: Colors.primary800 }}
                                         >
                                             1
                                         </Text>
                                     </View>
                                     <Button
                                         className="w-full rounded-lg"
-                                        icon={"account-arrow-up"}
-                                        mode="contained"
                                         onPress={() => joinRoom()}
                                         disabled={joinDisabled}
                                     >
-                                        {joinState}
+                                        {!joinDisabled ?
+                                            <View className="flex flex-row space-x-2 items-center">
+                                                <MaterialCommunityIcons name="account-arrow-right" size={20} color={"white"} />
+                                                <Text buttonSmall white>{joinState}</Text>
+                                            </View>
+                                            :
+                                            <View className="flex flex-row space-x-2 items-center">
+                                                <ActivityIndicator animating={true} color="gray" />
+                                                <Text buttonSmall white>{joinState}</Text>
+                                            </View>
+                                        }
                                     </Button>
                                 </View>
                             }

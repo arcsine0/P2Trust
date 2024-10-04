@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { useWindowDimensions, Platform, View, KeyboardAvoidingView, ScrollView } from "react-native";
+import { useWindowDimensions, Platform, KeyboardAvoidingView, ScrollView } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme, Text, Avatar, Card, Button, Divider, TouchableRipple } from "react-native-paper";
+import { useTheme, Avatar, Divider, IconButton, TouchableRipple } from "react-native-paper";
 
-import SkeletonLoading from "expo-skeleton-loading";
+import { Colors, View, Text, Card } from "react-native-ui-lib";
 
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
 
@@ -18,6 +18,16 @@ import { getInitials, formatISODate, formatTimeDifference } from "@/lib/helpers/
 export default function TransactionDetailsScreen() {
     const [transactionData, setTransactionData] = useState<Transaction | undefined>(undefined)
     const [transactionTimeline, setTransactionTimeline] = useState<TimelineEvent[] | undefined>(undefined);
+
+    const [userRating, setUserRating] = useState<{
+        positive: number,
+        negative: number,
+    } | undefined>(undefined);
+
+    const [merchantRating, setMerchantRating] = useState<{
+        positive: number,
+        negative: number,
+    } | undefined>(undefined)
 
     const [transactionLength, setTransactionLength] = useState<{
         startTime: number,
@@ -39,6 +49,30 @@ export default function TransactionDetailsScreen() {
             if (!error) {
                 const timeline = JSON.parse(data[0].timeline);
 
+                const { data: userRatings, error: userRatingsError } = await supabase
+                    .from("ratings")
+                    .select("rating")
+                    .eq("merchant_id", data[0].clientID);
+
+                const { data: merchantRatings, error: merchantRatingsError } = await supabase
+                    .from("ratings")
+                    .select("rating")
+                    .eq("merchant_id", data[0].merchantID);
+
+                if (!userRatingsError && userRatings) {
+                    setUserRating({
+                        positive: userRatings.filter(rating => rating.rating === "UP").length,
+                        negative: userRatings.filter(rating => rating.rating === "DOWN").length,
+                    })
+                }
+
+                if (!merchantRatingsError && merchantRatings) {
+                    setMerchantRating({
+                        positive: merchantRatings.filter(rating => rating.rating === "UP").length,
+                        negative: merchantRatings.filter(rating => rating.rating === "DOWN").length,
+                    })
+                }
+
                 setTransactionData(data[0]);
                 setTransactionTimeline(timeline);
                 setTransactionLength({
@@ -49,9 +83,9 @@ export default function TransactionDetailsScreen() {
                 navigation.setOptions({
                     headerLeft: () => (
                         <View className="flex flex-col mt-4 mb-2 items-start justify-center">
-                            <Text variant="titleMedium" className="font-bold">Transaction Details</Text>
-                            <Text variant="bodyMedium">ID: {data[0].id}</Text>
-                            <Text variant="bodyMedium">{formatISODate(data[0].created_at.toLocaleString())}</Text>
+                            <Text bodyLarge className="font-bold">Transaction Details</Text>
+                            <Text bodySmall>ID: {data[0].id}</Text>
+                            <Text bodySmall>{formatISODate(data[0].created_at.toLocaleString())}</Text>
                         </View>
                     ),
                 });
@@ -65,6 +99,17 @@ export default function TransactionDetailsScreen() {
 
     useEffect(() => {
         getTransactionData();
+
+        navigation.setOptions({
+            headerRight: () => (
+                <View className="flex flex-row">
+                    <IconButton
+                        icon="dots-vertical"
+                        onPress={() => console.log("Dots Pressed")}
+                    />
+                </View>
+            )
+        });
     }, []);
 
     return (
@@ -77,116 +122,119 @@ export default function TransactionDetailsScreen() {
                 <ScrollView className="w-full">
                     {transactionData ?
                         <View className="flex flex-col px-4 pt-1 space-y-2 items-center justify-start">
-                            <Card className="w-full" style={{ backgroundColor: theme.colors.background }}>
-                                <Card.Content className="flex flex-col">
-                                    <Text variant="titleMedium" className="font-bold">Merchant</Text>
-                                    <View className="flex flex-row items-center justify-between">
-                                        <TouchableRipple onPress={() => router.navigate(`/(transactionRoom)/merchant/${transactionData.merchantID}`)}>
-                                            <View className="flex flex-row items-center space-x-3">
-                                                <Avatar.Text label={getInitials(transactionData.merchantName)} size={35} />
-                                                <View className="flex flex-col w-1/2">
-                                                    <Text variant="titleMedium" className="font-bold">{transactionData.merchantName}</Text>
-                                                    <Text variant="bodySmall" className="text-slate-400">ID: 123123</Text>
-                                                    <View className="flex flex-row space-x-1 items-center">
-                                                        <Ionicons name="thumbs-up-sharp" size={10} color={"#22c55e"} />
-                                                        <Text variant="bodySmall">0</Text>
-                                                        <Ionicons name="thumbs-down-sharp" size={10} color={"#ef4444"} />
-                                                        <Text variant="bodySmall">0</Text>
-                                                    </View>
+                            <Card
+                                style={{ backgroundColor: Colors.bgDefault }}
+                                className="flex flex-col w-full p-4"
+                                elevation={10}
+                            >
+                                <Text bodyLarge className="font-bold">Merchant</Text>
+                                <View className="flex flex-row items-center justify-between">
+                                    <TouchableRipple onPress={() => router.navigate(`/(transactionRoom)/merchant/${transactionData.merchantID}`)}>
+                                        <View className="flex flex-row items-center space-x-3">
+                                            <Avatar.Text label={getInitials(transactionData.merchantName)} size={35} />
+                                            <View className="flex flex-col w-1/2">
+                                                <Text body className="font-bold">{transactionData.merchantName}</Text>
+                                                <Text bodySmall gray400>ID: 123123</Text>
+                                                <View className="flex flex-row space-x-1 items-center">
+                                                    <Ionicons name="thumbs-up-sharp" size={10} color={Colors.success500} />
+                                                    <Text bodySmall>{userRating ? userRating.positive : 0}</Text>
+                                                    <Ionicons name="thumbs-down-sharp" size={10} color={Colors.error500} />
+                                                    <Text bodySmall>{userRating ? userRating.negative : 0}</Text>
                                                 </View>
                                             </View>
-                                        </TouchableRipple>
-
-                                        <View></View>
-                                        <View className="flex flex-col items-end justify-center">
-                                            <Text variant="titleMedium" className="font-bold text-green-500">PHP{transactionData.total_amount}</Text>
-                                            <Text variant="bodyMedium" className="text-slate-400">Received</Text>
                                         </View>
+                                    </TouchableRipple>
+
+                                    <View></View>
+                                    <View className="flex flex-col items-end justify-center">
+                                        <Text body success400 className="font-bold">PHP {transactionData.total_amount}</Text>
+                                        <Text caption gray400>Received</Text>
                                     </View>
-                                    <Divider className="my-2" />
-                                    <Text variant="titleMedium" className="font-bold">Client</Text>
-                                    <View className="flex flex-row items-center justify-between">
-                                        <TouchableRipple onPress={() => router.navigate(`/(transactionRoom)/merchant/${transactionData.clientID}`)}>
-                                            <View className="flex flex-row items-center space-x-3">
-                                                <Avatar.Text label={getInitials(transactionData.clientName)} size={35} />
-                                                <View className="flex flex-col w-1/2">
-                                                    <Text variant="titleMedium" className="font-bold">{transactionData.clientName}</Text>
-                                                    <Text variant="bodySmall" className="text-slate-400">ID: 123123</Text>
-                                                    <View className="flex flex-row space-x-1 items-center">
-                                                        <Ionicons name="thumbs-up-sharp" size={10} color={"#22c55e"} />
-                                                        <Text variant="bodySmall">0</Text>
-                                                        <Ionicons name="thumbs-down-sharp" size={10} color={"#ef4444"} />
-                                                        <Text variant="bodySmall">0</Text>
-                                                    </View>
+                                </View>
+                                <Divider className="my-2" />
+                                <Text bodyLarge className="font-bold">Client</Text>
+                                <View className="flex flex-row items-center justify-between">
+                                    <TouchableRipple onPress={() => router.navigate(`/(transactionRoom)/merchant/${transactionData.clientID}`)}>
+                                        <View className="flex flex-row items-center space-x-3">
+                                            <Avatar.Text label={getInitials(transactionData.clientName)} size={35} />
+                                            <View className="flex flex-col w-1/2">
+                                                <Text body className="font-bold">{transactionData.clientName}</Text>
+                                                <Text bodySmall gray400>ID: 123123</Text>
+                                                <View className="flex flex-row space-x-1 items-center">
+                                                    <Ionicons name="thumbs-up-sharp" size={10} color={Colors.success500} />
+                                                    <Text bodySmall>{merchantRating ? merchantRating.positive : 0}</Text>
+                                                    <Ionicons name="thumbs-down-sharp" size={10} color={Colors.error500} />
+                                                    <Text bodySmall>{merchantRating ? merchantRating.negative : 0}</Text>
                                                 </View>
                                             </View>
-                                        </TouchableRipple>
-
-                                        <View></View>
-                                        <View className="flex flex-col items-end justify-center">
-                                            <Text variant="titleMedium" className="font-bold text-red-500">-PHP{transactionData.total_amount}</Text>
-                                            <Text variant="bodyMedium" className="text-slate-400">Sent</Text>
                                         </View>
+                                    </TouchableRipple>
+
+                                    <View></View>
+                                    <View className="flex flex-col items-end justify-center">
+                                        <Text body error400 className="font-bold">-PHP {transactionData.total_amount}</Text>
+                                        <Text caption gray400>Sent</Text>
                                     </View>
-                                </Card.Content>
+                                </View>
                             </Card>
-                            <Card className="w-full" style={{ backgroundColor: theme.colors.background }}>
-                                <Card.Content className="flex flex-col">
-                                    <View className="flex flex-row w-full items-center justify-between">
-                                        <Text variant="titleMedium" className="font-bold">Transaction Timeline</Text>
-                                        <View className="flex flex-row gap-2 items-center justify-end">
-                                            <Octicons name="clock" size={15} color={"#94a3b8"} />
-                                            {transactionLength ?
-                                                <Text variant="bodyMedium" className="text-slate-400">{Math.round((transactionLength.endTime - transactionLength.startTime) / (1000 * 60))} mins</Text>
-                                                :
-                                                <Text variant="bodyMedium" className="text-slate-400">0 mins</Text>
-                                            }
-
-                                        </View>
+                            <Card
+                                style={{ backgroundColor: Colors.bgDefault }}
+                                className="flex flex-col w-full p-4"
+                                elevation={10}
+                            >
+                                <View className="flex flex-row w-full items-center justify-between">
+                                    <Text bodyLarge className="font-bold">Transaction Timeline</Text>
+                                    <View className="flex flex-row gap-2 items-center justify-end">
+                                        <Octicons name="clock" size={15} color={Colors.gray400} />
+                                        {transactionLength ?
+                                            <Text body gray400>{Math.round((transactionLength.endTime - transactionLength.startTime) / (1000 * 60))} mins</Text>
+                                            :
+                                            <Text body gray400>0 mins</Text>
+                                        }
                                     </View>
-                                    <Divider className="my-2" />
-                                    <View className="space-y-2">
-                                        {transactionTimeline && transactionLength && transactionTimeline.sort(
-                                            (a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp)
-                                        ).map((event, i) => {
-                                            return (
-                                                <View key={i} className="flex flex-row">
-                                                    <View className="flex flex-col items-center mr-4">
-                                                        <View className="w-3 h-3 rounded-full" style={{ backgroundColor: theme.colors.primary }}></View>
-                                                        {i !== transactionTimeline.length - 1 &&
-                                                            <View className="w-0.5 h-10" style={{ backgroundColor: theme.colors.primary }}></View>
-                                                        }
-                                                    </View>
-                                                    <View className="flex flex-row items-start justify-between">
-                                                        <View className="w-full">
-                                                            <Text variant="titleMedium" className="font-bold">
-                                                                {event.type === "transaction_started" ? "Transaction Started" : null}
-                                                                {event.type === "user_joined" ? "User Joined" : null}
-                                                                {event.type === "user_left" ? "User Left" : null}
-                                                                {event.type === "payment_requested" ? "User Requested Payment" : null}
-                                                                {event.type === "payment_request_cancelled" ? "User Cancelled Payment" : null}
-                                                                {event.type === "payment_sent" ? "User Sent Payment" : null}
-                                                                {event.type === "payment_confirmed" ? "User Confirmed Payment" : null}
-                                                                {event.type === "payment_denied" ? "User Denied Payment" : null}
-                                                                {event.type === "product_sent" ? "User Sent Product" : null}
-                                                                {event.type === "product_received" ? "User Received Product" : null}
-                                                            </Text>
-                                                            <Text variant="bodyMedium" className="text-slate-400">{formatTimeDifference(event.timestamp, transactionLength.startTime, transactionLength.endTime)}</Text>
-                                                            <Text variant="bodyMedium">{event.from}</Text>
-                                                        </View>
+                                </View>
+                                <Divider className="my-2" />
+                                <View className="space-y-2">
+                                    {transactionTimeline && transactionLength && transactionTimeline.sort(
+                                        (a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp)
+                                    ).map((event, i) => {
+                                        return (
+                                            <View key={i} className="flex flex-row">
+                                                <View className="flex flex-col items-center mr-4">
+                                                    <View className="w-3 h-3 rounded-full" style={{ backgroundColor: theme.colors.primary }}></View>
+                                                    {i !== transactionTimeline.length - 1 &&
+                                                        <View className="w-0.5 h-10" style={{ backgroundColor: theme.colors.primary }}></View>
+                                                    }
+                                                </View>
+                                                <View className="flex flex-row items-start justify-between">
+                                                    <View className="w-full">
+                                                        <Text body className="font-bold">
+                                                            {event.type === "transaction_started" ? "Transaction Started" : null}
+                                                            {event.type === "user_joined" ? "User Joined" : null}
+                                                            {event.type === "user_left" ? "User Left" : null}
+                                                            {event.type === "payment_requested" ? "User Requested Payment" : null}
+                                                            {event.type === "payment_request_cancelled" ? "User Cancelled Payment" : null}
+                                                            {event.type === "payment_sent" ? "User Sent Payment" : null}
+                                                            {event.type === "payment_confirmed" ? "User Confirmed Payment" : null}
+                                                            {event.type === "payment_denied" ? "User Denied Payment" : null}
+                                                            {event.type === "product_sent" ? "User Sent Product" : null}
+                                                            {event.type === "product_received" ? "User Received Product" : null}
+                                                        </Text>
+                                                        <Text bodySmall gray400>{formatTimeDifference(event.timestamp, transactionLength.startTime, transactionLength.endTime)}</Text>
+                                                        <Text bodySmall>{event.from}</Text>
                                                     </View>
                                                 </View>
-                                            )
-                                        })}
-                                    </View>
-                                </Card.Content>
+                                            </View>
+                                        )
+                                    })}
+                                </View>
                             </Card>
                         </View>
                         :
                         null
                     }
                 </ScrollView>
-                <View className="w-full px-4 pt-2 flex flex-row space-x-1">
+                {/* <View className="w-full px-4 pt-2 flex flex-row space-x-1">
                     <Button
                         className="rounded-lg grow"
                         icon="comment-multiple"
@@ -195,7 +243,7 @@ export default function TransactionDetailsScreen() {
                     >
                         Comments
                     </Button>
-                </View>
+                </View> */}
             </KeyboardAvoidingView>
         </SafeAreaView>
     )

@@ -1,6 +1,10 @@
 import { useContext, useState } from "react";
-import { View, ScrollView, TouchableOpacity } from "react-native";
-import { useTheme, Text, TextInput, Button, Divider, ActivityIndicator } from "react-native-paper";
+import { ScrollView, TouchableOpacity } from "react-native";
+import { useTheme, TextInput, Divider, ActivityIndicator } from "react-native-paper";
+import { View, Text, Button, TextField } from "react-native-ui-lib";
+
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { router } from "expo-router";
@@ -8,6 +12,8 @@ import { router } from "expo-router";
 import { supabase } from "@/supabase/config";
 
 import { useUserData } from "@/lib/context/UserContext";
+
+import { Colors } from "react-native-ui-lib";
 
 export default function LoginScreen() {
     const [email, setEmail] = useState("");
@@ -40,7 +46,7 @@ export default function LoginScreen() {
                 if (!error) {
                     setDefaultLoginLoading(false);
                     setUserData(data[0]);
-                    
+
                     router.push("/(tabs)");
                 }
             }
@@ -64,7 +70,7 @@ export default function LoginScreen() {
 
     return (
         <SafeAreaView className="flex flex-col w-screen h-screen space-y-3 px-4 items-center justify-end">
-            <Text variant="displaySmall" className="font-bold">P2Trust</Text>
+            <Text h1>P2Trust</Text>
             <TextInput
                 className="w-full rounded-lg"
                 mode="outlined"
@@ -77,70 +83,97 @@ export default function LoginScreen() {
                 className="w-full rounded-lg"
                 mode="outlined"
                 label="Password"
+                secureTextEntry={true}
                 value={password}
                 onChangeText={setPassword}
             />
             <Button
                 className="w-full rounded-lg"
-                icon={"account-arrow-right-outline"}
-                mode="contained"
-                elevation={3}
                 disabled={defaultLoginLoading}
                 onPress={() => userLogin()}
             >
-                {!defaultLoginLoading ? 
-                    <Text variant="bodyMedium" className="font-bold text-white">Login</Text>
-                :
+                {!defaultLoginLoading ?
                     <View className="flex flex-row space-x-2 items-center">
-                        <ActivityIndicator animating={true} color="gray" />
-                        <Text variant="bodyMedium" className="font-bold text-white">Logging In...</Text>
+                        <MaterialCommunityIcons name="account-arrow-right" size={20} color={"white"} />
+                        <Text buttonSmall white>Login</Text>
+                    </View>
+
+                    :
+                    <View className="flex flex-row space-x-2 items-center">
+                        <ActivityIndicator animating={true} size={20} color="white" />
+                        <Text buttonSmall white>Logging In...</Text>
                     </View>
                 }
             </Button>
             <Divider className="w-full" />
             <Button
                 className="w-full rounded-lg"
-                icon={"google-plus"}
-                mode="contained"
-                buttonColor={theme.colors.background}
-                textColor="black"
-                labelStyle={{ fontWeight: "bold" }}
-                elevation={3}
+                style={{ backgroundColor: Colors.gray50 }}
+                outline={true}
                 onPress={() => loginWithGoogle()}
             >
-                Continue with Google
+                {!googleLoginLoading ?
+                    <View className="flex flex-row space-x-2 items-center">
+                        <MaterialCommunityIcons name="google-plus" size={20} color={Colors.primary800} />
+                        <Text buttonSmall black>Continue with Google</Text>
+                    </View>
+
+                    :
+                    <View className="flex flex-row space-x-2 items-center">
+                        <ActivityIndicator animating={true} color="gray" />
+                        <Text buttonSmall white>Logging In...</Text>
+                    </View>
+                }
             </Button>
             <Button
                 className="w-full rounded-lg"
-                icon={"facebook"}
-                mode="contained"
-                buttonColor={theme.colors.background}
-                textColor="black"
-                labelStyle={{ fontWeight: "bold" }}
-                elevation={3}
+                style={{ backgroundColor: Colors.gray50 }}
+                outline={true}
                 onPress={() => loginWithFacebook()}
             >
-                Continue with Facebook
+                {!facebookLoginLoading ?
+                    <View className="flex flex-row space-x-2 items-center">
+                        <MaterialCommunityIcons name="facebook" size={20} color={Colors.primary800} />
+                        <Text buttonSmall black>Continue with Facebook</Text>
+                    </View>
+                    :
+                    <View className="flex flex-row space-x-2 items-center">
+                        <ActivityIndicator animating={true} color="gray" />
+                        <Text buttonSmall white>Logging In...</Text>
+                    </View>
+                }
             </Button>
             <Button
                 className="w-full rounded-lg"
-                icon={"phone"}
-                mode="contained"
-                buttonColor={theme.colors.background}
-                textColor="black"
-                labelStyle={{ fontWeight: "bold" }}
-                elevation={3}
+                style={{ backgroundColor: Colors.gray50 }}
+                outline={true}
                 onPress={() => loginWithPhone()}
             >
-                Continue with Phone Number
+                {!phoneLoginLoading ?
+                    <View className="flex flex-row space-x-2 items-center">
+                        <MaterialCommunityIcons name="phone" size={20} color={Colors.primary800} />
+                        <Text buttonSmall black>Continue with Phone Number</Text>
+                    </View>
+                    :
+                    <View className="flex flex-row space-x-2 items-center">
+                        <ActivityIndicator animating={true} color="gray" />
+                        <Text buttonSmall white>Logging In...</Text>
+                    </View>
+                }
             </Button>
             <Divider className="w-full" />
             <View className="flex flex-col space-y-1 items-center">
-                <Text variant="bodyMedium">Don't have an account?</Text>
+                <Text bodySmall>Don't have an account?</Text>
                 <TouchableOpacity
                     onPress={() => router.push("/(login)/registerIdentifier")}
                 >
-                    <Text variant="bodyMedium" className="font-bold" style={{ color: theme.colors.primary }}>Create an account</Text>
+                    <Text
+                        className="font-bold"
+                        bodySmall 
+                        color={Colors.primary800}
+                    >
+                        Create an account
+                    </Text>
                 </TouchableOpacity>
             </View>
         </SafeAreaView>
