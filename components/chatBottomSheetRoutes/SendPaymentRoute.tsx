@@ -1,7 +1,7 @@
 import { FC, Dispatch, SetStateAction } from "react";
-import { Icon, TouchableRipple, ActivityIndicator } from "react-native-paper";
+import { Icon, TouchableRipple, ActivityIndicator, Divider } from "react-native-paper";
 
-import { View, Text, Button } from "react-native-ui-lib";
+import { Colors, View, Text, Button } from "react-native-ui-lib";
 
 import { Image } from "expo-image";
 
@@ -19,91 +19,105 @@ interface SendPaymentRouteProps {
     setReceipt: Dispatch<SetStateAction<ImagePickerAsset | undefined>>;
     pickReceipt: () => void;
     sendPayment: () => void;
+    cancel: () => void;
 }
 
-const SendPaymentRoute: FC<SendPaymentRouteProps> = ({ disabled, paymentDetails, receipt, setReceipt, pickReceipt, sendPayment }) => {
+const SendPaymentRoute: FC<SendPaymentRouteProps> = ({ disabled, paymentDetails, receipt, setReceipt, pickReceipt, sendPayment, cancel }) => {
     return (
         <View className="flex flex-col space-y-2 p-4 items-start justify-start">
-            <Text bodyLarge className="font-bold">Payment Details</Text>
-            <View className="flex flex-row w-full items-center justify-between">
-                <Text body gray400>Requested Amount</Text>
-                <Text body className="font-bold">
-                    {
-                        paymentDetails.currency === "PHP" ? "₱" :
-                            paymentDetails.currency === "USD" ? "$" :
-                                paymentDetails.currency === "EUR" ? "€" : "$"
-                    }
-                    {paymentDetails.amount}
-                </Text>
-            </View>
-            <View className="flex flex-row w-full items-center justify-between">
-                <Text body gray400>Platform</Text>
-                <Text body className="font-bold">{paymentDetails.platform}</Text>
-            </View>
-            <View className="flex flex-row w-full items-center justify-between">
-                <Text body gray400>Account Name</Text>
-                <Text body className="font-bold">{paymentDetails.accountName}</Text>
-            </View>
-            <View className="flex flex-row w-full items-center justify-between">
-                <Text body gray400>Account Number</Text>
-                <Text body className="font-bold">{paymentDetails.accountNumber}</Text>
-            </View>
-            <View className="flex flex-col w-full space-y-1">
+            <View className="flex flex-col w-full space-y-2">
+                <Text bodyLarge className="font-bold">Payment Details</Text>
                 <View className="flex flex-row w-full items-center justify-between">
-                    <Text body gray400>Upload Receipt</Text>
-                    <TouchableRipple onPress={() => setReceipt(undefined)}>
-                        <View className="flex flex-row space-x-1 items-center justify-center">
-                            <Icon
-                                source="trash-can-outline"
-                                size={15}
-                                color={"#94a3b8"}
-                            />
-                            <Text caption gray400>Reset</Text>
-                        </View>
-
-                    </TouchableRipple>
+                    <Text bodySmall gray400>Requested Amount</Text>
+                    <Text bodySmall className="font-bold">
+                        {
+                            paymentDetails.currency === "PHP" ? "₱" :
+                                paymentDetails.currency === "USD" ? "$" :
+                                    paymentDetails.currency === "EUR" ? "€" : "$"
+                        }
+                        {paymentDetails.amount}
+                    </Text>
                 </View>
-                <View className="flex flex-row w-full p-2 items-center justify-center border-2 border-dashed border-slate-499">
-                    {!receipt ?
-                        <TouchableRipple
-                            className="flex flex-row w-full py-2 items-center justify-center"
-                            onPress={() => pickReceipt()}
-                        >
-                            <View className="flex flex-row space-x-2 items-center justify-center">
+                <View className="flex flex-row w-full items-center justify-between">
+                    <Text bodySmall gray400>Platform</Text>
+                    <Text bodySmall className="font-bold">{paymentDetails.platform}</Text>
+                </View>
+                <View className="flex flex-row w-full items-center justify-between">
+                    <Text bodySmall gray400>Account Name</Text>
+                    <Text bodySmall className="font-bold">{paymentDetails.accountName}</Text>
+                </View>
+                <View className="flex flex-row w-full items-center justify-between">
+                    <Text bodySmall gray400>Account Number</Text>
+                    <Text bodySmall className="font-bold">{paymentDetails.accountNumber}</Text>
+                </View>
+                <View className="flex flex-col w-full space-y-1">
+                    <View className="flex flex-row w-full items-center justify-between">
+                        <Text bodySmall gray400>Upload Receipt</Text>
+                        <TouchableRipple onPress={() => setReceipt(undefined)}>
+                            <View className="flex flex-row space-x-1 items-center justify-center">
                                 <Icon
-                                    source="upload"
-                                    size={20}
+                                    source="trash-can-outline"
+                                    size={15}
                                     color={"#94a3b8"}
                                 />
-                                <Text bodyLarge gray400>Upload Receipt</Text>
+                                <Text caption gray400>Reset</Text>
                             </View>
+
                         </TouchableRipple>
-                        :
-                        <Image
-                            className="w-full"
-                            source={{ uri: receipt.uri }}
-                            contentFit="contain"
-                        />
-                    }
+                    </View>
+                    <View className="flex flex-row w-full p-2 items-center justify-center border-2 border-dashed border-slate-499">
+                        {!receipt ?
+                            <TouchableRipple
+                                className="flex flex-row w-full py-2 items-center justify-center"
+                                onPress={() => pickReceipt()}
+                            >
+                                <View className="flex flex-row space-x-2 items-center justify-center">
+                                    <Icon
+                                        source="upload"
+                                        size={20}
+                                        color={"#94a3b8"}
+                                    />
+                                    <Text bodySmall gray400>Upload Receipt</Text>
+                                </View>
+                            </TouchableRipple>
+                            :
+                            <Image
+                                className="w-full"
+                                source={{ uri: receipt.uri }}
+                                contentFit="contain"
+                            />
+                        }
+                    </View>
                 </View>
             </View>
-            <Button
-                className="w-full rounded-lg"
-                onPress={sendPayment}
-                disabled={disabled}
-            >
-                {!disabled ?
-                    <View className="flex flex-row space-x-2 items-center">
-                        <MaterialCommunityIcons name="send" size={20} color={"white"} />
-                        <Text buttonSmall white>Send Payment</Text>
-                    </View>
-                    :
-                    <View className="flex flex-row space-x-2 items-center">
-                        <ActivityIndicator animating={true} color="gray" />
-                        <Text buttonSmall white>Sending Payment...</Text>
-                    </View>
-                }
-            </Button>
+            <View className="flex flex-col w-full space-y-2">
+                <Button
+                    className="w-full rounded-lg"
+                    onPress={sendPayment}
+                    disabled={disabled || !receipt}
+                >
+                    {!disabled ?
+                        <View className="flex flex-row space-x-2 items-center">
+                            <MaterialCommunityIcons name="send" size={20} color={"white"} />
+                            <Text buttonSmall white>Send Payment</Text>
+                        </View>
+                        :
+                        <View className="flex flex-row space-x-2 items-center">
+                            <ActivityIndicator animating={true} color="gray" />
+                            <Text buttonSmall white>Sending Payment...</Text>
+                        </View>
+                    }
+                </Button>
+                <Button
+                    className="w-full rounded-lg"
+                    style={{ backgroundColor: Colors.gray50 }}
+                    outline={true}
+                    outlineColor={Colors.gray900}
+                    onPress={cancel}
+                >
+                    <Text buttonSmall gray900>Cancel</Text>
+                </Button>
+            </View>
         </View>
     )
 }

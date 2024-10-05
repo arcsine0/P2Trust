@@ -4,7 +4,7 @@ import { useWindowDimensions, Platform, KeyboardAvoidingView, FlatList, Touchabl
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme, TextInput, Avatar, Chip, Menu, Portal, IconButton, Divider, ActivityIndicator, TouchableRipple } from "react-native-paper";
 
-import { Colors, View, Text, Button, ActionSheet, Dialog } from "react-native-ui-lib";
+import { Colors, View, Text, Button, ActionSheet, Dialog, ExpandableSection } from "react-native-ui-lib";
 
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
@@ -34,7 +34,12 @@ export default function TransactionRoomScreen() {
 	const [connectedUsers, setConnectedUsers] = useState<string[]>([]);
 
 	const [message, setMessage] = useState("");
-	const [activePaymentRequestID, setActivePaymentRequestID] = useState<string | undefined>(undefined);
+	const [activePaymentDetails, setActivePaymentDetails] = useState<{
+		id: string;
+		created_at: Date;
+		amount: Float;
+		currency: "PHP" | "USD" | "EUR";
+	} | undefined>(undefined);
 
 	const [totalTradedAmount, setTotalTradedAmount] = useState<Float>(0);
 
@@ -47,8 +52,8 @@ export default function TransactionRoomScreen() {
 		amount: 100,
 		currency: "PHP",
 		platform: "GCash",
-		accountNumber: "Test Client",
-		accountName: "09673127888",
+		accountNumber: "09673127888",
+		accountName: "Test Client",
 	});
 
 	const [paymentDetails, setPaymentDetails] = useState<RequestDetails>({
@@ -64,6 +69,11 @@ export default function TransactionRoomScreen() {
 	const [showActionsMenu, setShowActionsMenu] = useState<boolean>(false);
 	const [showRequestModal, setShowRequestModal] = useState<boolean>(false);
 	const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
+	const [showPaymentConfirmModal, setShowPaymentConfirmModal] = useState<boolean>(false);
+
+	const [showProductSentSection, setShowProductSentSection] = useState<boolean>(true);
+	const [showProductReceivedSection, setShowProductReceivedSection] = useState<boolean>(true);
+
 	const [showFinishDialog, setShowFinishDialog] = useState<boolean>(false);
 	const [showFinishConfirmationDialog, setShowFinishConfirmationDialog] = useState<boolean>(false);
 
@@ -73,19 +83,17 @@ export default function TransactionRoomScreen() {
 	const [isPaymentConfirmSending, setIsPaymentConfirmSending] = useState<boolean>(false);
 	const [isProductSentSending, setIsProductSentSending] = useState<boolean>(false);
 	const [isProductConfirmSending, setIsProductConfirmSending] = useState<boolean>(false);
+	const [isTransactionFinishing, setIsTransactionFinishing] = useState<boolean>(false);
 
 	const [hasSentProduct, setHasSentProduct] = useState<boolean>(false);
 	const [hasReceivedProduct, setHasReceivedProduct] = useState<boolean>(false);
 
-	const [actionsModalRoute, setActionsModalRoute] = useState("RequestPayment");
-	const actionsModalRef = useRef<BottomSheetModal>(null);
 	const ratingsModalRef = useRef<BottomSheetModal>(null);
 
 	const { userData, setQueue } = useUserData();
 	const { merchantData, role, interactions, setInteractions } = useMerchantData();
 
 	const { roomID } = useLocalSearchParams<{ roomID: string }>();
-	const layout = useWindowDimensions();
 	const theme = useTheme();
 	const navigation = useNavigation();
 
@@ -136,14 +144,19 @@ export default function TransactionRoomScreen() {
 							id: data[0].id,
 							from: userData?.username || "N/A",
 							amount: requestDetails.amount,
-							currency: "PHP",
+							currency: requestDetails.currency,
 							platform: requestDetails.platform,
 							merchantName: requestDetails.accountName,
 							merchantNumber: requestDetails.accountNumber,
 						}
 					}
 				}).then(() => {
-					setActivePaymentRequestID(data[0].id);
+					setActivePaymentDetails({
+						id: data[0].id,
+						created_at: data[0].created_at,
+						amount: data[0].amount,
+						currency: data[0].currency
+					});
 					setIsPaymentRequestSending(false);
 
 					// commented out for testing
@@ -187,7 +200,7 @@ export default function TransactionRoomScreen() {
 							}
 						}
 					}).then(() => {
-						setActivePaymentRequestID(undefined);
+						setActivePaymentDetails(undefined);
 						setIsPaymentRequestCancelling(false);
 					})
 
@@ -274,6 +287,7 @@ export default function TransactionRoomScreen() {
 
 		if (!id) {
 			setIsPaymentConfirmSending(false);
+			setShowPaymentConfirmModal(false);
 			return;
 		}
 
@@ -301,6 +315,8 @@ export default function TransactionRoomScreen() {
 					}
 				}).then(() => {
 					setIsPaymentConfirmSending(false);
+					setShowPaymentConfirmModal(false);
+					setActivePaymentDetails(undefined);
 				})
 			} else {
 				console.log(error);
@@ -315,6 +331,7 @@ export default function TransactionRoomScreen() {
 
 		if (!id) {
 			setIsPaymentConfirmSending(false);
+			setShowPaymentConfirmModal(false);
 			return;
 		}
 
@@ -340,6 +357,7 @@ export default function TransactionRoomScreen() {
 					}
 				}).then(() => {
 					setIsPaymentConfirmSending(false);
+					setShowPaymentConfirmModal(false);
 				})
 			} else {
 				console.log(error);
@@ -486,7 +504,7 @@ export default function TransactionRoomScreen() {
 
 	const getRoomData = async () => {
 		try {
-			setActivePaymentRequestID(undefined);
+			setActivePaymentDetails(undefined);
 
 			if (userData) {
 				interactionsChannel
@@ -567,7 +585,11 @@ export default function TransactionRoomScreen() {
 
 									break;
 								case "payment_sent":
-									setActivePaymentRequestID(undefined);
+									setInteractions(curr => curr?.map(inter =>
+										inter.type === "payment_requested" && inter.data.id === payloadData.data.id
+											? { ...inter, data: { ...inter.data, status: "confirming" } }
+											: inter
+									));
 
 									setInteractions(curr => [...(curr || []), {
 										timestamp: new Date(Date.now()),
@@ -629,6 +651,12 @@ export default function TransactionRoomScreen() {
 									setInteractions(curr => curr?.map(inter =>
 										inter.type === "payment_sent" && inter.data.id === payloadData.data.id
 											? { ...inter, data: { ...inter.data, status: "denied" } }
+											: inter
+									));
+
+									setInteractions(curr => curr?.map(inter =>
+										inter.type === "payment_requested" && inter.data.id === payloadData.data.id
+											? { ...inter, data: { ...inter.data, status: "pending" } }
 											: inter
 									));
 
@@ -759,6 +787,9 @@ export default function TransactionRoomScreen() {
 		getRoomData();
 		setInteractions([]);
 		setReceipt(undefined);
+		
+		setHasSentProduct(false);
+		setHasReceivedProduct(false);
 
 		navigation.setOptions({
 			headerLeft: () => (
@@ -810,12 +841,6 @@ export default function TransactionRoomScreen() {
 			});
 		}
 	}, []);
-
-	const SendProofRoute = () => (
-		<View>
-			<Text h3>Test</Text>
-		</View>
-	)
 
 	const renderBackdrop = useCallback(
 		(props: BottomSheetBackdropProps) => (
@@ -891,7 +916,7 @@ export default function TransactionRoomScreen() {
 														accountName: inter.data.accountName,
 														accountNumber: inter.data.accountNumber,
 													});
-													
+
 													setShowPaymentModal(true);
 												}}
 											/>
@@ -914,8 +939,7 @@ export default function TransactionRoomScreen() {
 													from={inter.from}
 													status={inter.data.status}
 													receiptURL={receiptURL.publicUrl}
-													onConfirm={() => confirmPayment(inter.data.id)}
-													onDeny={() => denyPayment(inter.data.id)}
+													onConfirm={() => setShowPaymentConfirmModal(true)}
 												/>
 											</View>
 										)
@@ -933,61 +957,123 @@ export default function TransactionRoomScreen() {
 						}}
 					/>
 					: null}
-				{interactions &&
-					interactions.some(inter => inter.type === "payment_confirmed" && inter.from === userData?.username) &&
-					!hasSentProduct && (
-						<View className="flex flex-col p-2 items-start justify-center">
-							<Text bodyLarge className="font-semibold">Have you sent the buyer the purchased product?</Text>
-							<View className="flex flex-row space-x-2 items-center justify-center">
-								<Button
-									className="rounded-lg grow"
-									avoidInnerPadding={true}
-									avoidMinWidth={true}
-									onPress={() => sendProductStatus()}
-								>
-									<View className="flex flex-row space-x-2 items-center">
-										<MaterialCommunityIcons name="check" size={20} color={"white"} />
-										<Text buttonSmall white>Yes</Text>
+				{interactions && !hasSentProduct &&
+					interactions.some(inter => inter.type === "payment_confirmed" && inter.from === userData?.username) && (
+						<ExpandableSection
+							expanded={showProductSentSection}
+							onPress={() => setShowProductSentSection(true)}
+							sectionHeader={
+								<View className="flex w-full p-2">
+									<Text gray900 className="font-bold">Have you sent the buyer the purchased product?</Text>
+								</View>
+							}
+						>
+							<View className="flex flex-col w-full space-y-2">
+								{!isProductSentSending ?
+									<View className="flex flex-row w-full items-center space-x-2">
+										<Button
+											className="flex-1 rounded-lg"
+											disabled={isProductSentSending}
+											onPress={() => sendProductStatus()}
+										>
+											<View className="flex flex-row space-x-2 items-center">
+												<MaterialCommunityIcons name="check" size={20} color={"white"} />
+												<Text buttonSmall white>Yes</Text>
+											</View>
+										</Button>
+										<Button
+											className="flex-1 rounded-lg grow"
+											disabled={isProductSentSending}
+											onPress={() => { }}
+										>
+											<View className="flex flex-row space-x-2 items-center">
+												<MaterialCommunityIcons name="close" size={20} color={"white"} />
+												<Text buttonSmall white>No</Text>
+											</View>
+										</Button>
 									</View>
-								</Button>
+									:
+									<Button
+										className="rounded-lg flex-1"
+										disabled={isProductSentSending}
+										onPress={() => { }}
+									>
+										<View className="flex flex-row space-x-2 items-center">
+											<ActivityIndicator animating={true} size={20} color="white" />
+											<Text buttonSmall white>Processing...</Text>
+										</View>
+									</Button>
+								}
+
 								<Button
-									className="rounded-lg grow"
-									onPress={() => setHasSentProduct(false)}
+									className="rounded-lg"
+									style={{ backgroundColor: Colors.gray50 }}
+									outline={true}
+									outlineColor={Colors.gray900}
+									onPress={() => setShowProductSentSection(false)}
 								>
-									<View className="flex flex-row space-x-2 items-center">
-										<MaterialCommunityIcons name="close" size={20} color={"white"} />
-										<Text buttonSmall white>No</Text>
-									</View>
+									<Text buttonSmall gray900>Not yet</Text>
 								</Button>
 							</View>
-						</View>
+						</ExpandableSection>
 					)}
-				{interactions &&
-					interactions.some(inter => inter.type === "product_sent" && inter.from === merchantData?.username) &&
-					!hasReceivedProduct && (
-						<View className="flex flex-col p-2 items-start justify-center">
-							<Text bodyLarge className="font-semibold">Have you received the purchased product?</Text>
-							<View className="flex flex-row space-x-2 items-center justify-center">
-								<Button
-									className="rounded-lg grow"
-									onPress={() => sendProductConfirmation()}
-								>
-									<View className="flex flex-row space-x-2 items-center">
-										<MaterialCommunityIcons name="check" size={20} color={"white"} />
-										<Text buttonSmall white>Yes</Text>
+				{interactions && !hasReceivedProduct && 
+					interactions.some(inter => inter.type === "product_sent" && inter.from === merchantData?.username) && (
+						<ExpandableSection
+							expanded={showProductReceivedSection}
+							onPress={() => setShowProductReceivedSection(true)}
+							sectionHeader={
+								<View className="flex w-full p-2">
+									<Text gray900 className="font-bold">Have you received the purchased product?</Text>
+								</View>
+							}
+						>
+							<View className="flex flex-col w-full space-y-2">
+								{!isProductConfirmSending ?
+									<View className="flex flex-row w-full items-center space-x-2">
+										<Button
+											className="flex-1 rounded-lg"
+											onPress={() => sendProductConfirmation()}
+										>
+											<View className="flex flex-row space-x-2 items-center">
+												<MaterialCommunityIcons name="check" size={20} color={"white"} />
+												<Text buttonSmall white>Yes</Text>
+											</View>
+										</Button>
+										<Button
+											className="flex-1 rounded-lg grow"
+											onPress={() => { }}
+										>
+											<View className="flex flex-row space-x-2 items-center">
+												<MaterialCommunityIcons name="close" size={20} color={"white"} />
+												<Text buttonSmall white>No</Text>
+											</View>
+										</Button>
 									</View>
-								</Button>
+									:
+									<Button
+										className="rounded-lg flex-1"
+										disabled={isProductConfirmSending}
+										onPress={() => { }}
+									>
+										<View className="flex flex-row space-x-2 items-center">
+											<ActivityIndicator animating={true} size={20} color="white" />
+											<Text buttonSmall white>Processing...</Text>
+										</View>
+									</Button>
+								}
+
 								<Button
-									className="rounded-lg grow"
-									onPress={() => setHasReceivedProduct(false)}
+									className="rounded-lg"
+									style={{ backgroundColor: Colors.gray50 }}
+									outline={true}
+									outlineColor={Colors.gray900}
+									onPress={() => setShowProductReceivedSection(false)}
 								>
-									<View className="flex flex-row space-x-2 items-center">
-										<MaterialCommunityIcons name="close" size={20} color={"white"} />
-										<Text buttonSmall white>No</Text>
-									</View>
+									<Text buttonSmall gray900>Not yet</Text>
 								</Button>
 							</View>
-						</View>
+						</ExpandableSection>
 					)}
 				<View className="flex flex-row w-full space-x-2 items-center">
 					<TextInput
@@ -1022,9 +1108,9 @@ export default function TransactionRoomScreen() {
 						onDismiss={() => setShowActionsMenu(false)}
 						options={[
 							{
-								label: activePaymentRequestID ? "Cancel Payment Request" : "Send Payment Request", onPress: () => {
-									if (activePaymentRequestID) {
-										cancelPaymentRequest(activePaymentRequestID)
+								label: activePaymentDetails?.id ? "Cancel Payment Request" : "Send Payment Request", onPress: () => {
+									if (activePaymentDetails) {
+										cancelPaymentRequest(activePaymentDetails.id)
 									} else {
 										setShowActionsMenu(false);
 										setShowRequestModal(true);
@@ -1049,7 +1135,7 @@ export default function TransactionRoomScreen() {
 								>
 									<View className="flex flex-row w-full space-x-2 items-center">
 										{index === 0 &&
-											<MaterialCommunityIcons name={activePaymentRequestID ? "cash-remove" : "cash-fast"} size={20} color={Colors.primary700} />
+											<MaterialCommunityIcons name={activePaymentDetails ? "cash-remove" : "cash-fast"} size={20} color={Colors.primary700} />
 										}
 										{index === 1 &&
 											<MaterialCommunityIcons name="cash-check" size={20} color={option.disabled ? Colors.gray200 : Colors.primary700} />
@@ -1170,6 +1256,7 @@ export default function TransactionRoomScreen() {
 						requestDetails={requestDetails}
 						setRequestDetails={setRequestDetails}
 						sendPaymentRequest={sendPaymentRequest}
+						cancel={() => setShowRequestModal(false)}
 					/>
 				</Dialog>
 				<Dialog
@@ -1185,58 +1272,169 @@ export default function TransactionRoomScreen() {
 						setReceipt={setReceipt}
 						pickReceipt={pickReceipt}
 						sendPayment={() => sendPayment(paymentDetails.id)}
+						cancel={() => setShowPaymentModal(false)}
 					/>
 				</Dialog>
-				{/* <Portal>
-					<Dialog visible={showFinishDialog} onDismiss={() => setShowFinishDialog(false)}>
-						<Dialog.Title>
-							<Text h3 className="font-bold">Warning</Text>
-						</Dialog.Title>
-						<Dialog.Content>
-							{totalTradedAmount && totalTradedAmount > 0 ?
-								<Text body>Are you sure you want to finish the transaction? This action cannot be undone.</Text>
-								:
-								<Text body>Are you sure you want to cancel the transaction? This action cannot be undone.</Text>
-							}
-						</Dialog.Content>
-						<Dialog.Actions>
-							<Button onPress={() => setShowFinishDialog(false)}>Cancel</Button>
-							<Button onPress={() => finishTransaction()}>Finish</Button>
-						</Dialog.Actions>
-					</Dialog>
-					<Dialog visible={showFinishConfirmationDialog} onDismiss={() => setShowFinishConfirmationDialog(false)}>
-						<Dialog.Title>
-							<Text h3 className="font-bold">Notice</Text>
-						</Dialog.Title>
-						<Dialog.Content>
-							{totalTradedAmount && totalTradedAmount > 0 ?
-								<Text body>{merchantData?.username} has ended the transaction.</Text>
-								:
-								<Text body>{merchantData?.username} has cancelled the transaction.</Text>
-							}
-						</Dialog.Content>
-						<Dialog.Actions>
-							<Button onPress={() => {
-								if (role === "client") {
-									setShowFinishConfirmationDialog(false);
-									ratingsModalRef.current?.present();
-								} else {
-									setQueue(prevQueue => {
-										if (prevQueue) {
-											return prevQueue.filter(req => req.sender_id !== merchantData?.id);
-										} else {
-											return [];
-										}
-									});
-
-									router.navigate("/(transactionRoom)");
-								}
-							}}>
-								Okay
+				<Dialog
+					visible={showFinishDialog}
+					onDismiss={() => setShowFinishDialog(false)}
+					panDirection="up"
+					containerStyle={{ backgroundColor: Colors.bgDefault, borderRadius: 8, borderBottomWidth: 8, borderBottomColor: Colors.error400, padding: 4 }}
+				>
+					<View
+						className="flex flex-col w-full p-4 space-y-4"
+					>
+						<Text h3>Warning</Text>
+						{totalTradedAmount && totalTradedAmount > 0 ?
+							<Text body>Are you sure you want to finish the transaction? This action cannot be undone.</Text>
+							:
+							<Text body>Are you sure you want to cancel the transaction? This action cannot be undone.</Text>
+						}
+						<View className="flex flex-row w-full items-center justify-end space-x-2">
+							<Button
+								className="rounded-lg"
+								style={{ backgroundColor: Colors.gray50 }}
+								outline={true}
+								outlineColor={Colors.gray900}
+								onPress={() => setShowFinishDialog(false)}
+							>
+								<Text buttonSmall gray900>Cancel</Text>
 							</Button>
-						</Dialog.Actions>
-					</Dialog>
-				</Portal> */}
+							<Button
+								className="rounded-lg"
+								onPress={() => finishTransaction()}
+								disabled={isTransactionFinishing}
+							>
+								{!isTransactionFinishing ?
+									<View className="flex flex-row space-x-2 items-center">
+										<MaterialCommunityIcons name="check" size={20} color={"white"} />
+										{totalTradedAmount && totalTradedAmount > 0 ?
+											<Text buttonSmall white>Finish</Text>
+											:
+											<Text buttonSmall white>Proceed</Text>
+										}
+									</View>
+									:
+									<ActivityIndicator animating={true} color="gray" />
+								}
+							</Button>
+						</View>
+					</View>
+				</Dialog>
+				<Dialog
+					visible={showFinishConfirmationDialog}
+					onDismiss={() => setShowFinishConfirmationDialog(false)}
+					panDirection="up"
+					containerStyle={{ backgroundColor: Colors.bgDefault, borderRadius: 8, borderBottomWidth: 8, borderBottomColor: Colors.error400, padding: 4 }}
+				>
+					<View
+						className="flex flex-col w-full p-4 space-y-4"
+					>
+						<Text h3>Notice</Text>
+						{totalTradedAmount && totalTradedAmount > 0 ?
+							<Text body>{merchantData?.username} has ended the transaction.</Text>
+							:
+							<Text body>{merchantData?.username} has cancelled the transaction.</Text>
+						}
+						<View className="flex flex-row w-full items-center justify-end space-x-2">
+							<Button
+								className="rounded-lg"
+								style={{ backgroundColor: Colors.gray50 }}
+								outline={true}
+								outlineColor={Colors.gray900}
+								onPress={() => setShowFinishConfirmationDialog(false)}
+							>
+								<Text buttonSmall gray900>Cancel</Text>
+							</Button>
+							<Button
+								className="rounded-lg"
+								onPress={() => {
+									if (role === "client") {
+										setShowFinishConfirmationDialog(false);
+										ratingsModalRef.current?.present();
+									} else {
+										setQueue(prevQueue => {
+											if (prevQueue) {
+												return prevQueue.filter(req => req.sender_id !== merchantData?.id);
+											} else {
+												return [];
+											}
+										});
+
+										router.navigate("/(transactionRoom)");
+									}
+								}}
+							>
+								<View className="flex flex-row space-x-2 items-center">
+									<MaterialCommunityIcons name="thumb-up-outline" size={20} color={"white"} />
+									<Text buttonSmall white>Got it</Text>
+								</View>
+							</Button>
+						</View>
+					</View>
+				</Dialog>
+				<Dialog
+					visible={showPaymentConfirmModal}
+					onDismiss={() => setShowPaymentConfirmModal(false)}
+					panDirection="up"
+					containerStyle={{ backgroundColor: Colors.bgDefault, borderRadius: 8, borderBottomWidth: 8, borderBottomColor: Colors.primary700, padding: 4 }}
+				>
+					<View
+						className="flex flex-col w-full p-4 space-y-4"
+					>
+						<Text h3>Confirm Payment?</Text>
+						<Text body>Have you received the payment of
+							<Text className="font-bold"> {activePaymentDetails?.currency} {activePaymentDetails?.amount} </Text>
+							?
+						</Text>
+						<View className="flex flex-col w-full space-y-2">
+							{!isPaymentConfirmSending ?
+								<View className="flex flex-row w-full items-center justify-center space-x-2">
+									<Button
+										className="rounded-lg flex-1"
+										disabled={isPaymentConfirmSending}
+										onPress={() => confirmPayment(activePaymentDetails?.id)}
+									>
+										<View className="flex flex-row space-x-2 items-center">
+											<MaterialCommunityIcons name="thumb-up-outline" size={20} color={"white"} />
+											<Text buttonSmall white>Yes, I have</Text>
+										</View>
+									</Button>
+									<Button
+										className="rounded-lg flex-1"
+										disabled={isPaymentConfirmSending}
+										onPress={() => denyPayment(activePaymentDetails?.id)}
+									>
+										<View className="flex flex-row space-x-2 items-center">
+											<MaterialCommunityIcons name="thumb-down-outline" size={20} color={"white"} />
+											<Text buttonSmall white>No, I haven't</Text>
+										</View>
+									</Button>
+								</View>
+								:
+								<Button
+									className="rounded-lg flex-1"
+									disabled={isPaymentConfirmSending}
+									onPress={() => { }}
+								>
+									<View className="flex flex-row space-x-2 items-center">
+										<ActivityIndicator animating={true} size={20} color="white" />
+										<Text buttonSmall white>Processing...</Text>
+									</View>
+								</Button>
+							}
+							<Button
+								className="rounded-lg"
+								style={{ backgroundColor: Colors.gray50 }}
+								outline={true}
+								outlineColor={Colors.gray900}
+								onPress={() => setShowPaymentConfirmModal(false)}
+							>
+								<Text buttonSmall gray900>I'll wait a little more</Text>
+							</Button>
+						</View>
+					</View>
+				</Dialog>
 			</KeyboardAvoidingView>
 		</SafeAreaView >
 	);

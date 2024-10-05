@@ -65,7 +65,7 @@ export type Interaction =
         platform: string;
         accountName: string;
         accountNumber: string;
-        status: "pending" | "completed" | "cancelled";
+        status: "pending" | "completed" | "cancelled" | "confirming";
     };
 }
 | {

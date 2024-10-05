@@ -14,7 +14,7 @@ interface PaymentRequestCardProps {
     platform: string;
     currency: string;
     amount: Float;
-    status: "pending" | "completed" | "cancelled";
+    status: "pending" | "completed" | "cancelled" | "confirming";
     onPayment?: () => void;
     style?: ViewStyle;
 }
@@ -66,9 +66,10 @@ const PaymentRequestCard: FC<PaymentRequestCardProps> = ({ style, userData, time
                             icon={"cash"}
                             mode="contained"
                             onPress={onPayment}
-                            disabled={status === "cancelled" || status === "completed"}
+                            disabled={status !== "pending"}
                         >
                             {status === "pending" && "Pay"}
+                            {status === "confirming" && "Confirming"}
                             {status === "cancelled" && "Cancelled"}
                             {status === "completed" && "Completed"}
                         </Button>
