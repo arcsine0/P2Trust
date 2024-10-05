@@ -4,7 +4,7 @@ import { useWindowDimensions, Platform, KeyboardAvoidingView, ScrollView } from 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme, Avatar, Divider, IconButton, TouchableRipple } from "react-native-paper";
 
-import { Colors, View, Text, Card } from "react-native-ui-lib";
+import { Colors, View, Text, Card, Timeline } from "react-native-ui-lib";
 
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
 
@@ -12,7 +12,7 @@ import { supabase } from "@/supabase/config";
 
 import { Transaction, TimelineEvent } from "@/lib/helpers/types";
 
-import { Ionicons, Octicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons, Octicons } from "@expo/vector-icons";
 import { getInitials, formatISODate, formatTimeDifference } from "@/lib/helpers/functions";
 
 export default function TransactionDetailsScreen() {
@@ -112,6 +112,31 @@ export default function TransactionDetailsScreen() {
         });
     }, []);
 
+    const renderTimelineContent = (event: TimelineEvent, index: number, anchorRef?: any) => {
+        if (transactionLength) {
+            return (
+                <Card key={index} padding-page ref={anchorRef}>
+                    <View marginT-5 padding-8 bg-grey70 br30>
+                        <Text body className="font-bold">
+                            {event.type === "transaction_started" ? "Transaction Started" : null}
+                            {event.type === "user_joined" ? "User Joined" : null}
+                            {event.type === "user_left" ? "User Left" : null}
+                            {event.type === "payment_requested" ? "User Requested Payment" : null}
+                            {event.type === "payment_request_cancelled" ? "User Cancelled Payment" : null}
+                            {event.type === "payment_sent" ? "User Sent Payment" : null}
+                            {event.type === "payment_confirmed" ? "User Confirmed Payment" : null}
+                            {event.type === "payment_denied" ? "User Denied Payment" : null}
+                            {event.type === "product_sent" ? "User Sent Product" : null}
+                            {event.type === "product_received" ? "User Received Product" : null}
+                        </Text>
+                        <Text bodySmall gray400>{formatTimeDifference(event.timestamp, transactionLength.startTime, transactionLength.endTime)}</Text>
+                        <Text bodySmall>{event.from}</Text>
+                    </View>
+                </Card>
+            );
+        }
+    };
+
     return (
         <SafeAreaView className="flex flex-col w-full h-full pb-2 items-center justify-start">
             <KeyboardAvoidingView
@@ -194,38 +219,61 @@ export default function TransactionDetailsScreen() {
                                     </View>
                                 </View>
                                 <Divider className="my-2" />
-                                <View className="space-y-2">
+                                <View className="flex flex-col items-start">
                                     {transactionTimeline && transactionLength && transactionTimeline.sort(
                                         (a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp)
                                     ).map((event, i) => {
-                                        return (
-                                            <View key={i} className="flex flex-row">
-                                                <View className="flex flex-col items-center mr-4">
-                                                    <View className="w-3 h-3 rounded-full" style={{ backgroundColor: theme.colors.primary }}></View>
-                                                    {i !== transactionTimeline.length - 1 &&
-                                                        <View className="w-0.5 h-10" style={{ backgroundColor: theme.colors.primary }}></View>
-                                                    }
-                                                </View>
-                                                <View className="flex flex-row items-start justify-between">
-                                                    <View className="w-full">
-                                                        <Text body className="font-bold">
-                                                            {event.type === "transaction_started" ? "Transaction Started" : null}
-                                                            {event.type === "user_joined" ? "User Joined" : null}
-                                                            {event.type === "user_left" ? "User Left" : null}
-                                                            {event.type === "payment_requested" ? "User Requested Payment" : null}
-                                                            {event.type === "payment_request_cancelled" ? "User Cancelled Payment" : null}
-                                                            {event.type === "payment_sent" ? "User Sent Payment" : null}
-                                                            {event.type === "payment_confirmed" ? "User Confirmed Payment" : null}
-                                                            {event.type === "payment_denied" ? "User Denied Payment" : null}
-                                                            {event.type === "product_sent" ? "User Sent Product" : null}
-                                                            {event.type === "product_received" ? "User Received Product" : null}
-                                                        </Text>
-                                                        <Text bodySmall gray400>{formatTimeDifference(event.timestamp, transactionLength.startTime, transactionLength.endTime)}</Text>
-                                                        <Text bodySmall>{event.from}</Text>
-                                                    </View>
-                                                </View>
-                                            </View>
-                                        )
+                                        if (i == 0) {
+                                            return (
+                                                <Timeline
+                                                    key={i}
+                                                    bottomLine={{
+                                                        type: Timeline.lineTypes.DASHED,
+                                                        color: Colors.primary700,
+                                                    }}
+                                                    point={{
+                                                        type: Timeline.pointTypes.CIRCLE,
+                                                        color: Colors.primary700,
+                                                    }}
+                                                >
+                                                    {renderTimelineContent(event, i)}
+                                                </Timeline>
+                                            )
+                                        } else if (i > 0 && i < transactionTimeline.length - 1) {
+                                            return (
+                                                <Timeline
+                                                    key={i}
+                                                    topLine={{
+                                                        state: Timeline.states.CURRENT
+                                                    }}
+                                                    bottomLine={{
+                                                        state: Timeline.states.CURRENT,
+                                                        color: Colors.primary700,
+                                                    }}
+                                                    point={{
+                                                        type: Timeline.pointTypes.CIRCLE,
+                                                        color: Colors.primary700,
+                                                    }}
+                                                >
+                                                    {renderTimelineContent(event, i)}
+                                                </Timeline>
+                                            )
+                                        } else {
+                                            return (
+                                                <Timeline
+                                                    key={i}
+                                                    topLine={{ 
+                                                        type: Timeline.lineTypes.DASHED,
+                                                    }}
+                                                    point={{
+                                                        type: Timeline.pointTypes.CIRCLE,
+                                                        color: Colors.primary700,
+                                                    }}
+                                                >
+                                                    {renderTimelineContent(event, i)}
+                                                </Timeline>
+                                            )
+                                        }
                                     })}
                                 </View>
                             </Card>
