@@ -29,6 +29,7 @@ const RequestPaymentRoute: FC<RequestPaymentRouteProps> = ({ dropdownStyle, disa
                         <Picker
                             value={requestDetails.currency}
                             mode={PickerModes.SINGLE}
+                            fieldType="filter"
                             className="rounded-lg px-4 py-4"
                             style={{ backgroundColor: Colors.gray100, borderBottomWidth: 1, borderBottomColor: Colors.gray400 }}
                             onChange={value => setRequestDetails({ ...requestDetails, currency: value?.toString() })}
@@ -49,6 +50,7 @@ const RequestPaymentRoute: FC<RequestPaymentRouteProps> = ({ dropdownStyle, disa
                     <Picker
                         value={requestDetails.platform}
                         mode={PickerModes.SINGLE}
+                        fieldType="filter"
                         className="rounded-lg px-4 py-2"
                         style={{ backgroundColor: Colors.gray100, borderBottomWidth: 1, borderBottomColor: Colors.gray400 }}
                         onChange={value => setRequestDetails({ ...requestDetails, platform: value?.toString() })}

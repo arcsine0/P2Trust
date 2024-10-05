@@ -282,16 +282,6 @@ export default function TransactionDetailsScreen() {
                         null
                     }
                 </ScrollView>
-                {/* <View className="w-full px-4 pt-2 flex flex-row space-x-1">
-                    <Button
-                        className="rounded-lg grow"
-                        icon="comment-multiple"
-                        mode="contained"
-                        onPress={() => { }}
-                    >
-                        Comments
-                    </Button>
-                </View> */}
             </KeyboardAvoidingView>
         </SafeAreaView>
     )

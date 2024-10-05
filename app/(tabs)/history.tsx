@@ -5,7 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme, Searchbar, Icon, IconButton } from "react-native-paper";
 import { Dropdown } from "react-native-element-dropdown";
 
-import { Colors, View, Text, Card, Chip } from "react-native-ui-lib"
+import { Colors, View, Text, Card, Chip, Picker, PickerModes } from "react-native-ui-lib"
 
 import { router, useNavigation } from "expo-router";
 
@@ -13,7 +13,7 @@ import { supabase } from "@/supabase/config";
 
 import { useUserData } from "@/lib/context/UserContext";
 
-import { FontAwesome6 } from "@expo/vector-icons";
+import { FontAwesome6, MaterialCommunityIcons } from "@expo/vector-icons";
 
 import { Transaction } from "@/lib/helpers/types";
 import { FilterOptions } from "@/lib/helpers/collections";
@@ -22,7 +22,7 @@ import { getInitials } from "@/lib/helpers/functions";
 export default function TransactionHistoryScreen() {
 	const [transactions, setTransactions] = useState<Transaction[] | undefined>(undefined);
 	const [searchQuery, setSearchQuery] = useState<string>("");
-	const [filterOption, setFilterOption] = useState<string>("All");
+	const [filterOption, setFilterOption] = useState<string | undefined>("All");
 
 	const { userData } = useUserData();
 
@@ -72,14 +72,14 @@ export default function TransactionHistoryScreen() {
 				{userData ?
 					<View className="flex flex-col space-y-2 w-full h-full">
 						<Text h2 className="px-4">Transaction History</Text>
-						<View className="flex flex-row px-4 space-x-2 items-center justify-center">
+						<View className="flex flex-row px-4 space-x-2 items-center">
 							<Searchbar
 								placeholder="Search ID..."
 								onChangeText={setSearchQuery}
 								value={searchQuery}
-								className="rounded-lg grow"
+								className="rounded-lg flex-1"
 								style={{
-									backgroundColor: theme.colors.background,
+									backgroundColor: Colors.gray100,
 									height: 50
 								}}
 								inputStyle={{
@@ -87,22 +87,26 @@ export default function TransactionHistoryScreen() {
 								}}
 								elevation={1}
 							/>
-							<Dropdown
-								style={{
-									backgroundColor: theme.colors.background,
-									height: 50,
-									borderRadius: 0.5,
-								}}
-								data={FilterOptions}
-								value={filterOption}
-								onChange={value => setFilterOption(value.value)}
-								labelField="label"
-								valueField="value"
-							/>
+							<View style={{ backgroundColor: Colors.gray100, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 13, elevation: 2 }}>
+								<Picker
+									value={filterOption}
+									mode={PickerModes.SINGLE}
+									fieldType="filter"
+									useDialog={true}
+									customPickerProps={{ migrateDialog: true, }}
+									// trailingAccessory={<MaterialCommunityIcons name="chevron-down" size={20} color={Colors.gray900} />}
+									// containerStyle={{ backgroundColor: Colors.gray100, borderRadius: 8, paddingHorizontal: 4, paddingVertical: 2, elevation: 2 }}
+									onChange={value => setFilterOption(value?.toString())}
+								>
+									{FilterOptions.map((option, i) => (
+										<Picker.Item key={i} label={option.label} value={option.value} />
+									))}
+								</Picker>
+							</View>
 						</View>
 						<ScrollView className="w-full">
 							<View className="flex flex-col px-4 py-2 space-y-2 w-full">
-								{transactions && transactions.filter(transaction => searchQuery === '' || transaction.id.includes(searchQuery)).map((trans) => (
+								{transactions && transactions.filter(transaction => filterOption === "All" || transaction.status === filterOption?.toLocaleLowerCase()).filter(transaction => searchQuery === '' || transaction.id.includes(searchQuery)).map((trans) => (
 									<Card
 										key={trans.id}
 										style={{ backgroundColor: Colors.bgDefault }}
