@@ -46,7 +46,7 @@ const EventChip: FC<EventChipProps> = ({ type, from }) => {
             break;
         case "product_received":
             iconString = "hand-coin";
-            chipText = "has received the product / completed the service";
+            chipText = "has received the product / service";
             break;
         case "transaction_completed":
             iconString = "check";

@@ -84,6 +84,7 @@ export default function TransactionRoomScreen() {
 	const [isProductSentSending, setIsProductSentSending] = useState<boolean>(false);
 	const [isProductConfirmSending, setIsProductConfirmSending] = useState<boolean>(false);
 	const [isTransactionFinishing, setIsTransactionFinishing] = useState<boolean>(false);
+	const [isRatingSubmitting, setIsRatingSubmitting] = useState<boolean>(false);
 
 	const [hasSentProduct, setHasSentProduct] = useState<boolean>(false);
 	const [hasReceivedProduct, setHasReceivedProduct] = useState<boolean>(false);
@@ -413,21 +414,9 @@ export default function TransactionRoomScreen() {
 		}
 	}
 
-	const initiateTransactionClosure = () => {
-		interactionsChannel.send({
-			type: "broadcast",
-			event: "transaction",
-			payload: {
-				type: "transaction_completed",
-				data: {
-					id: userData?.id,
-					from: userData?.username,
-				}
-			}
-		});
-	}
-
 	const finishTransaction = async () => {
+		setIsTransactionFinishing(true);
+
 		const interactionsJSON = JSON.stringify(interactions?.filter(inter => inter.type !== "message").sort(
 			(a, b) => a.timestamp.getTime() - b.timestamp.getTime()
 		));
@@ -462,6 +451,8 @@ export default function TransactionRoomScreen() {
 							from: userData?.username,
 						}
 					}
+				}).then(() => {
+					setIsTransactionFinishing(false);
 				});
 			} else {
 				console.log(error);
@@ -470,6 +461,8 @@ export default function TransactionRoomScreen() {
 	}
 
 	const submitRatings = async () => {
+		setIsRatingSubmitting(true);
+
 		if (userData && merchantData) {
 			const { error } = await supabase
 				.from("ratings")
@@ -482,6 +475,8 @@ export default function TransactionRoomScreen() {
 				});
 
 			if (!error) {
+				setIsRatingSubmitting(false);
+
 				ratingsModalRef.current?.close();
 				router.navigate("/(transactionRoom)");
 			} else {
@@ -787,7 +782,7 @@ export default function TransactionRoomScreen() {
 		getRoomData();
 		setInteractions([]);
 		setReceipt(undefined);
-		
+
 		setHasSentProduct(false);
 		setHasReceivedProduct(false);
 
@@ -1017,7 +1012,7 @@ export default function TransactionRoomScreen() {
 							</View>
 						</ExpandableSection>
 					)}
-				{interactions && !hasReceivedProduct && 
+				{interactions && !hasReceivedProduct &&
 					interactions.some(inter => inter.type === "product_sent" && inter.from === merchantData?.username) && (
 						<ExpandableSection
 							expanded={showProductReceivedSection}
@@ -1234,12 +1229,19 @@ export default function TransactionRoomScreen() {
 							<Button
 								className="rounded-lg w-full"
 								onPress={() => submitRatings()}
-								disabled={selectedTags.length !== 0 ? false : true}
+								disabled={selectedTags.length !== 0 ? false : true || isRatingSubmitting}
 							>
-								<View className="flex flex-row space-x-2 items-center">
-									<MaterialCommunityIcons name="send" size={20} color={"white"} />
-									<Text buttonSmall white>Submit Rating</Text>
-								</View>
+								{!isRatingSubmitting ?
+									<View className="flex flex-row space-x-2 items-center">
+										<MaterialCommunityIcons name="send" size={20} color={"white"} />
+										<Text buttonSmall white>Submit Rating</Text>
+									</View>
+									:
+									<View className="flex flex-row space-x-2 items-center">
+										<ActivityIndicator animating={true} size={20} color="white" />
+										<Text buttonSmall white>Submitting...</Text>
+									</View>
+								}
 							</Button>
 						</View>
 					</BottomSheetView>
@@ -1337,15 +1339,6 @@ export default function TransactionRoomScreen() {
 							<Text body>{merchantData?.username} has cancelled the transaction.</Text>
 						}
 						<View className="flex flex-row w-full items-center justify-end space-x-2">
-							<Button
-								className="rounded-lg"
-								style={{ backgroundColor: Colors.gray50 }}
-								outline={true}
-								outlineColor={Colors.gray900}
-								onPress={() => setShowFinishConfirmationDialog(false)}
-							>
-								<Text buttonSmall gray900>Cancel</Text>
-							</Button>
 							<Button
 								className="rounded-lg"
 								onPress={() => {
