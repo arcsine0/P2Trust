@@ -8,11 +8,7 @@ export default function LoginLayout() {
                     options={{ headerShown: false }}
                 />
                 <Stack.Screen
-                    name="registerIdentifier"
-                    options={{ headerShown: false }}
-                />
-                <Stack.Screen
-                    name="registerPass"
+                    name="register"
                     options={{ headerShown: false }}
                 />
             </Stack>

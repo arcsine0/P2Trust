@@ -3,6 +3,8 @@ import { Float } from "react-native/Libraries/Types/CodegenTypes";
 export type UserData = {
 	id: string;
 	username: string;
+    firstname: string;
+    lastname: string;
 	push_token: string;
 	[key: string]: any;
 }

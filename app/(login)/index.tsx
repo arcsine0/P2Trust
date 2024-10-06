@@ -1,7 +1,7 @@
 import { useContext, useState } from "react";
 import { ScrollView, TouchableOpacity } from "react-native";
 import { useTheme, TextInput, Divider, ActivityIndicator } from "react-native-paper";
-import { View, Text, Button, TextField } from "react-native-ui-lib";
+import { Colors, View, Text, Button, Picker, PickerModes } from "react-native-ui-lib";
 
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
@@ -10,23 +10,34 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 
 import { supabase } from "@/supabase/config";
+import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin";
 
 import { useUserData } from "@/lib/context/UserContext";
-
-import { Colors } from "react-native-ui-lib";
+import { PhoneCountryCodes } from "@/lib/helpers/collections";
 
 export default function LoginScreen() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("test1234");
 
+    const [countryCode, setCountryCode] = useState<string | undefined>("+63");
+    const [phoneNumber, setPhoneNumber] = useState<string>("");
+    const [OTP, setOTP] = useState<string>("");
+
     const [defaultLoginLoading, setDefaultLoginLoading] = useState<boolean>(false);
-    const [googleLoginLoading, setGoogleLoginLoading] = useState<boolean>(false);
-    const [facebookLoginLoading, setFacebookLoginLoading] = useState<boolean>(false);
     const [phoneLoginLoading, setPhoneLoginLoading] = useState<boolean>(false);
+    const [phoneOTPSending, setPhoneOTPSending] = useState<boolean>(false);
+
+    const [hasSentOTP, setHasSentOTP] = useState<boolean>(false);
+
+    const [isEmailLogin, setIsEmailLogin] = useState<boolean>(true);
 
     const { userData, setUserData } = useUserData();
 
     const theme = useTheme();
+
+    // GoogleSignin.configure({
+    //     webClientId: 
+    // });
 
     const userLogin = async () => {
         setDefaultLoginLoading(true);
@@ -56,57 +67,181 @@ export default function LoginScreen() {
         }
     }
 
-    const loginWithGoogle = async () => {
+    // const loginWithGoogle = async () => {
+    //     try {
+    //         await GoogleSignin.hasPlayServices();
+    //         const userInfo = await GoogleSignin.signIn();
 
-    }
+    //         if (userInfo.data?.idToken) {
+    //             console.log("success")
+    //         }
 
-    const loginWithFacebook = async () => {
+    //     } catch (error) {
+    //         console.log(error);
+    //     }
+    // }
 
+    const sendOTP = async () => {
+        setPhoneOTPSending(true);
+        console.log(`${countryCode}${phoneNumber}`)
+
+        const { error } = await supabase.auth.signInWithOtp({
+            phone: `${countryCode}${phoneNumber}`,
+        });
+
+        if (!error) {
+            setHasSentOTP(true);
+            setPhoneOTPSending(false);
+        } else {
+            setPhoneOTPSending(false);
+
+            console.log(error);
+        }
     }
 
     const loginWithPhone = async () => {
+        setPhoneLoginLoading(true);
 
+        const { data: { session }, error: loginError } = await supabase.auth.verifyOtp({
+            type: "sms",
+            phone: `${countryCode}${phoneNumber}`,
+            token: OTP,
+        });
+
+        if (!loginError && session && session.user) {
+            const { data, error } = await supabase
+                .from("accounts")
+                .select("*")
+                .eq("id", session.user.id);
+
+            if (!error) {
+                setPhoneLoginLoading(false);
+                setUserData(data[0]);
+
+                router.push("/(tabs)");
+            }
+        }
     }
 
     return (
-        <SafeAreaView className="flex flex-col w-screen h-screen space-y-3 px-4 items-center justify-end">
-            <Text h1>P2Trust</Text>
-            <TextInput
-                className="w-full rounded-lg"
-                mode="outlined"
-                label="Email"
-                placeholder="example@email.com"
-                value={email}
-                onChangeText={setEmail}
-            />
-            <TextInput
-                className="w-full rounded-lg"
-                mode="outlined"
-                label="Password"
-                secureTextEntry={true}
-                value={password}
-                onChangeText={setPassword}
-            />
-            <Button
-                className="w-full rounded-lg"
-                disabled={defaultLoginLoading}
-                onPress={() => userLogin()}
-            >
-                {!defaultLoginLoading ?
-                    <View className="flex flex-row space-x-2 items-center">
-                        <MaterialCommunityIcons name="account-arrow-right" size={20} color={"white"} />
-                        <Text buttonSmall white>Login</Text>
-                    </View>
+        <SafeAreaView className="flex flex-col w-screen h-screen space-y-2 px-4 items-center justify-start">
+            <Text h1 className="mt-32">P2Trust</Text>
+            {isEmailLogin ?
+                <View className="flex flex-col w-full space-y-2">
+                    <TextInput
+                        className="w-full rounded-lg"
+                        mode="outlined"
+                        label="Email"
+                        placeholder="example@email.com"
+                        value={email}
+                        onChangeText={setEmail}
+                    />
+                    <TextInput
+                        className="w-full rounded-lg"
+                        mode="outlined"
+                        label="Password"
+                        secureTextEntry={true}
+                        value={password}
+                        onChangeText={setPassword}
+                    />
+                    <Button
+                        className="w-full rounded-lg"
+                        disabled={defaultLoginLoading}
+                        onPress={() => userLogin()}
+                    >
+                        {!defaultLoginLoading ?
+                            <View className="flex flex-row space-x-2 items-center">
+                                <MaterialCommunityIcons name="account-arrow-right" size={20} color={"white"} />
+                                <Text buttonSmall white>Login</Text>
+                            </View>
 
-                    :
-                    <View className="flex flex-row space-x-2 items-center">
-                        <ActivityIndicator animating={true} size={20} color="white" />
-                        <Text buttonSmall white>Logging In...</Text>
+                            :
+                            <View className="flex flex-row space-x-2 items-center">
+                                <ActivityIndicator animating={true} size={20} color="white" />
+                                <Text buttonSmall white>Logging In...</Text>
+                            </View>
+                        }
+                    </Button>
+                </View>
+                :
+                <View className="flex flex-col w-full space-y-2">
+                    <View className="flex flex-row w-full space-x-2 items-center">
+                        <View
+                            style={{ backgroundColor: Colors.gray100, paddingVertical: 13, elevation: 2 }}
+                            className="px-2 rounded-lg"
+                        >
+                            <Picker
+                                value={countryCode}
+                                mode={PickerModes.SINGLE}
+                                fieldType="filter"
+                                showSearch={true}
+                                onChange={value => setCountryCode(value?.toString())}
+                            >
+                                {PhoneCountryCodes.map((code, i) => (
+                                    <Picker.Item key={i} label={code.label} value={code.value} />
+                                ))}
+                            </Picker>
+                        </View>
+                        <TextInput
+                            className="flex-1 rounded-lg"
+                            mode="outlined"
+                            label="Phone Number"
+                            value={phoneNumber}
+                            onChangeText={setPhoneNumber}
+                        />
                     </View>
-                }
-            </Button>
+                    {hasSentOTP && (
+                        <TextInput
+                            className="flex-1 rounded-lg"
+                            mode="outlined"
+                            label="Confirmation Code"
+                            value={OTP}
+                            onChangeText={setOTP}
+                        />
+                    )}
+                    {!hasSentOTP ?
+                        <Button
+                            className="w-full rounded-lg"
+                            disabled={phoneOTPSending}
+                            onPress={() => sendOTP()}
+                        >
+                            {!phoneOTPSending ?
+                                <View className="flex flex-row space-x-2 items-center">
+                                    <MaterialCommunityIcons name="account-arrow-right" size={20} color={"white"} />
+                                    <Text buttonSmall white>Send OTP</Text>
+                                </View>
+
+                                :
+                                <View className="flex flex-row space-x-2 items-center">
+                                    <ActivityIndicator animating={true} size={20} color="white" />
+                                    <Text buttonSmall white>Sending OTP...</Text>
+                                </View>
+                            }
+                        </Button>
+                        :
+                        <Button
+                            className="w-full rounded-lg"
+                            disabled={phoneLoginLoading}
+                            onPress={() => loginWithPhone()}
+                        >
+                            {!phoneLoginLoading ?
+                                <View className="flex flex-row space-x-2 items-center">
+                                    <MaterialCommunityIcons name="account-arrow-right" size={20} color={"white"} />
+                                    <Text buttonSmall white>Submit</Text>
+                                </View>
+
+                                :
+                                <View className="flex flex-row space-x-2 items-center">
+                                    <ActivityIndicator animating={true} size={20} color="white" />
+                                    <Text buttonSmall white>Submitting...</Text>
+                                </View>
+                            }
+                        </Button>
+                    }
+                </View>
+            }
             <Divider className="w-full" />
-            <Button
+            {/* <Button
                 className="w-full rounded-lg"
                 style={{ backgroundColor: Colors.gray50 }}
                 outline={true}
@@ -124,52 +259,36 @@ export default function LoginScreen() {
                         <Text buttonSmall white>Logging In...</Text>
                     </View>
                 }
-            </Button>
+            </Button> */}
             <Button
                 className="w-full rounded-lg"
                 style={{ backgroundColor: Colors.gray50 }}
                 outline={true}
-                onPress={() => loginWithFacebook()}
+                disabled={defaultLoginLoading || phoneLoginLoading || phoneOTPSending}
+                onPress={() => isEmailLogin ? setIsEmailLogin(false) : setIsEmailLogin(true)}
             >
-                {!facebookLoginLoading ?
-                    <View className="flex flex-row space-x-2 items-center">
-                        <MaterialCommunityIcons name="facebook" size={20} color={Colors.primary800} />
-                        <Text buttonSmall black>Continue with Facebook</Text>
-                    </View>
-                    :
-                    <View className="flex flex-row space-x-2 items-center">
-                        <ActivityIndicator animating={true} color="gray" />
-                        <Text buttonSmall white>Logging In...</Text>
-                    </View>
-                }
-            </Button>
-            <Button
-                className="w-full rounded-lg"
-                style={{ backgroundColor: Colors.gray50 }}
-                outline={true}
-                onPress={() => loginWithPhone()}
-            >
-                {!phoneLoginLoading ?
+                {isEmailLogin ?
                     <View className="flex flex-row space-x-2 items-center">
                         <MaterialCommunityIcons name="phone" size={20} color={Colors.primary800} />
                         <Text buttonSmall black>Continue with Phone Number</Text>
                     </View>
                     :
                     <View className="flex flex-row space-x-2 items-center">
-                        <ActivityIndicator animating={true} color="gray" />
-                        <Text buttonSmall white>Logging In...</Text>
+                        <MaterialCommunityIcons name="email" size={20} color={Colors.primary800} />
+                        <Text buttonSmall black>Continue with Email</Text>
                     </View>
                 }
+
             </Button>
             <Divider className="w-full" />
             <View className="flex flex-col space-y-1 items-center">
                 <Text bodySmall>Don't have an account?</Text>
                 <TouchableOpacity
-                    onPress={() => router.push("/(login)/registerIdentifier")}
+                    onPress={() => router.push("/(login)/register")}
                 >
                     <Text
                         className="font-bold"
-                        bodySmall 
+                        bodySmall
                         color={Colors.primary800}
                     >
                         Create an account
