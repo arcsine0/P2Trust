@@ -169,6 +169,14 @@ export default function TransactionHistoryScreen() {
 										</View>
 									</Card>
 								))}
+								{transactions && transactions.length <= 0 && (
+									<View
+										style={{ backgroundColor: Colors.gray200 }}
+										className="flex flex-col w-full px-10 py-20 space-y-1 items-center justify-center rounded-lg"
+									>
+										<Text bodyLarge black className="font-semibold">No Transactions Yet</Text>
+									</View>
+								)}
 							</View>
 						</ScrollView>
 					</View>

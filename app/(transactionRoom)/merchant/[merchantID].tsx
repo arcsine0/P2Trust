@@ -100,7 +100,7 @@ export default function TransactionLobbyScreen() {
                             payload: {
                                 created_at: Date,
                                 sender_id: userData.id,
-                                sender_name: userData.username,
+                                sender_name: `${userData.firstname} ${userData.lastname}`,
                             }
                         }).then(() => {
                             setRequestState("Waiting for Host...");
@@ -214,9 +214,9 @@ export default function TransactionLobbyScreen() {
                                 elevation={10}
                             >
                                 <View className="flex flex-row items-center gap-5">
-                                    <Avatar.Text label={getInitials(merchantData.username)} size={50} />
+                                    <Avatar.Text label={getInitials(merchantData.firstname)} size={50} />
                                     <View className="flex">
-                                        <Text h4>{merchantData.username}</Text>
+                                        <Text h4>{merchantData.firstname} {merchantData.lastname}</Text>
                                         <Text bodySmall className="text-ellipsis">Merchant ID: 123123</Text>
                                         <View className="flex flex-row space-x-2 items-center justify-start">
                                             <Octicons name="clock" size={10} />
@@ -324,7 +324,7 @@ export default function TransactionLobbyScreen() {
                 >
                     <BottomSheetView className="w-full h-full">
                         <View className="flex flex-col w-full px-4 py-2 items-start justify-start">
-                            <Text bodyLarge className="font-bold mb-2">Transaction with {merchantData?.username}</Text>
+                            <Text bodyLarge className="font-bold mb-2">Transaction with {merchantData?.firstname}</Text>
                             {!joinVisible ?
                                 <Button
                                     className="w-full rounded-lg"

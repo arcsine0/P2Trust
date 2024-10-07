@@ -137,7 +137,7 @@ export default function TransactionHomeScreen() {
                     .from("transactions")
                     .insert({
                         merchantID: userData.id,
-                        merchantName: userData.username,
+                        merchantName: `${userData.firstname} ${userData.lastname}`,
                         clientID: currentRequest.sender_id,
                         clientName: currentRequest.sender_name,
                     })
