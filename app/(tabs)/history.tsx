@@ -91,11 +91,9 @@ export default function TransactionHistoryScreen() {
 								<Picker
 									value={filterOption}
 									mode={PickerModes.SINGLE}
-									fieldType="filter"
 									useDialog={true}
 									customPickerProps={{ migrateDialog: true, }}
-									// trailingAccessory={<MaterialCommunityIcons name="chevron-down" size={20} color={Colors.gray900} />}
-									// containerStyle={{ backgroundColor: Colors.gray100, borderRadius: 8, paddingHorizontal: 4, paddingVertical: 2, elevation: 2 }}
+									trailingAccessory={<MaterialCommunityIcons name="chevron-down" size={20} color={Colors.gray900} />}
 									onChange={value => setFilterOption(value?.toString())}
 								>
 									{FilterOptions.map((option, i) => (

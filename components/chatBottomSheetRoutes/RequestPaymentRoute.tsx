@@ -26,18 +26,21 @@ const RequestPaymentRoute: FC<RequestPaymentRouteProps> = ({ dropdownStyle, disa
                 <View className="flex flex-col w-full space-y-2">
                     <Text bodyLarge className="font-bold">Transaction Details</Text>
                     <View className="flex flex-row w-full space-x-2">
-                        <Picker
-                            value={requestDetails.currency}
-                            mode={PickerModes.SINGLE}
-                            fieldType="filter"
-                            className="rounded-lg px-4 py-4"
-                            style={{ backgroundColor: Colors.gray100, borderBottomWidth: 1, borderBottomColor: Colors.gray400 }}
-                            onChange={value => setRequestDetails({ ...requestDetails, currency: value?.toString() })}
-                        >
-                            {Currencies.map((pl, i) => (
-                                <Picker.Item key={i} label={pl.label} value={pl.value} />
-                            ))}
-                        </Picker>
+                        <View style={{ backgroundColor: Colors.gray100, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 13, elevation: 2 }}>
+                            <Picker
+                                value={requestDetails.currency}
+                                mode={PickerModes.SINGLE}
+                                useDialog={true}
+                                customPickerProps={{ migrateDialog: true, }}
+                                trailingAccessory={<MaterialCommunityIcons name="chevron-down" size={20} color={Colors.gray900} />}
+                                onChange={value => setRequestDetails({ ...requestDetails, currency: value?.toString() })}
+                            >
+                                {Currencies.map((pl, i) => (
+                                    <Picker.Item key={i} label={pl.label} value={pl.value} />
+                                ))}
+                            </Picker>
+                        </View>
+
                         <TextInput
                             className="rounded-lg flex-1 overflow-scroll"
                             style={{ backgroundColor: Colors.gray100 }}
@@ -47,18 +50,21 @@ const RequestPaymentRoute: FC<RequestPaymentRouteProps> = ({ dropdownStyle, disa
                             keyboardType="numeric"
                         />
                     </View>
-                    <Picker
-                        value={requestDetails.platform}
-                        mode={PickerModes.SINGLE}
-                        fieldType="filter"
-                        className="rounded-lg px-4 py-2"
-                        style={{ backgroundColor: Colors.gray100, borderBottomWidth: 1, borderBottomColor: Colors.gray400 }}
-                        onChange={value => setRequestDetails({ ...requestDetails, platform: value?.toString() })}
-                    >
-                        {PaymentPlatforms.map((pl, i) => (
-                            <Picker.Item key={i} label={pl.label} value={pl.value} />
-                        ))}
-                    </Picker>
+                    <View style={{ backgroundColor: Colors.gray100, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 13, elevation: 2 }}>
+                        <Picker
+                            value={requestDetails.platform}
+                            mode={PickerModes.SINGLE}
+                            useDialog={true}
+                            customPickerProps={{ migrateDialog: true, }}
+                            trailingAccessory={<MaterialCommunityIcons name="chevron-down" size={20} color={Colors.gray900} />}
+                            onChange={value => setRequestDetails({ ...requestDetails, platform: value?.toString() })}
+                        >
+                            {PaymentPlatforms.map((pl, i) => (
+                                <Picker.Item key={i} label={pl.label} value={pl.value} />
+                            ))}
+                        </Picker>
+                    </View>
+
                 </View>
                 <View className="flex flex-col w-full space-y-2">
                     <Text bodyLarge className="font-bold">Your Account Details</Text>

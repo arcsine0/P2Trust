@@ -17,6 +17,7 @@ interface PaymentSentCardProps {
     id: string;
     userData: UserData | null;
     timestamp: Date;
+    sender_id: string;
     from: string
     platform?: string;
     currency?: string;
@@ -26,7 +27,7 @@ interface PaymentSentCardProps {
     onConfirm?: () => void;
 }
 
-const PaymentSentCard: FC<PaymentSentCardProps> = ({ style, id, userData, timestamp, from, platform, currency, status, receiptURL, onConfirm }) => {
+const PaymentSentCard: FC<PaymentSentCardProps> = ({ style, id, userData, timestamp, sender_id, from, platform, currency, status, receiptURL, onConfirm }) => {
     let currencySymbol;
 
     switch (currency) {
@@ -65,7 +66,7 @@ const PaymentSentCard: FC<PaymentSentCardProps> = ({ style, id, userData, timest
                     contentFit="contain"
                     className="w-full"
                 />
-                {userData.username !== from ?
+                {userData.id !== sender_id ?
                     <Button
                         className="rounded-lg flex-1"
                         disabled={status !== "pending"}

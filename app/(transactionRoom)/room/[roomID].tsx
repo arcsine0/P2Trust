@@ -108,6 +108,7 @@ export default function TransactionRoomScreen() {
 			event: "message",
 			payload: {
 				data: {
+					sender_id: userData?.id,
 					from: sender,
 					message: message,
 				}
@@ -143,7 +144,8 @@ export default function TransactionRoomScreen() {
 						type: "payment_requested",
 						data: {
 							id: data[0].id,
-							from: userData?.username || "N/A",
+							sender_id: userData?.id,
+							from: userData?.firstname || "N/A",
 							amount: requestDetails.amount,
 							currency: requestDetails.currency,
 							platform: requestDetails.platform,
@@ -197,7 +199,8 @@ export default function TransactionRoomScreen() {
 							type: "payment_request_cancelled",
 							data: {
 								id: id,
-								from: userData?.username,
+								sender_id: userData?.id,
+								from: userData?.firstname,
 							}
 						}
 					}).then(() => {
@@ -258,7 +261,8 @@ export default function TransactionRoomScreen() {
 									type: "payment_sent",
 									data: {
 										id: id,
-										from: userData?.username,
+										sender_id: userData?.id,
+										from: userData?.firstname,
 										receipt: receiptData.path,
 									}
 								}
@@ -310,7 +314,8 @@ export default function TransactionRoomScreen() {
 						type: "payment_confirmed",
 						data: {
 							id: id,
-							from: userData?.username,
+							sender_id: userData?.id,
+							from: userData?.firstname,
 							amount: data[0].amount,
 						}
 					}
@@ -353,7 +358,8 @@ export default function TransactionRoomScreen() {
 						type: "payment_denied",
 						data: {
 							id: id,
-							from: userData?.username,
+							sender_id: userData?.id,
+							from: userData?.firstname,
 						}
 					}
 				}).then(() => {
@@ -379,7 +385,8 @@ export default function TransactionRoomScreen() {
 					type: "product_sent",
 					data: {
 						id: userData?.id,
-						from: userData?.username,
+						sender_id: userData?.id,
+						from: userData?.firstname,
 					}
 				}
 			}).then(() => {
@@ -402,7 +409,8 @@ export default function TransactionRoomScreen() {
 					type: "product_received",
 					data: {
 						id: userData?.id,
-						from: userData?.username,
+						sender_id: userData?.id,
+						from: userData?.firstname,
 					}
 				}
 			}).then(() => {
@@ -448,7 +456,7 @@ export default function TransactionRoomScreen() {
 						type: "transaction_completed",
 						data: {
 							id: userData?.id,
-							from: userData?.username,
+							from: userData?.firstname,
 						}
 					}
 				}).then(() => {
@@ -528,6 +536,7 @@ export default function TransactionRoomScreen() {
 									setInteractions(curr => [...(curr || []), {
 										timestamp: new Date(Date.now()),
 										type: "user_left",
+										sender_id: payloadData.sender_id,
 										from: payloadData.from,
 									}]);
 
@@ -548,6 +557,7 @@ export default function TransactionRoomScreen() {
 							setInteractions(curr => [...(curr || []), {
 								timestamp: new Date(Date.now()),
 								type: "message",
+								sender_id: payloadData.data.sender_id,
 								from: payloadData.data.from,
 								data: {
 									message: payloadData.data.message,
@@ -566,6 +576,7 @@ export default function TransactionRoomScreen() {
 									setInteractions(curr => [...(curr || []), {
 										timestamp: new Date(Date.now()),
 										type: "payment_requested",
+										sender_id: payloadData.data.sender_id,
 										from: payloadData.data.from,
 										data: {
 											id: payloadData.data.id,
@@ -589,6 +600,7 @@ export default function TransactionRoomScreen() {
 									setInteractions(curr => [...(curr || []), {
 										timestamp: new Date(Date.now()),
 										type: "payment_sent",
+										sender_id: payloadData.data.sender_id,
 										from: payloadData.data.from,
 										data: {
 											id: payloadData.data.id,
@@ -609,6 +621,7 @@ export default function TransactionRoomScreen() {
 									setInteractions(curr => [...(curr || []), {
 										timestamp: new Date(Date.now()),
 										type: "payment_request_cancelled",
+										sender_id: payloadData.data.sender_id,
 										from: payloadData.data.from,
 										data: {
 											id: payloadData.data.id,
@@ -632,6 +645,7 @@ export default function TransactionRoomScreen() {
 									setInteractions(curr => [...(curr || []), {
 										timestamp: new Date(Date.now()),
 										type: "payment_confirmed",
+										sender_id: payloadData.data.sender_id,
 										from: payloadData.data.from,
 										data: {
 											id: payloadData.data.id,
@@ -658,6 +672,7 @@ export default function TransactionRoomScreen() {
 									setInteractions(curr => [...(curr || []), {
 										timestamp: new Date(Date.now()),
 										type: "payment_denied",
+										sender_id: payloadData.data.sender_id,
 										from: payloadData.data.from,
 										data: {
 											id: payloadData.data.id,
@@ -681,6 +696,7 @@ export default function TransactionRoomScreen() {
 									setInteractions(curr => [...(curr || []), {
 										timestamp: new Date(Date.now()),
 										type: "product_sent",
+										sender_id: payloadData.data.sender_id,
 										from: payloadData.data.from,
 										data: {
 											id: payloadData.data.id,
@@ -692,6 +708,7 @@ export default function TransactionRoomScreen() {
 									setInteractions(curr => [...(curr || []), {
 										timestamp: new Date(Date.now()),
 										type: "product_received",
+										sender_id: payloadData.data.sender_id,
 										from: payloadData.data.from,
 										data: {
 											id: payloadData.data.id,
@@ -758,14 +775,14 @@ export default function TransactionRoomScreen() {
 								type: "broadcast",
 								event: "user",
 								payload: {
-									from: userData.username,
+									from: userData.firstname,
 									type: "join"
 								}
 							});
 
 							setConnectedUsers(prevConnectedUsers => {
-								if (!prevConnectedUsers.includes(userData.username)) {
-									return [...prevConnectedUsers, userData.username];
+								if (!prevConnectedUsers.includes(userData.firstname)) {
+									return [...prevConnectedUsers, userData.firstname];
 								} else {
 									return prevConnectedUsers;
 								}
@@ -828,7 +845,8 @@ export default function TransactionRoomScreen() {
 				type: "broadcast",
 				event: "user",
 				payload: {
-					from: userData?.username,
+					sender_id: userData?.id,
+					from: userData?.firstname,
 					type: "left"
 				}
 			}).then(() => {
@@ -897,6 +915,7 @@ export default function TransactionRoomScreen() {
 												style={{ backgroundColor: theme.colors.background }}
 												userData={userData}
 												timestamp={inter.timestamp}
+												sender_id={inter.sender_id}
 												from={inter.from}
 												amount={inter.data.amount}
 												platform={inter.data.platform}
@@ -931,6 +950,7 @@ export default function TransactionRoomScreen() {
 													id={inter.data.id}
 													userData={userData}
 													timestamp={inter.timestamp}
+													sender_id={inter.sender_id}
 													from={inter.from}
 													status={inter.data.status}
 													receiptURL={receiptURL.publicUrl}
@@ -953,7 +973,7 @@ export default function TransactionRoomScreen() {
 					/>
 					: null}
 				{interactions && !hasSentProduct &&
-					interactions.some(inter => inter.type === "payment_confirmed" && inter.from === userData?.username) && (
+					interactions.some(inter => inter.type === "payment_confirmed" && inter.sender_id === userData?.id) && (
 						<ExpandableSection
 							expanded={showProductSentSection}
 							onPress={() => setShowProductSentSection(true)}
@@ -1013,7 +1033,7 @@ export default function TransactionRoomScreen() {
 						</ExpandableSection>
 					)}
 				{interactions && !hasReceivedProduct &&
-					interactions.some(inter => inter.type === "product_sent" && inter.from === merchantData?.username) && (
+					interactions.some(inter => inter.type === "product_sent" && inter.sender_id === merchantData?.id) && (
 						<ExpandableSection
 							expanded={showProductReceivedSection}
 							onPress={() => setShowProductReceivedSection(true)}
@@ -1076,7 +1096,7 @@ export default function TransactionRoomScreen() {
 						label="Message"
 						value={message}
 						onChangeText={text => setMessage(text)}
-						onSubmitEditing={() => sendMessage(message, userData?.username || "N/A")}
+						onSubmitEditing={() => sendMessage(message, userData?.firstname || "N/A")}
 						multiline
 						dense
 					/>
@@ -1085,7 +1105,7 @@ export default function TransactionRoomScreen() {
 						backgroundColor={Colors.primary700}
 						disabled={!message && isMessageSending}
 						round={true}
-						onPress={() => sendMessage(message, userData?.username || "N/A")}
+						onPress={() => sendMessage(message, userData?.firstname || "N/A")}
 					>
 						<MaterialCommunityIcons name="send" size={20} color={"white"} />
 					</Button>

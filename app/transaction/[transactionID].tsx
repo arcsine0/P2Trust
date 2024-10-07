@@ -162,15 +162,13 @@ export default function TransactionDetailsScreen() {
                                                 <Text bodySmall gray400>ID: 123123</Text>
                                                 <View className="flex flex-row space-x-1 items-center">
                                                     <Ionicons name="thumbs-up-sharp" size={10} color={Colors.success500} />
-                                                    <Text bodySmall>{userRating ? userRating.positive : 0}</Text>
+                                                    <Text bodySmall>{merchantRating ? merchantRating.positive : 0}</Text>
                                                     <Ionicons name="thumbs-down-sharp" size={10} color={Colors.error500} />
-                                                    <Text bodySmall>{userRating ? userRating.negative : 0}</Text>
+                                                    <Text bodySmall>{merchantRating ? merchantRating.negative : 0}</Text>
                                                 </View>
                                             </View>
                                         </View>
                                     </TouchableRipple>
-
-                                    <View></View>
                                     <View className="flex flex-col items-end justify-center">
                                         <Text body success400 className="font-bold">PHP {transactionData.total_amount}</Text>
                                         <Text caption gray400>Received</Text>
@@ -187,9 +185,9 @@ export default function TransactionDetailsScreen() {
                                                 <Text bodySmall gray400>ID: 123123</Text>
                                                 <View className="flex flex-row space-x-1 items-center">
                                                     <Ionicons name="thumbs-up-sharp" size={10} color={Colors.success500} />
-                                                    <Text bodySmall>{merchantRating ? merchantRating.positive : 0}</Text>
+                                                    <Text bodySmall>{userRating ? userRating.positive : 0}</Text>
                                                     <Ionicons name="thumbs-down-sharp" size={10} color={Colors.error500} />
-                                                    <Text bodySmall>{merchantRating ? merchantRating.negative : 0}</Text>
+                                                    <Text bodySmall>{userRating ? userRating.negative : 0}</Text>
                                                 </View>
                                             </View>
                                         </View>

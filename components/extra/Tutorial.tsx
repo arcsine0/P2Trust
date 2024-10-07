@@ -59,9 +59,9 @@ const Tutorial = forwardRef<any, TutorialProps>((props, ref) => {
         };
     };
 
-    useEffect(() => {
-        console.log("Target updated: ", targets);
-    }, [targets]);
+    // useEffect(() => {
+    //     console.log("Target updated: ", targets);
+    // }, [targets]);
 
     return (
         <FeatureHighlight

@@ -1,4 +1,4 @@
-import { FC, Dispatch, SetStateAction } from "react";
+import { FC, Dispatch, SetStateAction, useEffect } from "react";
 import { Icon, TouchableRipple, ActivityIndicator, Divider } from "react-native-paper";
 
 import { Colors, View, Text, Button } from "react-native-ui-lib";
@@ -23,6 +23,8 @@ interface SendPaymentRouteProps {
 }
 
 const SendPaymentRoute: FC<SendPaymentRouteProps> = ({ disabled, paymentDetails, receipt, setReceipt, pickReceipt, sendPayment, cancel }) => {
+    console.log(receipt?.uri);
+    
     return (
         <View className="flex flex-col space-y-2 p-4 items-start justify-start">
             <View className="flex flex-col w-full space-y-2">
@@ -82,9 +84,9 @@ const SendPaymentRoute: FC<SendPaymentRouteProps> = ({ disabled, paymentDetails,
                             </TouchableRipple>
                             :
                             <Image
-                                className="w-full"
-                                source={{ uri: receipt.uri }}
-                                contentFit="contain"
+                                // className="w-full"
+                                source={receipt.uri}
+                                onError={(error) => console.log(error)}
                             />
                         }
                     </View>

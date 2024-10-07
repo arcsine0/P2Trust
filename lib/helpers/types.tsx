@@ -59,6 +59,7 @@ export type Interaction =
 | {
     timestamp: Date;
     type: "payment_requested";
+    sender_id: string;
     from: string;
     data: {
         id: string;
@@ -73,6 +74,7 @@ export type Interaction =
 | {
     timestamp: Date;
     type: "payment_request_cancelled";
+    sender_id: string;
     from: string;
     data: {
         id: string;
@@ -81,6 +83,7 @@ export type Interaction =
 | {
     timestamp: Date;
     type: "payment_sent";
+    sender_id: string;
     from: string;
     data: {
         id: string;
@@ -91,6 +94,7 @@ export type Interaction =
 | {
     timestamp: Date;
     type: "payment_confirmed" | "payment_denied";
+    sender_id: string;
     from: string;
     data: {
         id: string;
@@ -99,6 +103,7 @@ export type Interaction =
 | {
     timestamp: Date;
     type: "product_sent" | "product_received";
+    sender_id: string;
     from: string;
     data: {
         id: string;
@@ -107,6 +112,7 @@ export type Interaction =
 | {
     timestamp: Date;
     type: "message";
+    sender_id: string;
     from: string;
     data: {
         message: string;

@@ -10,6 +10,7 @@ import { UserData } from "@/lib/helpers/types";
 interface PaymentRequestCardProps {
     timestamp: Date;
     userData: UserData | null;
+    sender_id: string;
     from: string;
     platform: string;
     currency: string;
@@ -19,7 +20,7 @@ interface PaymentRequestCardProps {
     style?: ViewStyle;
 }
 
-const PaymentRequestCard: FC<PaymentRequestCardProps> = ({ style, userData, timestamp, from, platform, currency, amount, status, onPayment }) => {
+const PaymentRequestCard: FC<PaymentRequestCardProps> = ({ style, userData, timestamp, from, sender_id, platform, currency, amount, status, onPayment }) => {
     let currencySymbol;
 
     switch (currency) {
@@ -60,7 +61,7 @@ const PaymentRequestCard: FC<PaymentRequestCardProps> = ({ style, userData, time
                         />
                         <Text variant="bodyMedium" className="text-slate-400">Pay Via {platform}</Text>
                     </View>
-                    {userData.username !== from ?
+                    {userData.id !== sender_id ?
                         <Button
                             className="rounded-lg w-full"
                             icon={"cash"}
