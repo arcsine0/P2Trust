@@ -790,11 +790,11 @@ export default function TransactionRoomScreen() {
 			headerLeft: () => (
 				<View className="flex flex-row gap-2 items-center justify-start">
 					{merchantData ?
-						<Avatar.Text label={getInitials(merchantData.username)} size={30} />
+						<Avatar.Text label={getInitials(merchantData.firstname)} size={30} />
 						:
 						<Avatar.Text label="N/A" size={30} />
 					}
-					<Text h4>{merchantData?.username || "N/A"}</Text>
+					<Text h4>{merchantData?.firstname || "N/A"}</Text>
 				</View>
 			),
 			headerRight: () => (

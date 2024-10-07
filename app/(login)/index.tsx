@@ -54,11 +54,14 @@ export default function LoginScreen() {
                     .select("*")
                     .eq("id", session.user.id);
 
-                if (!error) {
+                if (!error && data && data.length > 0) {
                     setDefaultLoginLoading(false);
                     setUserData(data[0]);
 
                     router.push("/(tabs)");
+                } else {
+                    console.log("Error logging in: ", error);
+                    setDefaultLoginLoading(false);
                 }
             }
         } else {

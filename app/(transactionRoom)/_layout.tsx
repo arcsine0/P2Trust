@@ -20,12 +20,12 @@ export default function TransactionLayout() {
                         headerLeft: () => (
                             <View className="flex flex-row space-x-2 items-center justify-start">
                                 {userData ?
-                                    <Avatar.Text label={getInitials(userData.username)} size={30} />
+                                    <Avatar.Text label={getInitials(userData.firstname)} size={30} />
                                     :
                                     <Avatar.Text label="N/A" size={30} />
                                 }
                                 <View className="flex flex-col items-start justify-center">
-                                    <Text bodyLarge className="font-bold">{userData?.username || "N/A"}</Text>
+                                    <Text bodyLarge className="font-bold">{userData?.firstname || "N/A"}</Text>
                                     <Text bodySmall>ID: 123123</Text>
                                 </View>
                             </View>

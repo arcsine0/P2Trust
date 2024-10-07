@@ -179,7 +179,8 @@ export default function RegisterScreen() {
                         firstname: firstName,
                         lastname: lastName,
                     })
-                    .eq("id", uid);
+                    .eq("id", uid)
+                    .select();
 
                 if (!updateError && data) {
                     setUserData(data[0]);
@@ -190,6 +191,9 @@ export default function RegisterScreen() {
                     setIsLoggingIn(false);
                     console.log("Error updating accounts table: ", updateError);
                 }
+            } else {
+                setIsLoggingIn(false);
+                console.log(verifyError);
             }
 
         } catch (error) {
