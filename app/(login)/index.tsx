@@ -83,7 +83,6 @@ export default function LoginScreen() {
 
     const sendOTP = async () => {
         setPhoneOTPSending(true);
-        console.log(`${countryCode}${phoneNumber}`)
 
         const { error } = await supabase.auth.signInWithOtp({
             phone: `${countryCode}${phoneNumber}`,

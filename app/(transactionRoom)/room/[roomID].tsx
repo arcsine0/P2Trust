@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useWindowDimensions, Platform, KeyboardAvoidingView, FlatList, TouchableOpacity } from "react-native";
+import { useWindowDimensions, Platform, KeyboardAvoidingView, FlatList } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme, TextInput, Avatar, Chip, Menu, Portal, IconButton, Divider, ActivityIndicator, TouchableRipple } from "react-native-paper";
+import { useTheme, TextInput, Avatar, Chip, IconButton, Divider, ActivityIndicator } from "react-native-paper";
 
 import { Colors, View, Text, Button, ActionSheet, Dialog, ExpandableSection } from "react-native-ui-lib";
 

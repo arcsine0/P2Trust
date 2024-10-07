@@ -3,7 +3,7 @@ import { ScrollView } from "react-native";
 import { useTheme, Avatar, IconButton, ActivityIndicator } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Colors, View, Text, Card, Button, Chip, Picker } from "react-native-ui-lib";
+import { Colors, View, Text, Card, Button, ActionSheet } from "react-native-ui-lib";
 
 import { router, useNavigation } from "expo-router";
 
@@ -19,10 +19,29 @@ import { scanFromURLAsync } from "expo-camera";
 
 import { Request } from "@/lib/helpers/types";
 import { getInitials } from "@/lib/helpers/functions";
+import { Tutorial } from "@/components/extra";
 
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import QRCode from "react-qr-code";
+
+const titles = [
+    "Invite Requests",
+    "Your QR Code",
+    "Scan QR Code",
+    "Upload QR Code",
+    "Start Transaction",
+    "Help"
+];
+
+const messages = [
+    "View and manage invite requests from clients here.",
+    "Share this QR code to clients to start a transaction as a merchant.",
+    "Scan a client's QR code to start a transaction.",
+    "Upload an image containing a client's QR code to start a transaction.",
+    "Start a transaction with the currently queued client.",
+    "Access help and support options here."
+];
 
 export default function TransactionHomeScreen() {
     const [showBadge, setShowBadge] = useState(false);
@@ -34,7 +53,17 @@ export default function TransactionHomeScreen() {
 
     const [joinRoomLoading, setJoinRoomLoading] = useState<boolean>(false);
 
-    const theme = useTheme();
+    const [showDotMenu, setShowDotMenu] = useState<boolean>(false);
+
+    const [showFTE, setShowFTE] = useState(false);
+    const tutorialRef = useRef<any>(null);
+    const inviteRequestsButtonRef = useRef<any>(null);
+    const qrCodeViewRef = useRef<any>(null);
+    const scanQRCodeButtonRef = useRef<any>(null);
+    const uploadQRCodeButtonRef = useRef<any>(null);
+    const startTransactionButtonRef = useRef<any>(null);
+    const helpButtonRef = useRef<any>(null);
+
     const navigation = useNavigation();
 
     const requestsModalRef = useRef<BottomSheetModal>(null);
@@ -203,6 +232,7 @@ export default function TransactionHomeScreen() {
             headerRight: () => (
                 <View className="flex flex-row">
                     <IconButton
+                        ref={r => tutorialRef.current?.addTarget(r, "0")}
                         icon="account-plus-outline"
                         onPress={() => {
                             requestsModalRef.current?.present();
@@ -210,12 +240,17 @@ export default function TransactionHomeScreen() {
                         }}
                     />
                     <IconButton
+                        ref={r => tutorialRef.current?.addTarget(r, "5")}
                         icon="dots-vertical"
-                        onPress={() => console.log("Dots Pressed")}
+                        onPress={() => setShowDotMenu(true)}
                     />
                 </View>
             )
         });
+
+        setTimeout(() => {
+            setShowFTE(true);
+        }, 1000);
 
         return () => {
             // requestChannel.unsubscribe();
@@ -232,7 +267,10 @@ export default function TransactionHomeScreen() {
                             className="flex flex-col w-full p-4 space-y-2"
                             elevation={10}
                         >
-                            <View className="flex justify-center items-center border-2 rounded-lg p-5">
+                            <View
+                                ref={r => tutorialRef.current?.addTarget(r, "1")}
+                                className="flex justify-center items-center border-2 rounded-lg p-5"
+                            >
                                 <QRCode
                                     size={256}
                                     className="h-auto w-full"
@@ -263,6 +301,7 @@ export default function TransactionHomeScreen() {
                     <View className="flex flex-col w-full space-y-2">
                         <View className="flex flex-row space-x-2 items-center">
                             <Button
+                                ref={r => tutorialRef.current?.addTarget(r, "2")}
                                 className="flex-1 rounded-lg"
                                 style={{ backgroundColor: Colors.gray50 }}
                                 outline={true}
@@ -275,6 +314,7 @@ export default function TransactionHomeScreen() {
                                 </View>
                             </Button>
                             <Button
+                                ref={r => tutorialRef.current?.addTarget(r, "3")}
                                 className="flex-1 rounded-lg"
                                 style={{ backgroundColor: Colors.gray50 }}
                                 outline={true}
@@ -288,6 +328,7 @@ export default function TransactionHomeScreen() {
                             </Button>
                         </View>
                         <Button
+                            ref={r => tutorialRef.current?.addTarget(r, "4")}
                             className="rounded-lg"
                             disabled={!joinRoomLoading && queue && queue.length > 0 ? false : true}
                             onPress={() => createRoom()}
@@ -361,6 +402,46 @@ export default function TransactionHomeScreen() {
                     </BottomSheetModal>
                 </View>
                 : null}
+            <ActionSheet
+                visible={showDotMenu}
+                onDismiss={() => setShowDotMenu(false)}
+                options={[
+                    { label: "Show Tutorial", onPress: () => setShowFTE(true) },
+                ]}
+                renderAction={(option, index, onOptionPress) => (
+                    <View
+                        key={index}
+                        className="w-full"
+                    >
+                        <Button
+                            className="w-full p-4"
+                            backgroundColor={Colors.bgDefault}
+                            fullWidth={true}
+                            disabledBackgroundColor={Colors.gray100}
+                            onPress={() => onOptionPress(index)}
+                        >
+                            <View className="flex flex-row w-full space-x-2 items-center">
+                                <MaterialCommunityIcons name="help-circle-outline" size={20} color={Colors.primary700} />
+                                <Text
+                                    body
+                                    className="font-bold"
+                                    color={option.disabled ? Colors.gray200 : Colors.gray900}
+                                >
+                                    {option.label}
+                                </Text>
+                            </View>
+                        </Button>
+                    </View>
+                )}
+            />
+            <Tutorial
+                ref={tutorialRef}
+                titles={titles}
+                messages={messages}
+                showFTE={showFTE}
+                setShowFTE={setShowFTE}
+                onClose={() => setShowFTE(false)}
+            />
         </SafeAreaView>
     );
 }
