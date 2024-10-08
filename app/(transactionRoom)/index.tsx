@@ -3,7 +3,7 @@ import { ScrollView } from "react-native";
 import { useTheme, Avatar, IconButton, ActivityIndicator } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Colors, View, Text, Card, Button, ActionSheet } from "react-native-ui-lib";
+import { Colors, View, Text, Card, Button, ActionSheet, Dialog } from "react-native-ui-lib";
 
 import { router, useNavigation } from "expo-router";
 
@@ -54,6 +54,7 @@ export default function TransactionHomeScreen() {
     const [joinRoomLoading, setJoinRoomLoading] = useState<boolean>(false);
 
     const [showDotMenu, setShowDotMenu] = useState<boolean>(false);
+    const [showVerifyModal, setShowVerifyModal] = useState<boolean>(true);
 
     const [showFTE, setShowFTE] = useState(false);
     const tutorialRef = useRef<any>(null);
@@ -214,6 +215,10 @@ export default function TransactionHomeScreen() {
     }
 
     useEffect(() => {
+        if (userData) {
+            setShowVerifyModal(userData.isVerified === false);
+        }
+    
         requestsChannel
             .on("broadcast", { event: "request" }, (payload) => {
                 const payloadData = payload.payload;
@@ -253,7 +258,7 @@ export default function TransactionHomeScreen() {
         }, 1000);
 
         return () => {
-            // requestChannel.unsubscribe();
+            setShowVerifyModal(false);
         };
     }, []);
 
@@ -402,6 +407,44 @@ export default function TransactionHomeScreen() {
                     </BottomSheetModal>
                 </View>
                 : null}
+            <Dialog
+                visible={userData?.isVerified === false && showVerifyModal}
+                ignoreBackgroundPress={true}
+                panDirection="up"
+                containerStyle={{ backgroundColor: Colors.bgDefault, borderRadius: 8, padding: 4 }}
+            >
+                <View
+                    className="flex flex-col w-full p-4 space-y-8"
+                >
+                    <View className="flex flex-col w-full space-y-2">
+                        <Text h3>Warning</Text>
+                        <Text body>You cannot start a transaction with other users until you have verified your ID. Would you like to verify your ID now?</Text>
+                    </View>
+                    <View className="flex flex-row w-full items-center justify-end space-x-2">
+                        <Button
+                            className="rounded-lg"
+                            onPress={() => router.back()}
+                        >
+                            <View className="flex flex-row space-x-2 items-center">
+                                <MaterialCommunityIcons name="arrow-left" size={20} color={"white"} />
+                                <Text buttonSmall white>Go back</Text>
+                            </View>
+                        </Button>
+                        <Button
+                            className="rounded-lg"
+                            onPress={() => {
+                                setShowVerifyModal(false);
+                                router.navigate("/(transactionRoom)/verify");
+                            }}
+                        >
+                            <View className="flex flex-row space-x-2 items-center">
+                                <MaterialCommunityIcons name="thumb-up-outline" size={20} color={"white"} />
+                                <Text buttonSmall white>Verify now</Text>
+                            </View>
+                        </Button>
+                    </View>
+                </View>
+            </Dialog>
             <ActionSheet
                 visible={showDotMenu}
                 onDismiss={() => setShowDotMenu(false)}

@@ -2,10 +2,15 @@ import { Float } from "react-native/Libraries/Types/CodegenTypes";
 
 export type UserData = {
 	id: string;
+    created_at: string;
 	username: string;
     firstname: string;
     lastname: string;
 	push_token: string;
+    isVerified: boolean;
+    verified_at: Date;
+    verifiedID_type: "Passport" | "DriversLicence" | "NationalID";
+    verifiedID_number: string;
 	[key: string]: any;
 }
 

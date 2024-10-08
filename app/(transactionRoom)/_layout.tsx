@@ -1,18 +1,23 @@
-import { Stack } from "expo-router";
+import { Stack, router } from "expo-router";
 
 import { Avatar } from "react-native-paper";
-import { View, Text } from "react-native-ui-lib";
+import { Colors, View, Text, Button } from "react-native-ui-lib";
 
 import { useUserData } from "@/lib/context/UserContext";
 import { MerchantProvider, useMerchantData } from "@/lib/context/MerchantContext";
 import { getInitials } from "@/lib/helpers/functions";
+
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 export default function TransactionLayout() {
     const { userData } = useUserData();
 
     return (
         <MerchantProvider>
-            <Stack screenOptions={{ headerShown: true }}>
+            <Stack screenOptions={{ 
+                headerShown: true,
+            }}
+            >
                 <Stack.Screen
                     name="index"
                     options={{
@@ -55,6 +60,23 @@ export default function TransactionLayout() {
                         headerBackVisible: true,
                         headerTitle: "",
 
+                    }}
+                />
+                <Stack.Screen
+                    name="verify"
+                    options={{
+                        headerBackVisible: false,
+                        headerTitle: "ID Verification",
+                        headerTitleAlign: "center",
+                        headerLeft: () => (
+                            <Button
+                                backgroundColor={Colors.bgDefault}
+                                round={true}
+                                onPress={() => router.navigate("/(transactionRoom)/verify")}
+                            >
+                                <MaterialCommunityIcons name="arrow-left" size={20} color={Colors.gray900} />
+                            </Button>
+                        ),
                     }}
                 />
             </Stack>

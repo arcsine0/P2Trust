@@ -32,6 +32,12 @@ export const NegativeTags = [
 	"Impersonator",
 ]
 
+export const IDTypes = [
+	{ label: "National ID", value: "NationalID" },
+	{ label: "Passport", value: "Passport" },
+	{ label: "Drivers' Licence", value: "DriversLicence" },
+];
+
 export const PhoneCountryCodes = [
 	{ label: "(+1)", value: "+1" },
 	{ label: "(+44)", value: "+44" },

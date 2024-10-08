@@ -202,7 +202,9 @@ export default function RegisterScreen() {
     }
 
     return (
-        <SafeAreaView className="flex flex-col w-screen h-screen px-4 pt-2 items-start justify-center">
+        <SafeAreaView 
+            className="flex flex-col w-screen h-screen px-4 pt-2 items-start justify-center"
+        >
             <KeyboardAvoidingView
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
                 keyboardVerticalOffset={100}
