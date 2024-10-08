@@ -1,9 +1,7 @@
 import { FC, Dispatch, SetStateAction, useEffect } from "react";
 import { Icon, TouchableRipple, ActivityIndicator, Divider } from "react-native-paper";
 
-import { Colors, View, Text, Button } from "react-native-ui-lib";
-
-import { Image } from "expo-image";
+import { Colors, View, Text, Button, Image } from "react-native-ui-lib";
 
 import { ImagePickerAsset } from "expo-image-picker";
 
@@ -84,9 +82,8 @@ const SendPaymentRoute: FC<SendPaymentRouteProps> = ({ disabled, paymentDetails,
                             </TouchableRipple>
                             :
                             <Image
-                                // className="w-full"
+                                className="w-full"
                                 source={receipt.uri}
-                                onError={(error) => console.log(error)}
                             />
                         }
                     </View>

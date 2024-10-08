@@ -74,7 +74,7 @@ export default function TransactionLayout() {
                             <Button
                                 backgroundColor={Colors.bgDefault}
                                 round={true}
-                                onPress={() => router.navigate("/(transactionRoom)/verify")}
+                                onPress={() => router.navigate("/(tabs)")}
                             >
                                 <MaterialCommunityIcons name="arrow-left" size={20} color={Colors.gray900} />
                             </Button>

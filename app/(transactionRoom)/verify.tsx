@@ -6,6 +6,7 @@ import { useTheme, Avatar, Snackbar, ActivityIndicator, IconButton, TextInput } 
 import { Colors, View, Text, Card, Button, Wizard, Picker, PickerModes } from "react-native-ui-lib";
 
 import * as ImagePicker from "expo-image-picker";
+import { Image } from "react-native-ui-lib";
 
 import { router, useNavigation } from "expo-router";
 
@@ -110,7 +111,10 @@ export default function UserVerifyScreen() {
                         useDialog={true}
                         customPickerProps={{ migrateDialog: true, }}
                         trailingAccessory={<MaterialCommunityIcons name="chevron-down" size={20} color={Colors.gray900} />}
-                        onChange={value => setIDType(value?.toString())}
+                        onChange={value => {
+                            setIDType(value?.toString());
+                            setIDImage(undefined);
+                        }}
                     >
                         {IDTypes.map((id, i) => (
                             <Picker.Item key={i} label={id.label} value={id.value} />
@@ -123,48 +127,71 @@ export default function UserVerifyScreen() {
 
     const uploadIDPage = () => {
         return (
-            <View className="flex flex-col px-4 w-full space-y-2">
-                <Text bodyLarge className="font-bold">Upload ID</Text>
-                <View className="flex flex-row space-x-2 items-center">
-                    <Button
-                        className="flex-1 rounded-lg"
-                        style={{ backgroundColor: Colors.gray50 }}
-                        outline={true}
-                        outlineColor={Colors.gray900}
-                        onPress={() => takeIDImage()}
-                    >
-                        {!isCameraLoading ?
-                            <View className="flex flex-col space-y-2 items-center justify-center">
-                                <MaterialCommunityIcons name="camera" size={20} color={Colors.gray900} />
-                                <Text buttonSmall gray900>Take Photo</Text>
-                            </View>
+            <View className="flex flex-1 flex-col px-4 w-full space-y-2 justify-between">
+                <View 
+                    className="flex flex-1 p-2 items-center justify-center border-2 border-dashed"
+                    style={{ borderColor: Colors.gray900 }}
+                >
+                    {IDImage ?
+                        <Image 
+                            source={{ uri: IDImage.uri }}
+                            className="w-full h-full"
+                            resizeMode="contain"
+                        />
+                    :
+                        <View 
+                            className="flex w-full h-full px-8 space-y-1 items-center justify-center"
+                            style={{ backgroundColor: Colors.gray200 }}
+                        >
+                            <Text bodyLarge black className="font-semibold">No Image Uploaded</Text>
+                            <Text bodySmall black className="text-center">Take a photo or upload an ID image using the buttons below</Text>
+                        </View>
+                    }
+                </View>
+                <View className="flex flex-col w-full space-y-2">
+                    <Text caption className="text-center">Make sure that the ID image quality is high and details can be easily read</Text>
+                    <Text bodyLarge className="font-bold">Upload ID</Text>
+                    <View className="flex flex-row space-x-2 items-center">
+                        <Button
+                            className="flex-1 rounded-lg"
+                            style={{ backgroundColor: Colors.gray50 }}
+                            outline={true}
+                            outlineColor={Colors.gray900}
+                            onPress={() => takeIDImage()}
+                        >
+                            {!isCameraLoading ?
+                                <View className="flex flex-col space-y-1 items-center justify-center">
+                                    <MaterialCommunityIcons name="camera" size={20} color={Colors.gray900} />
+                                    <Text buttonSmall gray900>Take Photo</Text>
+                                </View>
 
-                            :
-                            <View className="flex flex-col space-y-2 items-center justify-center">
-                                <ActivityIndicator animating={true} size={20} color={Colors.gray900} />
-                            </View>
-                        }
-                    </Button>
-                    <Button
-                        className="flex-1 rounded-lg"
-                        style={{ backgroundColor: Colors.gray50 }}
-                        outline={true}
-                        outlineColor={Colors.gray900}
-                        disabled={isImagePickerLoading}
-                        onPress={() => pickIDImage()}
-                    >
-                        {!isImagePickerLoading ?
-                            <View className="flex flex-col space-y-2 items-center justify-center">
-                                <MaterialCommunityIcons name="folder-image" size={20} color={Colors.gray900} />
-                                <Text buttonSmall gray900>Upload Image</Text>
-                            </View>
+                                :
+                                <View className="flex flex-col space-y-1 items-center justify-center">
+                                    <ActivityIndicator animating={true} size={20} color={Colors.gray900} />
+                                </View>
+                            }
+                        </Button>
+                        <Button
+                            className="flex-1 rounded-lg"
+                            style={{ backgroundColor: Colors.gray50 }}
+                            outline={true}
+                            outlineColor={Colors.gray900}
+                            disabled={isImagePickerLoading}
+                            onPress={() => pickIDImage()}
+                        >
+                            {!isImagePickerLoading ?
+                                <View className="flex flex-col space-y-1 items-center justify-center">
+                                    <MaterialCommunityIcons name="folder-image" size={20} color={Colors.gray900} />
+                                    <Text buttonSmall gray900>Upload Image</Text>
+                                </View>
 
-                            :
-                            <View className="flex flex-col space-y-2 items-center justify-center">
-                                <ActivityIndicator animating={true} size={20} color={Colors.gray900} />
-                            </View>
-                        }
-                    </Button>
+                                :
+                                <View className="flex flex-col space-y-1 items-center justify-center">
+                                    <ActivityIndicator animating={true} size={20} color={Colors.gray900} />
+                                </View>
+                            }
+                        </Button>
+                    </View>
                 </View>
             </View>
         )
@@ -271,7 +298,7 @@ export default function UserVerifyScreen() {
                     <Wizard.Step state={getStepState(1)} label="Upload ID Image" />
                     <Wizard.Step state={getStepState(2)} label="Confirm Details" />
                 </Wizard>
-                <View className="flex flex-col flex-1 w-full justify-between">
+                <View className="flex flex-col flex-1 w-full space-y-4 justify-between">
                     {renderCurrentStep()}
                     <View
                         className="flex flex-row p-4 space-x-2 items-center"

@@ -1,9 +1,8 @@
 import { FC } from "react";
 import { ViewStyle } from "react-native";
 import { Icon, Chip, ActivityIndicator } from "react-native-paper";
-import { Image } from "expo-image";
 
-import { Colors, View, Text, Card, Button } from "react-native-ui-lib";
+import { Colors, View, Text, Card, Button, Image } from "react-native-ui-lib";
 
 import { FontAwesome6 } from "@expo/vector-icons";
 
@@ -63,7 +62,6 @@ const PaymentSentCard: FC<PaymentSentCardProps> = ({ style, id, userData, timest
                 <Text bodyLarge className="font-bold">Proof of Payment</Text>
                 <Image
                     source={{ uri: receiptURL }}
-                    contentFit="contain"
                     className="w-full"
                 />
                 {userData.id !== sender_id ?
