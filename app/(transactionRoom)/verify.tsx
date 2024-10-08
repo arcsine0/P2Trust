@@ -154,7 +154,7 @@ export default function UserVerifyScreen() {
                     <View className="flex flex-row space-x-2 items-center">
                         <Button
                             className="flex-1 rounded-lg"
-                            style={{ backgroundColor: Colors.gray50 }}
+                            backgroundColor={Colors.gray50}
                             outline={true}
                             outlineColor={Colors.gray900}
                             onPress={() => takeIDImage()}
@@ -173,7 +173,7 @@ export default function UserVerifyScreen() {
                         </Button>
                         <Button
                             className="flex-1 rounded-lg"
-                            style={{ backgroundColor: Colors.gray50 }}
+                            backgroundColor={Colors.gray50}
                             outline={true}
                             outlineColor={Colors.gray900}
                             disabled={isImagePickerLoading}
@@ -199,71 +199,75 @@ export default function UserVerifyScreen() {
 
     const confirmIDPage = () => {
         return (
-            <View className="flex flex-col px-4 w-full space-y-2">
+            <View className="flex flex-col px-4 w-full space-y-4">
                 <View
-                    className="flex flex-row p-4 space-x-2 items-center"
-                    style={{ backgroundColor: Colors.gray100 }}
+                    className="flex flex-row p-4 space-x-2 items-center rounded-lg"
+                    style={{ backgroundColor: Colors.gray200 }}
                 >
                     <Text bodyLarge className="font-bold">ID Type: </Text>
                     <Text bodyLarge className="font-semibold">{IDType}</Text>
                 </View>
-                <Text bodyLarge className="font-bold">Confirm ID Name</Text>
-                <View className="flex flex-row space-x-2 items-center">
-                    <TextInput
-                        className="rounded-lg flex-1 overflow-scroll"
-                        style={{ backgroundColor: Colors.gray100 }}
-                        label="ID Number"
-                        value={IDName}
-                        disabled={isIDNameDisabled}
-                        onChangeText={text => setIDNumber(text)}
-                    />
-                    <Button
-                        style={{ backgroundColor: Colors.gray50 }}
-                        round={true}
-                        outline={true}
-                        outlineColor={Colors.gray900}
-                        onPress={() => setIsIDNumberDisabled(!isIDNumberDisabled)}
-                    >
-                        {isIDNameDisabled ?
-                            <View className="flex flex-col space-y-2 items-center justify-center">
-                                <AntDesign name="edit" size={20} color={Colors.gray900} />
-                            </View>
+                <View className="flex flex-col space-y-1">
+                    <Text bodyLarge className="font-bold">Confirm ID Name</Text>
+                    <View className="flex flex-row space-x-2 items-center">
+                        <TextInput
+                            className="rounded-lg flex-1"
+                            style={{ backgroundColor: Colors.gray100 }}
+                            mode="outlined"
+                            label="ID Name"
+                            value={IDName}
+                            disabled={isIDNameDisabled}
+                            onChangeText={text => setIDNumber(text)}
+                        />
+                        <Button
+                            style={{ elevation: 2 }}
+                            backgroundColor={Colors.gray50}
+                            round={true}
+                            onPress={() => setIsIDNameDisabled(!isIDNameDisabled)}
+                        >
+                            {isIDNameDisabled ?
+                                <View className="flex flex-col space-y-2 items-center justify-center">
+                                    <AntDesign name="edit" size={20} color={Colors.gray900} />
+                                </View>
 
-                            :
-                            <View className="flex flex-col space-y-2 items-center justify-center">
-                                <MaterialCommunityIcons name="check" size={20} color={Colors.gray900} />
-                            </View>
-                        }
-                    </Button>
+                                :
+                                <View className="flex flex-col space-y-2 items-center justify-center">
+                                    <MaterialCommunityIcons name="check" size={20} color={Colors.gray900} />
+                                </View>
+                            }
+                        </Button>
+                    </View>
                 </View>
-                <Text bodyLarge className="font-bold">Confirm ID Number</Text>
-                <View className="flex flex-row space-x-2 items-center">
-                    <TextInput
-                        className="rounded-lg flex-1 overflow-scroll"
-                        style={{ backgroundColor: Colors.gray100 }}
-                        label="ID Number"
-                        value={IDNumber}
-                        disabled={isIDNumberDisabled}
-                        onChangeText={text => setIDNumber(text)}
-                    />
-                    <Button
-                        style={{ backgroundColor: Colors.gray50 }}
-                        round={true}
-                        outline={true}
-                        outlineColor={Colors.gray900}
-                        onPress={() => setIsIDNumberDisabled(!isIDNumberDisabled)}
-                    >
-                        {isIDNumberDisabled ?
-                            <View className="flex flex-col space-y-2 items-center justify-center">
-                                <AntDesign name="edit" size={20} color={Colors.gray900} />
-                            </View>
+                <View className="flex flex-col space-y-1">
+                    <Text bodyLarge className="font-bold">Confirm ID Number</Text>
+                    <View className="flex flex-row space-x-2 items-center">
+                        <TextInput
+                            className="rounded-lg flex-1"
+                            style={{ backgroundColor: Colors.gray100 }}
+                            mode="outlined"
+                            label="ID Number"
+                            value={IDNumber}
+                            disabled={isIDNumberDisabled}
+                            onChangeText={text => setIDNumber(text)}
+                        />
+                        <Button
+                            style={{ elevation: 2 }}
+                            backgroundColor={Colors.gray50}
+                            round={true}
+                            onPress={() => setIsIDNumberDisabled(!isIDNumberDisabled)}
+                        >
+                            {isIDNumberDisabled ?
+                                <View className="flex flex-col space-y-2 items-center justify-center">
+                                    <AntDesign name="edit" size={20} color={Colors.gray900} />
+                                </View>
 
-                            :
-                            <View className="flex flex-col space-y-2 items-center justify-center">
-                                <MaterialCommunityIcons name="check" size={20} color={Colors.gray900} />
-                            </View>
-                        }
-                    </Button>
+                                :
+                                <View className="flex flex-col space-y-2 items-center justify-center">
+                                    <MaterialCommunityIcons name="check" size={20} color={Colors.gray900} />
+                                </View>
+                            }
+                        </Button>
+                    </View>
                 </View>
             </View>
         )
@@ -306,7 +310,7 @@ export default function UserVerifyScreen() {
                     >
                         <Button
                             className="flex-1 rounded-lg"
-                            style={{ backgroundColor: Colors.gray50 }}
+                            backgroundColor={Colors.gray50}
                             outline={true}
                             outlineColor={Colors.gray900}
                             disabled={activeIndex === 0}
@@ -319,9 +323,9 @@ export default function UserVerifyScreen() {
                         </Button>
                         <Button
                             className="flex-1 rounded-lg"
-                            style={{ backgroundColor: Colors.gray50 }}
-                            outline={true}
-                            outlineColor={Colors.gray900}
+                            backgroundColor={activeIndex < 2 ? Colors.primary800 : Colors.primary700}
+                            outline={activeIndex < 2 ? true : false}
+                            outlineColor={activeIndex < 2 ? Colors.gray900 : ""}
                             disabled={(() => {
                                 switch (activeIndex) {
                                     case 0:
@@ -354,7 +358,7 @@ export default function UserVerifyScreen() {
                                     {!isVerificationSending ?
                                         <View className="flex flex-row space-x-2 items-center">
                                             <Text buttonSmall white>Submit</Text>
-                                            <MaterialCommunityIcons name="check" size={20} color={Colors.gray900} />
+                                            <MaterialCommunityIcons name="check" size={20} color="white" />
                                         </View>
                                         :
                                         <View className="flex flex-row space-x-2 items-center">
