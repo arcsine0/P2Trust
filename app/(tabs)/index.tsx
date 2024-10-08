@@ -92,7 +92,7 @@ export default function HomeScreen() {
 	}, [isFocused]);
 
 	return (
-		<SafeAreaView className="flex flex-col w-screen h-screen pb-2 items-start justify-start">
+		<SafeAreaView className="flex flex-col w-screen h-screen pt-8 pb-2 items-start justify-start">
 			<Fader visible={true} position="BOTTOM" />
 			<Text h2 className="px-4 mb-2">Live Feed</Text>
 			<ScrollView className="w-full">

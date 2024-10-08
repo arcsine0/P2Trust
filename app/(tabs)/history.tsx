@@ -63,7 +63,7 @@ export default function TransactionHistoryScreen() {
 	}, []);
 
 	return (
-		<SafeAreaView className="flex flex-col w-full h-full pb-2 items-start justify-start">
+		<SafeAreaView className="flex flex-col w-full h-full pt-8 pb-2 items-start justify-start">
 			<KeyboardAvoidingView
 				behavior={Platform.OS === "ios" ? "padding" : "height"}
 				keyboardVerticalOffset={100}

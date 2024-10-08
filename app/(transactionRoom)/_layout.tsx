@@ -16,6 +16,7 @@ export default function TransactionLayout() {
         <MerchantProvider>
             <Stack screenOptions={{ 
                 headerShown: true,
+                statusBarHidden: true,
             }}
             >
                 <Stack.Screen
@@ -68,6 +69,7 @@ export default function TransactionLayout() {
                         headerBackVisible: false,
                         headerTitle: "ID Verification",
                         headerTitleAlign: "center",
+                        headerShadowVisible: false,
                         headerLeft: () => (
                             <Button
                                 backgroundColor={Colors.bgDefault}
