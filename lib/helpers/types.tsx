@@ -136,12 +136,16 @@ export type TimelineEvent = {
     timestamp: string;
     type: string;
     from: string;
+    recipient?: string | undefined;
     data: {
-        amount?: number | null;
-        currency?: string | null;
-        platform?: string | null;
-        merchantName?: string | null;
-        merchantNumber?: string | null;
+        id?: string | undefined;
+        amount?: number | undefined;
+        currency?: string | undefined;
+        platform?: string | undefined;
+        merchantName?: string | undefined;
+        merchantNumber?: string | undefined;
+        receipt?: string | undefined
+        status?: string | undefined;
     };
 }
 

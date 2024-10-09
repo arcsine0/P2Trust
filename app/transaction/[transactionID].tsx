@@ -13,6 +13,7 @@ import { supabase } from "@/supabase/config";
 import { Transaction, TimelineEvent } from "@/lib/helpers/types";
 
 import { Ionicons, MaterialCommunityIcons, Octicons } from "@expo/vector-icons";
+import { TransactionEvent, UserEvent, PaymentEvent, PaymentStatusEvent, ProductStatusEvent } from "@/components/chatEvents/TimelineEvents";
 import { getInitials, formatISODate, formatTimeDifference } from "@/lib/helpers/functions";
 
 export default function TransactionDetailsScreen() {
@@ -114,26 +115,101 @@ export default function TransactionDetailsScreen() {
 
     const renderTimelineContent = (event: TimelineEvent, index: number, anchorRef?: any) => {
         if (transactionLength) {
-            return (
-                <Card key={index} padding-page ref={anchorRef}>
-                    <View marginT-5 padding-8 bg-grey70 br30>
-                        <Text body className="font-bold">
-                            {event.type === "transaction_started" ? "Transaction Started" : null}
-                            {event.type === "user_joined" ? "User Joined" : null}
-                            {event.type === "user_left" ? "User Left" : null}
-                            {event.type === "payment_requested" ? "User Requested Payment" : null}
-                            {event.type === "payment_request_cancelled" ? "User Cancelled Payment" : null}
-                            {event.type === "payment_sent" ? "User Sent Payment" : null}
-                            {event.type === "payment_confirmed" ? "User Confirmed Payment" : null}
-                            {event.type === "payment_denied" ? "User Denied Payment" : null}
-                            {event.type === "product_sent" ? "User Sent Product" : null}
-                            {event.type === "product_received" ? "User Received Product" : null}
-                        </Text>
-                        <Text bodySmall gray400>{formatTimeDifference(event.timestamp, transactionLength.startTime, transactionLength.endTime)}</Text>
-                        <Text bodySmall>{event.from}</Text>
-                    </View>
-                </Card>
-            );
+            // return (
+            //     <Card key={index} padding-page ref={anchorRef}>
+            //         <View marginT-5 padding-8 bg-grey70 br30>
+            //             <Text body className="font-bold">
+            //                 {event.type === "transaction_started" ? "Transaction Started" : null}
+            //                 {event.type === "user_joined" ? "User Joined" : null}
+            //                 {event.type === "user_left" ? "User Left" : null}
+            //                 {event.type === "payment_requested" ? "User Requested Payment" : null}
+            //                 {event.type === "payment_request_cancelled" ? "User Cancelled Payment" : null}
+            //                 {event.type === "payment_sent" ? "User Sent Payment" : null}
+            //                 {event.type === "payment_confirmed" ? "User Confirmed Payment" : null}
+            //                 {event.type === "payment_denied" ? "User Denied Payment" : null}
+            //                 {event.type === "product_sent" ? "User Sent Product" : null}
+            //                 {event.type === "product_received" ? "User Received Product" : null}
+            //             </Text>
+            //             <Text bodySmall gray400>{formatTimeDifference(event.timestamp, transactionLength.startTime, transactionLength.endTime)}</Text>
+            //             <Text bodySmall>{event.from}</Text>
+            //         </View>
+            //     </Card>
+            // );
+            switch (event.type) {
+                case "transaction_started":
+                case "transaction_ended":
+                    return (
+                        <TransactionEvent
+                            key={index}
+                            ref={anchorRef}
+                            type={event.type}
+                            created_at={formatTimeDifference(event.timestamp, transactionLength.startTime, transactionLength.endTime)}
+                            sender={event.from}
+                        />
+                    )
+                case "user_joined":
+                case "user_left":
+                    return (
+                        <UserEvent
+                            key={index}
+                            ref={anchorRef}
+                            type={event.type}
+                            created_at={formatTimeDifference(event.timestamp, transactionLength.startTime, transactionLength.endTime)}
+                            sender={event.from}
+                        />
+                    )
+                case "payment_requested":
+                    return (
+                        <PaymentEvent
+                            key={index}
+                            ref={anchorRef}
+                            type={event.type}
+                            created_at={formatTimeDifference(event.timestamp, transactionLength.startTime, transactionLength.endTime)}
+                            sender={event.from}
+                            recipient={""}
+                            amount={event.data.amount}
+                            currency={event.data.currency}
+                            platform={event.data.platform}
+                        />
+                    )
+                case "payment_sent":
+                    return (
+                        <PaymentEvent
+                            key={index}
+                            ref={anchorRef}
+                            type={event.type}
+                            created_at={formatTimeDifference(event.timestamp, transactionLength.startTime, transactionLength.endTime)}
+                            sender={event.from}
+                            recipient={event.recipient}
+                            amount={event.data.amount}
+                            currency={event.data.currency}
+                            platform={event.data.platform}
+                            proof={event.data.receipt}
+                        />
+                    )
+                case "payment_confirmed":
+                case "payment_denied":
+                    return (
+                        <PaymentStatusEvent
+                            key={index}
+                            ref={anchorRef}
+                            type={event.type}
+                            created_at={formatTimeDifference(event.timestamp, transactionLength.startTime, transactionLength.endTime)}
+                            sender={event.from}
+                        />
+                    )
+                case "product_sent":
+                case "product_received":
+                    return (
+                        <ProductStatusEvent
+                            key={index}
+                            ref={anchorRef}
+                            type={event.type}
+                            created_at={formatTimeDifference(event.timestamp, transactionLength.startTime, transactionLength.endTime)}
+                            sender={event.from}
+                        />
+                    )
+            }
         }
     };
 
@@ -260,7 +336,7 @@ export default function TransactionDetailsScreen() {
                                             return (
                                                 <Timeline
                                                     key={i}
-                                                    topLine={{ 
+                                                    topLine={{
                                                         type: Timeline.lineTypes.DASHED,
                                                     }}
                                                     point={{
