@@ -33,9 +33,9 @@ export const NegativeTags = [
 ]
 
 export const IDTypes = [
-	{ label: "National ID", value: "NationalID" },
-	{ label: "Passport", value: "Passport" },
-	{ label: "Drivers' Licence", value: "DriversLicence" },
+	{ label: "National ID", value: "NationalID", disabled: false },
+	{ label: "Passport", value: "Passport", disabled: true },
+	{ label: "Drivers' Licence", value: "DriversLicence", disabled: true },
 ];
 
 export const PhoneCountryCodes = [

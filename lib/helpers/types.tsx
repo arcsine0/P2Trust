@@ -144,3 +144,21 @@ export type TimelineEvent = {
         merchantNumber?: string | null;
     };
 }
+
+export type NationalID = {
+    DateIssued: string;
+    Issuer: string;
+    alg: string;
+    signature: string;
+    subject: {
+        BF: string;
+        DOB: string;
+        PCN: string;
+        POB: string;
+        Suffix: string;
+        fName: string;
+        lName: string;
+        mName: string;
+        sex: string;
+    }
+}

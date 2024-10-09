@@ -5,8 +5,8 @@
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web",
     "test": "jest --watchAll",
     "lint": "expo lint"
@@ -20,6 +20,7 @@
     "@gorhom/bottom-sheet": "^4.6.4",
     "@react-native-async-storage/async-storage": "1.23.1",
     "@react-native-google-signin/google-signin": "^13.1.0",
+    "@react-native-ml-kit/text-recognition": "^1.5.2",
     "@react-native-picker/picker": "2.7.5",
     "@react-native-vector-icons/material-icons": "^0.0.1-alpha.25",
     "@react-navigation/bottom-tabs": "^6.6.1",
@@ -54,6 +55,7 @@
     "react-native": "0.74.5",
     "react-native-country-flag": "^2.0.2",
     "react-native-curved-bottom-bar": "^3.3.1",
+    "react-native-document-scanner-plugin": "^1.0.0",
     "react-native-element-dropdown": "^2.12.1",
     "react-native-gesture-handler": "~2.16.1",
     "react-native-pager-view": "6.3.0",
@@ -68,7 +70,8 @@
     "react-native-ui-lib": "^7.32.0",
     "react-native-vector-icons": "^10.1.0",
     "react-native-web": "~0.19.10",
-    "react-qr-code": "^2.0.15"
+    "react-qr-code": "^2.0.15",
+    "expo-build-properties": "~0.12.5"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

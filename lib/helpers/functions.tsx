@@ -17,6 +17,15 @@ export const getInitials = (name: string) => {
     }
 }
 
+export const capitalizeName = (str: string): string => {
+    if (!str) return '';
+    return str
+      .toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
 export const formatTimeDifference = (timestamp: string, startTime: number, endTime: number) => {
     const eventTime = Date.parse(timestamp);
     const totalDuration = endTime - startTime;
