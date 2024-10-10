@@ -27,6 +27,7 @@ interface PaymentEventProps {
     currency: string | undefined;
     platform: string | undefined;
     proof?: string | undefined;
+    onViewImage?: () => void;
 }
 
 interface PaymentStatusEventProps {
@@ -89,7 +90,7 @@ const UserEventTemp: ForwardRefRenderFunction<typeof View, UserEventProps> = ({ 
     )
 }
 
-const PaymentEventTemp: ForwardRefRenderFunction<typeof View, PaymentEventProps> = ({ type, created_at, sender, recipient, amount, currency, platform, proof }, ref) => {
+const PaymentEventTemp: ForwardRefRenderFunction<typeof View, PaymentEventProps> = ({ type, created_at, sender, recipient, amount, currency, platform, proof, onViewImage }, ref) => {
     let currencySymbol;
 
     switch (currency) {
@@ -115,11 +116,11 @@ const PaymentEventTemp: ForwardRefRenderFunction<typeof View, PaymentEventProps>
                         <Button
                             className="flex-1 rounded-lg"
                             backgroundColor={Colors.gray900}
-                            onPress={() => { }}
+                            onPress={onViewImage}
                         >
                             <View className="flex flex-row space-x-2 items-center">
                                 <MaterialCommunityIcons name="magnify" size={20} color={Colors.bgDefault} />
-                                <Text buttonSmall bgDefault>View Image</Text>
+                                <Text buttonSmall bgDefault>View Receipt</Text>
                             </View>
                         </Button>
                     </View>

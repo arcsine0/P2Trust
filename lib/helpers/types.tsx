@@ -145,7 +145,7 @@ export type TimelineEvent = {
         platform?: string | undefined;
         merchantName?: string | undefined;
         merchantNumber?: string | undefined;
-        receipt?: string | undefined
+        receiptURL?: string | undefined;
         status?: string | undefined;
     };
 }

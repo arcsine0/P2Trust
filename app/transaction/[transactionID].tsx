@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { useWindowDimensions, Platform, KeyboardAvoidingView, ScrollView } from "react-native";
+import { useWindowDimensions, Platform, KeyboardAvoidingView, ScrollView, Dimensions } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme, Avatar, Divider, IconButton, TouchableRipple } from "react-native-paper";
 
-import { Colors, View, Text, Card, Timeline } from "react-native-ui-lib";
+import { Colors, View, Text, Card, Timeline, Dialog, TouchableOpacity, Image } from "react-native-ui-lib";
 
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
 
@@ -17,8 +17,18 @@ import { TransactionEvent, UserEvent, PaymentEvent, PaymentStatusEvent, ProductS
 import { getInitials, formatISODate, formatTimeDifference } from "@/lib/helpers/functions";
 
 export default function TransactionDetailsScreen() {
+    const [dimensions, setDimensions] = useState<{
+		width: number;
+		height: number;
+	}>({
+		width: Dimensions.get("screen").width,
+		height: Dimensions.get("screen").height,
+	});
+
     const [transactionData, setTransactionData] = useState<Transaction | undefined>(undefined)
     const [transactionTimeline, setTransactionTimeline] = useState<TimelineEvent[] | undefined>(undefined);
+
+    const [currentViewImage, setCurrentViewImage] = useState<string | undefined>("");
 
     const [userRating, setUserRating] = useState<{
         positive: number,
@@ -35,10 +45,16 @@ export default function TransactionDetailsScreen() {
         endTime: number,
     } | undefined>(undefined);
 
+    const [showViewImageModal, setShowViewImageModal] = useState<boolean>(false);
+
     const { transactionID } = useLocalSearchParams<{ transactionID: string }>();
 
     const navigation = useNavigation();
-    const theme = useTheme();
+
+    const viewReceiptImage = (uri: string | undefined) => {
+		setCurrentViewImage(uri);
+		setShowViewImageModal(true);
+	}
 
     const getTransactionData = async () => {
         try {
@@ -116,26 +132,6 @@ export default function TransactionDetailsScreen() {
 
     const renderTimelineContent = (event: TimelineEvent, index: number, anchorRef?: any) => {
         if (transactionLength) {
-            // return (
-            //     <Card key={index} padding-page ref={anchorRef}>
-            //         <View marginT-5 padding-8 bg-grey70 br30>
-            //             <Text body className="font-bold">
-            //                 {event.type === "transaction_started" ? "Transaction Started" : null}
-            //                 {event.type === "user_joined" ? "User Joined" : null}
-            //                 {event.type === "user_left" ? "User Left" : null}
-            //                 {event.type === "payment_requested" ? "User Requested Payment" : null}
-            //                 {event.type === "payment_request_cancelled" ? "User Cancelled Payment" : null}
-            //                 {event.type === "payment_sent" ? "User Sent Payment" : null}
-            //                 {event.type === "payment_confirmed" ? "User Confirmed Payment" : null}
-            //                 {event.type === "payment_denied" ? "User Denied Payment" : null}
-            //                 {event.type === "product_sent" ? "User Sent Product" : null}
-            //                 {event.type === "product_received" ? "User Received Product" : null}
-            //             </Text>
-            //             <Text bodySmall gray400>{formatTimeDifference(event.timestamp, transactionLength.startTime, transactionLength.endTime)}</Text>
-            //             <Text bodySmall>{event.from}</Text>
-            //         </View>
-            //     </Card>
-            // );
             switch (event.type) {
                 case "transaction_started":
                 case "transaction_completed":
@@ -186,7 +182,8 @@ export default function TransactionDetailsScreen() {
                             amount={event.data.amount}
                             currency={event.data.currency}
                             platform={event.data.platform}
-                            proof={event.data.receipt}
+                            proof={event.data.receiptURL}
+                            onViewImage={() => viewReceiptImage(event.data.receiptURL)}
                         />
                     )
                 case "payment_confirmed":
@@ -358,6 +355,32 @@ export default function TransactionDetailsScreen() {
                         null
                     }
                 </ScrollView>
+                <Dialog
+					visible={showViewImageModal}
+					onDismiss={() => setShowViewImageModal(false)}
+					panDirection="up"
+					width={dimensions.width}
+					height={dimensions.height}
+					containerStyle={{ backgroundColor: Colors.bgDefault, borderRadius: 8 }}
+				>
+					<TouchableOpacity onPress={() => setShowViewImageModal(false)}>
+						<Image
+							className="w-full h-full"
+							source={{ uri: currentViewImage }}
+							resizeMode="contain"
+							overlayType={Image.overlayTypes.BOTTOM}
+							customOverlayContent={(
+								<View className="flex flex-row w-full h-full items-end justify-center">
+									<View
+										className="mb-4 p-2"
+									>
+										<Text bodySmall bgDefault className="font-bold">Tap on Image to Close</Text>
+									</View>
+								</View>
+							)}
+						/>
+					</TouchableOpacity>
+				</Dialog>
             </KeyboardAvoidingView>
         </SafeAreaView>
     )
