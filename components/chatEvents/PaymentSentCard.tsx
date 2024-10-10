@@ -24,9 +24,10 @@ interface PaymentSentCardProps {
     status: "pending" | "confirmed" | "denied";
     receiptURL: string;
     onConfirm?: () => void;
+    onViewImage?: () => void;
 }
 
-const PaymentSentCard: FC<PaymentSentCardProps> = ({ style, id, userData, timestamp, sender_id, from, platform, currency, status, receiptURL, onConfirm }) => {
+const PaymentSentCard: FC<PaymentSentCardProps> = ({ style, id, userData, timestamp, sender_id, from, platform, currency, status, receiptURL, onConfirm, onViewImage }) => {
     let currencySymbol;
 
     switch (currency) {
@@ -40,7 +41,7 @@ const PaymentSentCard: FC<PaymentSentCardProps> = ({ style, id, userData, timest
         return (
             <Card
                 style={{ backgroundColor: Colors.bgDefault }}
-                className="flex flex-col w-2/3 space-y-1 p-4"
+                className="flex flex-col w-2/3 space-y-2 mt-2 p-4"
                 elevation={10}
             >
                 <View className="flex flex-row items-center justify-between">
@@ -60,10 +61,18 @@ const PaymentSentCard: FC<PaymentSentCardProps> = ({ style, id, userData, timest
                     <Text bodySmall gray400>Paid Via {platform}</Text>
                 </View>
                 <Text bodyLarge className="font-bold">Proof of Payment</Text>
-                <Image
-                    source={{ uri: receiptURL }}
-                    className="w-full"
-                />
+                <Button
+                    className="flex-1 rounded-lg"
+                    backgroundColor={Colors.gray50}
+                    outline={true}
+                    outlineColor={Colors.gray900}
+                    onPress={onViewImage}
+                >
+                    <View className="flex flex-row space-x-2 items-center">
+                        <MaterialCommunityIcons name="magnify" size={20} color={Colors.gray900} />
+                        <Text buttonSmall gray900>View Image</Text>
+                    </View>
+                </Button>
                 {userData.id !== sender_id ?
                     <Button
                         className="rounded-lg flex-1"

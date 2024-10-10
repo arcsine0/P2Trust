@@ -3,10 +3,9 @@ import { FlatList, ScrollView, Platform, KeyboardAvoidingView } from "react-nati
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme, Avatar, Snackbar, ActivityIndicator, IconButton, TextInput } from "react-native-paper";
 
-import { Colors, View, Text, Button, Wizard, Dialog, Picker, PickerModes } from "react-native-ui-lib";
+import { Colors, View, Text, Button, Wizard, Dialog, Picker, PickerModes, Image } from "react-native-ui-lib";
 
 import * as ImagePicker from "expo-image-picker";
-import { Image } from "react-native-ui-lib";
 import DocumentScanner, { ScanDocumentResponseStatus } from "react-native-document-scanner-plugin";
 import { scanFromURLAsync } from "expo-camera";
 

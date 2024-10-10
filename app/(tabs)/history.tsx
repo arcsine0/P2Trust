@@ -63,7 +63,7 @@ export default function TransactionHistoryScreen() {
 	}, []);
 
 	return (
-		<SafeAreaView className="flex flex-col w-full h-full pt-8 pb-2 items-start justify-start">
+		<SafeAreaView className="flex flex-col w-full h-full pt-4 pb-2 items-start justify-start">
 			<KeyboardAvoidingView
 				behavior={Platform.OS === "ios" ? "padding" : "height"}
 				keyboardVerticalOffset={100}
@@ -103,7 +103,7 @@ export default function TransactionHistoryScreen() {
 							</View>
 						</View>
 						<ScrollView className="w-full">
-							<View className="flex flex-col px-4 py-2 space-y-2 w-full">
+							<View className="flex flex-col px-4 mb-40 py-2 space-y-2 w-full">
 								{transactions && transactions.filter(transaction => filterOption === "All" || transaction.status === filterOption?.toLocaleLowerCase()).filter(transaction => searchQuery === '' || transaction.id.includes(searchQuery)).map((trans) => (
 									<Card
 										key={trans.id}

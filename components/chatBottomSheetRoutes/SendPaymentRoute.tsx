@@ -82,8 +82,9 @@ const SendPaymentRoute: FC<SendPaymentRouteProps> = ({ disabled, paymentDetails,
                             </TouchableRipple>
                             :
                             <Image
-                                className="w-full"
-                                source={receipt.uri}
+                                className="w-full h-full"
+                                source={{ uri: receipt.uri}}
+                                resizeMode="contain"
                             />
                         }
                     </View>

@@ -20,8 +20,13 @@ import RatingsBar from "@/components/analytics/RatingBar";
 
 import { MaterialCommunityIcons, Octicons } from "@expo/vector-icons";
 
+import { Float } from "react-native/Libraries/Types/CodegenTypes";
+
 export default function TransactionLobbyScreen() {
     const [roomID, setRoomID] = useState("");
+
+    const [totalTransactions, setTotalTransactions] = useState<number>(0);
+    const [averageVolume, setAverageVolume] = useState<Float>(0);
 
     const [transactionList, setTransactionList] = useState<TransactionListItem[] | undefined>(undefined)
     const [ratings, setRatings] = useState<{
@@ -154,6 +159,8 @@ export default function TransactionLobbyScreen() {
 
             if (!error && data) {
                 setTransactionList(data);
+                setTotalTransactions(data ? data.length : 0);
+                setAverageVolume(data && data.length > 0 ? parseFloat((data.filter(transaction => transaction.status === "completed").reduce((a, b) => a + b.total_amount, 0) / data.length).toFixed(2)) : 0);
 
             } else {
                 console.log(error)
@@ -232,14 +239,22 @@ export default function TransactionLobbyScreen() {
                             >
                                 <Text bodyLarge className="font-bold">Client Ratings</Text>
                                 <View className="flex items-center justify-center">
-                                    {ratings && (
+                                    {ratings && ratings.total > 0 ?
                                         <RatingsBar
                                             positive={ratings.positive}
                                             negative={ratings.negative}
                                             total={ratings.total}
                                             height={20}
                                         />
-                                    )}
+                                        :
+                                        <View
+                                            className="flex w-full px-2 py-4 space-y-1 items-center justify-center"
+                                            style={{ backgroundColor: Colors.gray200 }}
+                                        >
+                                            <Text bodyLarge black className="font-semibold">No Ratings Yet</Text>
+                                            <Text bodySmall black className="text-center">Only users who have transacted with the merchant can rate them.</Text>
+                                        </View>
+                                    }
                                 </View>
                             </Card>
                             <Card
@@ -251,11 +266,11 @@ export default function TransactionLobbyScreen() {
                                 <View className="flex flex-row items-center justify-center">
                                     <View className="flex flex-col w-1/2 items-start justify-center">
                                         <Text bodySmall>Transactions</Text>
-                                        <Text bodyLarge className="font-bold">{transactionList ? transactionList.length : 0}</Text>
+                                        <Text bodyLarge className="font-bold">{totalTransactions}</Text>
                                     </View>
                                     <View className="flex flex-col w-1/2 items-start justify-center">
                                         <Text bodySmall>Avg. Amount Vol.</Text>
-                                        <Text bodyLarge className="font-bold">{transactionList ? transactionList.filter(transaction => transaction.status === "completed").reduce((a, b) => a + b.total_amount, 0) / transactionList.length : 0}</Text>
+                                        <Text bodyLarge className="font-bold">{averageVolume}</Text>
                                     </View>
                                 </View>
                             </Card>

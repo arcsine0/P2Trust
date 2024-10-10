@@ -42,12 +42,25 @@ interface ProductStatusEventProps {
 }
 
 const TransactionEventTemp: ForwardRefRenderFunction<typeof View, TransactionEventProps> = ({ type, created_at, sender }, ref) => {
+    let title;
+
+    switch (type) {
+        case "transaction_started":
+            title = "Transaction Started";
+            break;
+        default:
+        case "transaction_completed":
+            title = "Transaction Ended";
+            break;
+        case "transaction_cancelled":
+            title = "Transaction Cancelled";
+            break;
+    }
+    
     return (
         <Card padding-page ref={ref}>
             <View marginT-5 padding-8 bg-grey70 br30>
-                <Text body className="font-bold">
-                    {type === "transaction_started" ? "Transaction Started" : "Transaction Ended"}
-                </Text>
+                <Text body className="font-bold">{title}</Text>
                 <Text bodySmall gray400>{created_at}</Text>
                 <Text bodySmall>Initiated by: <Text className="font-bold">{sender}</Text></Text>
             </View>
@@ -94,7 +107,6 @@ const PaymentEventTemp: ForwardRefRenderFunction<typeof View, PaymentEventProps>
                 </Text>
                 <Text bodySmall gray400>{created_at}</Text>
                 <Text bodySmall>Sender: <Text className="font-bold">{sender}</Text></Text>
-                <Text bodySmall>Recipient: <Text className="font-bold">{recipient}</Text></Text>
                 <Text bodySmall>Amount: <Text className="font-bold">{currencySymbol}{amount}</Text></Text>
                 <Text bodySmall>Platform: <Text className="font-bold">{platform}</Text></Text>
                 {proof && (

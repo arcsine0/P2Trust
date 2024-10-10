@@ -1,12 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useWindowDimensions, Platform, KeyboardAvoidingView, FlatList } from "react-native";
+import { useWindowDimensions, Platform, KeyboardAvoidingView, FlatList, Dimensions } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme, TextInput, Avatar, Chip, IconButton, Divider, ActivityIndicator } from "react-native-paper";
 
-import { Colors, View, Text, Button, ActionSheet, Dialog, ExpandableSection } from "react-native-ui-lib";
+import { Colors, View, Text, Button, ActionSheet, Dialog, ExpandableSection, Image, TouchableOpacity } from "react-native-ui-lib";
 
-import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -31,14 +30,24 @@ import { getInitials, formatISODate } from "@/lib/helpers/functions";
 import { PositiveTags, NegativeTags } from "@/lib/helpers/collections";
 
 export default function TransactionRoomScreen() {
+	const [dimensions, setDimensions] = useState<{
+		width: number;
+		height: number;
+	}>({
+		width: Dimensions.get("screen").width,
+		height: Dimensions.get("screen").height,
+	});
+
 	const [connectedUsers, setConnectedUsers] = useState<string[]>([]);
 
-	const [message, setMessage] = useState("");
+	const [message, setMessage] = useState<string>("");
+	const [currentViewImage, setCurrentViewImage] = useState<string>("");
 	const [activePaymentDetails, setActivePaymentDetails] = useState<{
 		id: string;
 		created_at: Date;
 		amount: Float;
 		currency: "PHP" | "USD" | "EUR";
+		platform: "GCash" | "Paymaya";
 	} | undefined>(undefined);
 
 	const [totalTradedAmount, setTotalTradedAmount] = useState<Float>(0);
@@ -70,6 +79,7 @@ export default function TransactionRoomScreen() {
 	const [showRequestModal, setShowRequestModal] = useState<boolean>(false);
 	const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
 	const [showPaymentConfirmModal, setShowPaymentConfirmModal] = useState<boolean>(false);
+	const [showViewImageModal, setShowViewImageModal] = useState<boolean>(false);
 
 	const [showProductSentSection, setShowProductSentSection] = useState<boolean>(true);
 	const [showProductReceivedSection, setShowProductReceivedSection] = useState<boolean>(true);
@@ -158,7 +168,8 @@ export default function TransactionRoomScreen() {
 						id: data[0].id,
 						created_at: data[0].created_at,
 						amount: data[0].amount,
-						currency: data[0].currency
+						currency: data[0].currency,
+						platform: data[0].platform,
 					});
 					setIsPaymentRequestSending(false);
 
@@ -228,7 +239,6 @@ export default function TransactionRoomScreen() {
 
 		if (receipt) {
 			try {
-				// const response = await fetch(receiptURI);
 				const base64Data = receipt.base64;
 				const contentType = receipt.mimeType;
 
@@ -241,38 +251,50 @@ export default function TransactionRoomScreen() {
 							contentType: contentType,
 							cacheControl: "3600",
 							upsert: true,
-						})
+						});
 
 					if (!receiptError && receiptData) {
-						const { error } = await supabase
-							.from("payments")
-							.update({
-								status: "paid",
-								paid_at: new Date().toISOString(),
-								receipt: receiptData.path,
-							})
-							.eq("id", id);
+						const { data: receiptURL } = supabase.storage
+							.from("receipts")
+							.getPublicUrl(receiptData.path);
 
-						if (!error) {
-							interactionsChannel.send({
-								type: "broadcast",
-								event: "payment",
-								payload: {
-									type: "payment_sent",
-									data: {
-										id: id,
-										sender_id: userData?.id,
-										from: userData?.firstname,
-										receipt: receiptData.path,
+						if (receiptURL) {
+							const { error } = await supabase
+								.from("payments")
+								.update({
+									status: "paid",
+									paid_at: new Date().toISOString(),
+									receipt: receiptData.fullPath,
+								})
+								.eq("id", id);
+
+							if (!error) {
+								const currentPayment = interactions?.filter(inter => inter.type === "payment_requested").find(inter => inter.data.id === id);
+
+								interactionsChannel.send({
+									type: "broadcast",
+									event: "payment",
+									payload: {
+										type: "payment_sent",
+										data: {
+											id: id,
+											sender_id: userData?.id,
+											from: userData?.firstname,
+											amount: currentPayment?.data.amount,
+											currency: currentPayment?.data.currency,
+											platform: currentPayment?.data.platform,
+											receiptURL: receiptURL.publicUrl,
+											receiptPath: receiptData.path,
+										}
 									}
-								}
-							}).then(() => {
-								setReceipt(undefined);
-								setIsPaymentSending(false);
-								setShowPaymentModal(false);
-							});
-						} else {
-							console.log("Supabase transaction update error: ", error);
+								}).then(() => {
+									setReceipt(undefined);
+									setIsPaymentSending(false);
+									setShowPaymentModal(false);
+								});
+							} else {
+								console.log("Supabase transaction update error: ", error);
+							}
 						}
 					} else {
 						console.log("Supabase upload error: ", receiptError);
@@ -425,45 +447,61 @@ export default function TransactionRoomScreen() {
 	const finishTransaction = async () => {
 		setIsTransactionFinishing(true);
 
-		const interactionsJSON = JSON.stringify(interactions?.filter(inter => inter.type !== "message").sort(
+		const interactionsOBJ = interactions?.filter(inter => inter.type !== "message").sort(
 			(a, b) => a.timestamp.getTime() - b.timestamp.getTime()
-		));
+		);
 
-		const platforms = interactions?.filter(inter => inter.type === "payment_requested" && inter.data.status === "completed").map((inter) => {
-			if (inter.type === "payment_requested") {
-				return inter.data.platform;
-			} else {
-				return null;
-			}
-		}).filter((value, index, self) => self.indexOf(value) === index) as string[];
+		if (userData && merchantData && interactionsOBJ) {
+			// interactionsOBJ.unshift({
+			// 	timestamp: new Date(Date.now()),
+			// 	type: "transaction_started",
+			// 	from: role === "merchant" ? merchantData.firstname : userData.firstname,
+			// })
 
-		if (totalTradedAmount !== undefined) {
-			const { error } = await supabase
-				.from("transactions")
-				.update({
-					total_amount: totalTradedAmount,
-					status: totalTradedAmount > 0 ? "completed" : "cancelled",
-					platforms: platforms,
-					timeline: interactionsJSON,
-				})
-				.eq("id", roomID);
+			interactionsOBJ.push({
+				timestamp: new Date(Date.now()),
+				type: totalTradedAmount > 0 ? "transaction_completed" : "transaction_cancelled",
+				from: userData?.firstname,
+			});
 
-			if (!error) {
-				interactionsChannel.send({
-					type: "broadcast",
-					event: "transaction",
-					payload: {
-						type: "transaction_completed",
-						data: {
-							id: userData?.id,
-							from: userData?.firstname,
+			const interactionsJSON = JSON.stringify(interactionsOBJ);
+
+			const platforms = interactions?.filter(inter => inter.type === "payment_requested" && inter.data.status === "completed").map((inter) => {
+				if (inter.type === "payment_requested") {
+					return inter.data.platform;
+				} else {
+					return null;
+				}
+			}).filter((value, index, self) => self.indexOf(value) === index) as string[];
+
+			if (totalTradedAmount !== undefined) {
+				const { error } = await supabase
+					.from("transactions")
+					.update({
+						total_amount: totalTradedAmount,
+						status: totalTradedAmount > 0 ? "completed" : "cancelled",
+						platforms: platforms,
+						timeline: interactionsJSON,
+					})
+					.eq("id", roomID);
+
+				if (!error) {
+					interactionsChannel.send({
+						type: "broadcast",
+						event: "transaction",
+						payload: {
+							type: "transaction_completed",
+							data: {
+								id: userData?.id,
+								from: userData?.firstname,
+							}
 						}
-					}
-				}).then(() => {
-					setIsTransactionFinishing(false);
-				});
-			} else {
-				console.log(error);
+					}).then(() => {
+						setIsTransactionFinishing(false);
+					});
+				} else {
+					console.log(error);
+				}
 			}
 		}
 	}
@@ -503,6 +541,11 @@ export default function TransactionRoomScreen() {
 		if (result && result.assets && result.assets[0].uri) {
 			setReceipt(result.assets[0]);
 		}
+	}
+
+	const viewReceiptImage = (uri: string) => {
+		setCurrentViewImage(uri);
+		setShowViewImageModal(true);
 	}
 
 	const getRoomData = async () => {
@@ -604,7 +647,11 @@ export default function TransactionRoomScreen() {
 										from: payloadData.data.from,
 										data: {
 											id: payloadData.data.id,
-											receipt: payloadData.data.receipt,
+											amount: payloadData.data.amount,
+											currency: payloadData.data.currency,
+											platform: payloadData.data.platform,
+											receiptURL: payloadData.data.receiptURL,
+											receiptPath: payloadData.data.receiptPath,
 											status: "pending",
 										},
 									}]);
@@ -746,15 +793,6 @@ export default function TransactionRoomScreen() {
 									} else {
 										setShowFinishConfirmationDialog(true);
 									}
-
-									setInteractions(curr => [...(curr || []), {
-										timestamp: new Date(Date.now()),
-										type: "transaction",
-										from: payloadData.data.from,
-										data: {
-											type: totalTradedAmount > 0 ? "transaction_completed" : "transaction_cancelled",
-										},
-									}]);
 
 									break;
 								case "transaction_started":
@@ -937,28 +975,24 @@ export default function TransactionRoomScreen() {
 										</View>
 									)
 								case "payment_sent":
-									const { data: receiptURL } = supabase.storage
-										.from("receipts")
-										.getPublicUrl(inter.data.receipt);
-
-									if (receiptURL) {
-										return (
-											<View key={inter.timestamp.getTime()} className="mb-2 space-y-2">
-												<EventChip type={inter.type} from={inter.from} />
-												<PaymentSentCard
-													style={{ backgroundColor: theme.colors.background }}
-													id={inter.data.id}
-													userData={userData}
-													timestamp={inter.timestamp}
-													sender_id={inter.sender_id}
-													from={inter.from}
-													status={inter.data.status}
-													receiptURL={receiptURL.publicUrl}
-													onConfirm={() => setShowPaymentConfirmModal(true)}
-												/>
-											</View>
-										)
-									}
+									return (
+										<View key={inter.timestamp.getTime()} className="mb-2 space-y-2">
+											<EventChip type={inter.type} from={inter.from} />
+											<PaymentSentCard
+												style={{ backgroundColor: theme.colors.background }}
+												id={inter.data.id}
+												userData={userData}
+												timestamp={inter.timestamp}
+												sender_id={inter.sender_id}
+												from={inter.from}
+												platform={inter.data.platform}
+												status={inter.data.status}
+												receiptURL={inter.data.receiptURL}
+												onConfirm={() => setShowPaymentConfirmModal(true)}
+												onViewImage={() => viewReceiptImage(inter.data.receiptURL)}
+											/>
+										</View>
+									)
 
 
 								default:
@@ -1181,7 +1215,7 @@ export default function TransactionRoomScreen() {
 					<BottomSheetView>
 						<View className="flex flex-col w-full px-4 space-y-2">
 							<Text h3>Rate your Experience</Text>
-							<Text body>How was your transaction with <Text className="font-bold">{merchantData?.username}</Text></Text>
+							<Text body>How was your transaction with <Text className="font-bold">{merchantData?.firstname}</Text></Text>
 							<Divider />
 							<View className="flex flex-row space-x-4 items-center justify-center">
 								<IconButton
@@ -1298,6 +1332,32 @@ export default function TransactionRoomScreen() {
 					/>
 				</Dialog>
 				<Dialog
+					visible={showViewImageModal}
+					onDismiss={() => setShowViewImageModal(false)}
+					panDirection="up"
+					width={dimensions.width}
+					height={dimensions.height}
+					containerStyle={{ backgroundColor: Colors.bgDefault, borderRadius: 8 }}
+				>
+					<TouchableOpacity onPress={() => setShowViewImageModal(false)}>
+						<Image
+							className="w-full h-full"
+							source={{ uri: currentViewImage }}
+							resizeMode="contain"
+							overlayType={Image.overlayTypes.BOTTOM}
+							customOverlayContent={(
+								<View className="flex flex-row w-full h-full items-end justify-center">
+									<View
+										className="mb-4 p-2"
+									>
+										<Text bodySmall bgDefault className="font-bold">Tap on Image to Close</Text>
+									</View>
+								</View>
+							)}
+						/>
+					</TouchableOpacity>
+				</Dialog>
+				<Dialog
 					visible={showFinishDialog}
 					onDismiss={() => setShowFinishDialog(false)}
 					panDirection="up"
@@ -1354,9 +1414,9 @@ export default function TransactionRoomScreen() {
 					>
 						<Text h3>Notice</Text>
 						{totalTradedAmount && totalTradedAmount > 0 ?
-							<Text body>{merchantData?.username} has ended the transaction.</Text>
+							<Text body>{merchantData?.firstname} has ended the transaction.</Text>
 							:
-							<Text body>{merchantData?.username} has cancelled the transaction.</Text>
+							<Text body>{merchantData?.firstname} has cancelled the transaction.</Text>
 						}
 						<View className="flex flex-row w-full items-center justify-end space-x-2">
 							<Button

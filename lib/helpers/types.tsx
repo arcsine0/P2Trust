@@ -92,7 +92,11 @@ export type Interaction =
     from: string;
     data: {
         id: string;
-        receipt: string;
+        amount: Float;
+        currency: string;
+        platform: string;
+        receiptURL: string;
+        receiptPath: string;
         status: "pending" | "confirmed" | "denied";
     };
 }
@@ -125,11 +129,8 @@ export type Interaction =
 }
 | {
     timestamp: Date;
-    type: "transaction";
+    type: "transaction_started" | "transaction_completed" | "transaction_cancelled",
     from: string;
-    data: {
-        type: "transaction_started" | "transaction_completed" | "transaction_cancelled",
-    };
 };
 
 export type TimelineEvent = {

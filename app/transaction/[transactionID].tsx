@@ -47,7 +47,8 @@ export default function TransactionDetailsScreen() {
                 .select("*")
                 .eq("id", transactionID);
 
-            if (!error) {
+            if (!error && data) {
+                console.log(data[0].timeline)
                 const timeline = JSON.parse(data[0].timeline);
 
                 const { data: userRatings, error: userRatingsError } = await supabase
@@ -137,7 +138,8 @@ export default function TransactionDetailsScreen() {
             // );
             switch (event.type) {
                 case "transaction_started":
-                case "transaction_ended":
+                case "transaction_completed":
+                case "transaction_cancelled":
                     return (
                         <TransactionEvent
                             key={index}

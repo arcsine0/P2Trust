@@ -92,11 +92,11 @@ export default function HomeScreen() {
 	}, [isFocused]);
 
 	return (
-		<SafeAreaView className="flex flex-col w-screen h-screen pt-8 pb-2 items-start justify-start">
+		<SafeAreaView className="flex flex-col w-screen h-screen pt-4 pb-2 items-start justify-start">
 			<Fader visible={true} position="BOTTOM" />
 			<Text h2 className="px-4 mb-2">Live Feed</Text>
 			<ScrollView className="w-full">
-				<View className="flex flex-col px-4 space-y-4">
+				<View className="flex flex-col px-4 mb-40 space-y-4">
 					{transactions && transactions.map((transaction: Transaction, i) => (
 						<Card
 							key={i}

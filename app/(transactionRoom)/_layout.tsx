@@ -44,7 +44,6 @@ export default function TransactionLayout() {
                     options={{
                         headerBackVisible: true,
                         headerTitle: "Scan QR",
-
                     }}
                 />
                 <Stack.Screen
