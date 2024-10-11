@@ -30,6 +30,8 @@ export type Transaction = {
 	status: string;
     platforms: string[];
     timeline: string;
+    flags: number;
+    flagged_by: string[];
 }
 
 export type TransactionListItem = {

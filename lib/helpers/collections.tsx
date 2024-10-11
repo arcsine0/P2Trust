@@ -88,3 +88,9 @@ export const PhoneCountryCodes = [
 	{ label: "(+54)", value: "+54" },
 	{ label: "(+62)", value: "+62" }
 ];
+
+export const CrucialSteps = [
+	{ event: "payment_confirmed", label: "Confirmation of Payment" },
+	{ event: "product_sent", label: "Confirmation of Product Sent" },
+	{ event: "product_received", label: "Confirmation of Product Received" },
+]

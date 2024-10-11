@@ -3,7 +3,7 @@ import { ScrollView } from "react-native";
 import { useTheme, Avatar, IconButton, ActivityIndicator } from "react-native-paper";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Colors, View, Text, Card, Button, ActionSheet, Dialog } from "react-native-ui-lib";
+import { Colors, View, Text, Card, Button, ActionSheet, Dialog, Toast } from "react-native-ui-lib";
 
 import { router, useNavigation } from "expo-router";
 
@@ -44,7 +44,7 @@ const messages = [
 ];
 
 export default function TransactionHomeScreen() {
-    const [showBadge, setShowBadge] = useState(false);
+    const [showHint, setShowHint] = useState(false);
 
     const [QRError, setQRError] = useState<string>("");
 
@@ -218,18 +218,18 @@ export default function TransactionHomeScreen() {
         if (userData) {
             setShowVerifyModal(userData.isVerified === false);
         }
-    
+
         requestsChannel
             .on("broadcast", { event: "request" }, (payload) => {
                 const payloadData = payload.payload;
+
+                setShowHint(true);
 
                 if (requests) {
                     setRequests([...requests?.filter(req => req.sender_id !== payload.data.sender_id) as Request[], payloadData])
                 } else {
                     setRequests([payloadData]);
                 }
-
-                setShowBadge(true);
             })
             .subscribe();
 
@@ -241,9 +241,10 @@ export default function TransactionHomeScreen() {
                         icon="account-plus-outline"
                         onPress={() => {
                             requestsModalRef.current?.present();
-                            setShowBadge(false);
+                            setShowHint(false);
                         }}
                     />
+
                     <IconButton
                         ref={r => tutorialRef.current?.addTarget(r, "5")}
                         icon="dots-vertical"
@@ -476,6 +477,12 @@ export default function TransactionHomeScreen() {
                         </Button>
                     </View>
                 )}
+            />
+            <Toast
+                visible={showHint}
+                message={"A user has sent you an invite request."}
+                position={'top'}
+                onDismiss={() => setShowHint(false)}
             />
             <Tutorial
                 ref={tutorialRef}

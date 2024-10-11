@@ -1019,28 +1019,16 @@ export default function TransactionRoomScreen() {
 						>
 							<View className="flex flex-col w-full space-y-2">
 								{!isProductSentSending ?
-									<View className="flex flex-row w-full items-center space-x-2">
-										<Button
-											className="flex-1 rounded-lg"
-											disabled={isProductSentSending}
-											onPress={() => sendProductStatus()}
-										>
-											<View className="flex flex-row space-x-2 items-center">
-												<MaterialCommunityIcons name="check" size={20} color={"white"} />
-												<Text buttonSmall white>Yes</Text>
-											</View>
-										</Button>
-										<Button
-											className="flex-1 rounded-lg grow"
-											disabled={isProductSentSending}
-											onPress={() => { }}
-										>
-											<View className="flex flex-row space-x-2 items-center">
-												<MaterialCommunityIcons name="close" size={20} color={"white"} />
-												<Text buttonSmall white>No</Text>
-											</View>
-										</Button>
-									</View>
+									<Button
+										className="flex-1 rounded-lg"
+										disabled={isProductSentSending}
+										onPress={() => sendProductStatus()}
+									>
+										<View className="flex flex-row space-x-2 items-center">
+											<MaterialCommunityIcons name="check" size={20} color={"white"} />
+											<Text buttonSmall white>Yes</Text>
+										</View>
+									</Button>
 									:
 									<Button
 										className="rounded-lg flex-1"
@@ -1079,26 +1067,15 @@ export default function TransactionRoomScreen() {
 						>
 							<View className="flex flex-col w-full space-y-2">
 								{!isProductConfirmSending ?
-									<View className="flex flex-row w-full items-center space-x-2">
-										<Button
-											className="flex-1 rounded-lg"
-											onPress={() => sendProductConfirmation()}
-										>
-											<View className="flex flex-row space-x-2 items-center">
-												<MaterialCommunityIcons name="check" size={20} color={"white"} />
-												<Text buttonSmall white>Yes</Text>
-											</View>
-										</Button>
-										<Button
-											className="flex-1 rounded-lg grow"
-											onPress={() => { }}
-										>
-											<View className="flex flex-row space-x-2 items-center">
-												<MaterialCommunityIcons name="close" size={20} color={"white"} />
-												<Text buttonSmall white>No</Text>
-											</View>
-										</Button>
+									<Button
+									className="flex-1 rounded-lg"
+									onPress={() => sendProductConfirmation()}
+								>
+									<View className="flex flex-row space-x-2 items-center">
+										<MaterialCommunityIcons name="check" size={20} color={"white"} />
+										<Text buttonSmall white>Yes</Text>
 									</View>
+								</Button>
 									:
 									<Button
 										className="rounded-lg flex-1"

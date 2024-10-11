@@ -2,32 +2,38 @@ import { useState, useEffect } from "react";
 import { useWindowDimensions, Platform, KeyboardAvoidingView, ScrollView, Dimensions } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme, Avatar, Divider, IconButton, TouchableRipple } from "react-native-paper";
+import { useTheme, Avatar, Divider, IconButton, TouchableRipple, ActivityIndicator } from "react-native-paper";
 
-import { Colors, View, Text, Card, Timeline, Dialog, TouchableOpacity, Image } from "react-native-ui-lib";
+import { Colors, View, Text, Card, Timeline, Dialog, TouchableOpacity, AnimatedImage, Image, Button } from "react-native-ui-lib";
 
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
 
 import { supabase } from "@/supabase/config";
 
 import { Transaction, TimelineEvent } from "@/lib/helpers/types";
+import { CrucialSteps } from "@/lib/helpers/collections";
+import { getInitials, formatISODate, formatTimeDifference } from "@/lib/helpers/functions";
+import { useUserData } from "@/lib/context/UserContext";
 
 import { Ionicons, MaterialCommunityIcons, Octicons } from "@expo/vector-icons";
 import { TransactionEvent, UserEvent, PaymentEvent, PaymentStatusEvent, ProductStatusEvent } from "@/components/chatEvents/TimelineEvents";
-import { getInitials, formatISODate, formatTimeDifference } from "@/lib/helpers/functions";
 
 export default function TransactionDetailsScreen() {
     const [dimensions, setDimensions] = useState<{
-		width: number;
-		height: number;
-	}>({
-		width: Dimensions.get("screen").width,
-		height: Dimensions.get("screen").height,
-	});
+        width: number;
+        height: number;
+    }>({
+        width: Dimensions.get("screen").width,
+        height: Dimensions.get("screen").height,
+    });
 
     const [transactionData, setTransactionData] = useState<Transaction | undefined>(undefined)
     const [transactionTimeline, setTransactionTimeline] = useState<TimelineEvent[] | undefined>(undefined);
 
+    const [missingSteps, setMissingSteps] = useState<{
+        event: string,
+        label: string,
+    }[] | undefined>(undefined);
     const [currentViewImage, setCurrentViewImage] = useState<string | undefined>("");
 
     const [userRating, setUserRating] = useState<{
@@ -46,72 +52,149 @@ export default function TransactionDetailsScreen() {
     } | undefined>(undefined);
 
     const [showViewImageModal, setShowViewImageModal] = useState<boolean>(false);
+    const [showFlagModal, setShowFlagModal] = useState<boolean>(false);
+
+    const [isFlagged, setIsFlagged] = useState<boolean>(false);
+    const [isFlagging, setIsFlagging] = useState<boolean>(false);
 
     const { transactionID } = useLocalSearchParams<{ transactionID: string }>();
+    const { userData } = useUserData();
 
     const navigation = useNavigation();
 
     const viewReceiptImage = (uri: string | undefined) => {
-		setCurrentViewImage(uri);
-		setShowViewImageModal(true);
-	}
+        setCurrentViewImage(uri);
+        setShowViewImageModal(true);
+    }
 
-    const getTransactionData = async () => {
-        try {
-            const { data, error } = await supabase
+    const addFlag = async () => {
+        setIsFlagging(true);
+
+        if (userData && transactionData) {
+            const { error: flagError } = await supabase
                 .from("transactions")
-                .select("*")
+                .update({
+                    flags: transactionData.flags + 1,
+                    flagged_by: transactionData.flagged_by
+                        ? [...transactionData.flagged_by.filter(id => id !== userData.id), userData.id]
+                        : [userData.id]
+                })
                 .eq("id", transactionID);
 
-            if (!error && data) {
-                console.log(data[0].timeline)
-                const timeline = JSON.parse(data[0].timeline);
-
-                const { data: userRatings, error: userRatingsError } = await supabase
-                    .from("ratings")
-                    .select("rating")
-                    .eq("merchant_id", data[0].clientID);
-
-                const { data: merchantRatings, error: merchantRatingsError } = await supabase
-                    .from("ratings")
-                    .select("rating")
-                    .eq("merchant_id", data[0].merchantID);
-
-                if (!userRatingsError && userRatings) {
-                    setUserRating({
-                        positive: userRatings.filter(rating => rating.rating === "UP").length,
-                        negative: userRatings.filter(rating => rating.rating === "DOWN").length,
-                    })
-                }
-
-                if (!merchantRatingsError && merchantRatings) {
-                    setMerchantRating({
-                        positive: merchantRatings.filter(rating => rating.rating === "UP").length,
-                        negative: merchantRatings.filter(rating => rating.rating === "DOWN").length,
-                    })
-                }
-
-                setTransactionData(data[0]);
-                setTransactionTimeline(timeline);
-                setTransactionLength({
-                    startTime: Date.parse(timeline[0].timestamp),
-                    endTime: Date.parse(timeline[timeline.length - 1].timestamp),
-                });
-
-                navigation.setOptions({
-                    headerLeft: () => (
-                        <View className="flex flex-col mt-4 mb-2 items-start justify-center">
-                            <Text bodyLarge className="font-bold">Transaction Details</Text>
-                            <Text bodySmall>ID: {data[0].id}</Text>
-                            <Text bodySmall>{formatISODate(data[0].created_at.toLocaleString())}</Text>
-                        </View>
-                    ),
-                });
+            if (!flagError) {
+                setIsFlagged(true);
+                setIsFlagging(false);
+                setShowFlagModal(false);
             } else {
+                setIsFlagging(false);
+                setShowFlagModal(false);
+                console.log(flagError);
+            }
+        }
+    }
+
+    const removeFlag = async () => {
+        setIsFlagging(true);
+
+        if (userData && transactionData) {
+            const { error: flagError } = await supabase
+                .from("transactions")
+                .update({
+                    flags: transactionData.flags - 1,
+                    flagged_by: [...transactionData.flagged_by.filter(id => id !== userData.id)]
+                })
+                .eq("id", transactionID);
+
+            if (!flagError) {
+                setIsFlagged(false);
+                setIsFlagging(false);
+                setShowFlagModal(false);
+            } else {
+                setIsFlagging(false);
+                setShowFlagModal(false);
+                console.log(flagError);
+            }
+        }
+    }
+
+    const getTransactionData = async () => {
+        if (userData) {
+            try {
+                const { data, error } = await supabase
+                    .from("transactions")
+                    .select("*")
+                    .eq("id", transactionID);
+
+                if (!error && data) {
+                    const timeline: TimelineEvent[] = JSON.parse(data[0].timeline);
+
+                    const paymentSentCount = timeline.filter(event => event.type === "payment_sent").length;
+                    const paymentConfirmationCount = timeline.filter(event =>
+                        event.type === "payment_confirmed" || event.type === "payment_denied"
+                    ).length;
+
+                    const missingSteps = CrucialSteps.filter(crucialEvent => {
+                        if (crucialEvent.label === "Confirmation of Payment") {
+                            return paymentConfirmationCount < paymentSentCount;
+                        } else {
+                            return !timeline.some(event => event.type === crucialEvent.event);
+                        }
+                    }).map(event => ({ event: event.event, label: event.label }));
+
+                    setMissingSteps(missingSteps);
+
+                    const { data: userRatings, error: userRatingsError } = await supabase
+                        .from("ratings")
+                        .select("rating")
+                        .eq("merchant_id", data[0].clientID);
+
+                    const { data: merchantRatings, error: merchantRatingsError } = await supabase
+                        .from("ratings")
+                        .select("rating")
+                        .eq("merchant_id", data[0].merchantID);
+
+                    if (!userRatingsError && userRatings) {
+                        setUserRating({
+                            positive: userRatings.filter(rating => rating.rating === "UP").length,
+                            negative: userRatings.filter(rating => rating.rating === "DOWN").length,
+                        })
+                    }
+
+                    if (!merchantRatingsError && merchantRatings) {
+                        setMerchantRating({
+                            positive: merchantRatings.filter(rating => rating.rating === "UP").length,
+                            negative: merchantRatings.filter(rating => rating.rating === "DOWN").length,
+                        })
+                    }
+
+                    setTransactionData(data[0]);
+                    setTransactionTimeline(timeline);
+                    setTransactionLength({
+                        startTime: Date.parse(timeline[0].timestamp),
+                        endTime: Date.parse(timeline[timeline.length - 1].timestamp),
+                    });
+
+                    if (data[0].flagged_by.includes(userData.id)) {
+                        setIsFlagged(true);
+                    } else {
+                        setIsFlagged(false)
+                    }
+
+                    navigation.setOptions({
+                        headerLeft: () => (
+                            <View className="flex flex-col mt-4 mb-2 items-start justify-center">
+                                <Text bodyLarge className="font-bold">Transaction Details</Text>
+                                <Text bodySmall>ID: {data[0].id}</Text>
+                                <Text bodySmall>{formatISODate(data[0].created_at.toLocaleString())}</Text>
+                            </View>
+                        ),
+                    });
+                } else {
+                    console.log(error);
+                }
+            } catch (error) {
                 console.log(error);
             }
-        } catch (error) {
-            console.log(error);
         }
     }
 
@@ -122,8 +205,8 @@ export default function TransactionDetailsScreen() {
             headerRight: () => (
                 <View className="flex flex-row">
                     <IconButton
-                        icon="dots-vertical"
-                        onPress={() => console.log("Dots Pressed")}
+                        icon={isFlagged ? "flag" : "flag-outline"}
+                        onPress={() => setShowFlagModal(true)}
                     />
                 </View>
             )
@@ -275,6 +358,22 @@ export default function TransactionDetailsScreen() {
                                     </View>
                                 </View>
                             </Card>
+                            {missingSteps && missingSteps.length > 0 && (
+                                <Card
+                                    style={{ backgroundColor: Colors.warning100 }}
+                                    className="flex flex-row space-x-2 w-full p-4"
+                                    elevation={10}
+                                >
+                                    <Ionicons name="warning-outline" size={20} colors={Colors.gray900} />
+                                    <View className="flex flex-col flex-1 space-y-2">
+                                        <Text bodyLarge className="font-bold">Missing Events</Text>
+                                        <Text bodySmall>This transaction is missing <Text className="font-bold">{missingSteps.length}</Text> crucial steps:</Text>
+                                        {missingSteps.map((step, i) => (
+                                            <Text key={i} bodySmall>{`\u2022 ${step.label}`}</Text>
+                                        ))}
+                                    </View>
+                                </Card>
+                            )}
                             <Card
                                 style={{ backgroundColor: Colors.bgDefault }}
                                 className="flex flex-col w-full p-4"
@@ -356,31 +455,74 @@ export default function TransactionDetailsScreen() {
                     }
                 </ScrollView>
                 <Dialog
-					visible={showViewImageModal}
-					onDismiss={() => setShowViewImageModal(false)}
-					panDirection="up"
-					width={dimensions.width}
-					height={dimensions.height}
-					containerStyle={{ backgroundColor: Colors.bgDefault, borderRadius: 8 }}
-				>
-					<TouchableOpacity onPress={() => setShowViewImageModal(false)}>
-						<Image
-							className="w-full h-full"
-							source={{ uri: currentViewImage }}
-							resizeMode="contain"
-							overlayType={Image.overlayTypes.BOTTOM}
-							customOverlayContent={(
-								<View className="flex flex-row w-full h-full items-end justify-center">
-									<View
-										className="mb-4 p-2"
-									>
-										<Text bodySmall bgDefault className="font-bold">Tap on Image to Close</Text>
-									</View>
-								</View>
-							)}
-						/>
-					</TouchableOpacity>
-				</Dialog>
+                    visible={showViewImageModal}
+                    onDismiss={() => setShowViewImageModal(false)}
+                    panDirection="up"
+                    width={dimensions.width}
+                    height={dimensions.height}
+                    containerStyle={{ backgroundColor: Colors.bgDefault, borderRadius: 8 }}
+                >
+                    <TouchableOpacity onPress={() => setShowViewImageModal(false)}>
+                        <AnimatedImage
+                            className="w-full h-full"
+                            source={{ uri: currentViewImage }}
+                            resizeMode="contain"
+                            overlayType={Image.overlayTypes.BOTTOM}
+                            customOverlayContent={(
+                                <View className="flex flex-row w-full h-full items-end justify-center">
+                                    <View
+                                        className="mb-4 p-2"
+                                    >
+                                        <Text bodySmall bgDefault className="font-bold">Tap on Image to Close</Text>
+                                    </View>
+                                </View>
+                            )}
+                            loader={<ActivityIndicator animating={true} size={20} color={Colors.primary700} />}
+                            animationDuration={500}
+                        />
+                    </TouchableOpacity>
+                </Dialog>
+                <Dialog
+                    visible={showFlagModal}
+                    panDirection="up"
+                    onDismiss={() => setShowFlagModal(false)}
+                    containerStyle={{ backgroundColor: Colors.bgDefault, borderRadius: 8, padding: 4 }}
+                >
+                    <View className="flex flex-col w-full p-4 space-y-8">
+                        <View className="flex flex-col w-full space-y-2">
+                            <Text h3>Notice</Text>
+                            <Text body>{isFlagged ? "Do you want to undo the flag?" : "Do you want to flag this transaction as possibly fraudulent?"}</Text>
+                        </View>
+                        <View className="flex flex-row w-full items-center justify-end space-x-2">
+                            <Button
+                                className="rounded-lg"
+                                onPress={() => setShowFlagModal(false)}
+                            >
+                                <View className="flex flex-row space-x-2 items-center">
+                                    <MaterialCommunityIcons name="close" size={20} color={"white"} />
+                                    <Text buttonSmall white>Cancel</Text>
+                                </View>
+                            </Button>
+                            <Button
+                                className="rounded-lg"
+                                disabled={isFlagging}
+                                onPress={() => { isFlagged ? removeFlag() : addFlag() }}
+                            >
+                                {!isFlagging ?
+                                    <View className="flex flex-row space-x-2 items-center">
+                                        <MaterialCommunityIcons name={isFlagged ? "flag-remove" : "flag"} size={20} color={"white"} />
+                                        <Text buttonSmall white>{isFlagged ? "Remove Flag?" : "Flag"}</Text>
+                                    </View>
+                                    :
+                                    <View className="flex flex-row space-x-2 items-center">
+                                        <ActivityIndicator animating={true} size={20} color="white" />
+                                        <Text buttonSmall white>Submitting...</Text>
+                                    </View>
+                                }
+                            </Button>
+                        </View>
+                    </View>
+                </Dialog>
             </KeyboardAvoidingView>
         </SafeAreaView>
     )

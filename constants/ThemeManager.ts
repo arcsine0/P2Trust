@@ -217,6 +217,18 @@ Colors.loadColors({
     success800: "#065F46",
     success900: "#064E3B",
 
+    // warning
+    warning50: "#FFFBEB",
+    warning100: "#FEF3C7",
+    warning200: "#FDE68A",
+    warning300: "#FCD34D",
+    warning400: "#FBBF24",
+    warning500: "#F59E0B",
+    warning600: "#D97706",
+    warning700: "#B45309",
+    warning800: "#92400E",
+    warning900: "#78350F",
+
     // error
     error50: "#FEF2F2",
     error100: "#FEE2E2",

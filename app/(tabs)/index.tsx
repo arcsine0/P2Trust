@@ -16,6 +16,8 @@ import { useUserData } from "@/lib/context/UserContext";
 import { Transaction } from "@/lib/helpers/types";
 import { formatISODate } from "@/lib/helpers/functions";
 
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+
 type TabParamList = {
 	Home: undefined;
 	History: { name: string };
@@ -109,6 +111,16 @@ export default function HomeScreen() {
 							elevation={10}
 							className="flex flex-col p-4 space-y-2"
 						>
+							{transaction.flags > 0 && (
+								<View className="flex w-1/3">
+									<Chip
+										label={"flagged"}
+										borderRadius={8}
+										backgroundColor={Colors.warning200}
+										containerStyle={{ borderWidth: 0 }}
+									/>
+								</View>
+							)}
 							<View className="flex flex-row w-full justify-between items-center">
 								<Text bodySmall gray400 className="font-semibold">{formatISODate(transaction.created_at.toLocaleString())}</Text>
 								{transaction.status === "completed" ?
