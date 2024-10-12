@@ -59,11 +59,11 @@ export default function TransactionRoomScreen() {
 	const [isMessageSending, setIsMessageSending] = useState<boolean>(false);
 
 	const [requestDetails, setRequestDetails] = useState<RequestDetails>({
-		amount: 100,
+		amount: 0,
 		currency: "PHP",
 		platform: "GCash",
-		accountNumber: "09673127888",
-		accountName: "Test Client",
+		accountNumber: "",
+		accountName: "",
 	});
 
 	const [paymentDetails, setPaymentDetails] = useState<RequestDetails>({
@@ -175,13 +175,13 @@ export default function TransactionRoomScreen() {
 					setIsPaymentRequestSending(false);
 
 					// commented out for testing
-					// setRequestDetails({
-					// 	amount: 0,
-					// 	currency: "",
-					// 	platform: "",
-					// 	accountNumber: "",
-					// 	accountName: "",
-					// });
+					setRequestDetails({
+						amount: 0,
+						currency: "",
+						platform: "",
+						accountNumber: "",
+						accountName: "",
+					});
 
 					setShowRequestModal(false);
 				});
