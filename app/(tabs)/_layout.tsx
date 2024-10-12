@@ -15,7 +15,6 @@ import HomeScreen from "./index";
 import HistoryScreen from "./history";
 
 import { useUserData } from "@/lib/context/UserContext";
-import { getInitials } from "@/lib/helpers/functions";
 
 import { UserCard } from "@/components/userCards/UserCard";
 
@@ -121,7 +120,7 @@ export default function TabLayout() {
 					headerTitle: "",
 					headerLeft: () => (
 						<UserCard 
-							style={{ marginLeft: 8 }}
+							style={{ width: "60%", marginLeft: 8 }}
 							name={userData?.firstname || "N/A"}
 							id={userData?.id || "123123"}
 						/>

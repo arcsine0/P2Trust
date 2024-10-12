@@ -24,6 +24,7 @@ import { RequestDetails } from "@/lib/helpers/types";
 
 import { EventChip, PaymentRequestCard, PaymentSentCard } from "@/components/chatEvents";
 import { RequestPaymentRoute, SendPaymentRoute } from "@/components/chatBottomSheetRoutes";
+import { UserCard } from "@/components/userCards/UserCard";
 
 import { Float } from "react-native/Libraries/Types/CodegenTypes";
 import { getInitials, formatISODate } from "@/lib/helpers/functions";
@@ -843,14 +844,11 @@ export default function TransactionRoomScreen() {
 
 		navigation.setOptions({
 			headerLeft: () => (
-				<View className="flex flex-row gap-2 items-center justify-start">
-					{merchantData ?
-						<Avatar.Text label={getInitials(merchantData.firstname)} size={30} />
-						:
-						<Avatar.Text label="N/A" size={30} />
-					}
-					<Text h4>{merchantData?.firstname || "N/A"}</Text>
-				</View>
+				<UserCard
+					idStyle={{ width: "50%" }}
+					name={merchantData?.firstname || "N/A"}
+					id={merchantData?.id || "123123"}
+				/>
 			),
 			headerRight: () => (
 				<View className="flex flex-row space-x-2 items-center">
@@ -1068,14 +1066,14 @@ export default function TransactionRoomScreen() {
 							<View className="flex flex-col w-full space-y-2">
 								{!isProductConfirmSending ?
 									<Button
-									className="flex-1 rounded-lg"
-									onPress={() => sendProductConfirmation()}
-								>
-									<View className="flex flex-row space-x-2 items-center">
-										<MaterialCommunityIcons name="check" size={20} color={"white"} />
-										<Text buttonSmall white>Yes</Text>
-									</View>
-								</Button>
+										className="flex-1 rounded-lg"
+										onPress={() => sendProductConfirmation()}
+									>
+										<View className="flex flex-row space-x-2 items-center">
+											<MaterialCommunityIcons name="check" size={20} color={"white"} />
+											<Text buttonSmall white>Yes</Text>
+										</View>
+									</Button>
 									:
 									<Button
 										className="rounded-lg flex-1"

@@ -5,7 +5,7 @@ import { Colors, View, Text, Button } from "react-native-ui-lib";
 
 import { useUserData } from "@/lib/context/UserContext";
 import { MerchantProvider, useMerchantData } from "@/lib/context/MerchantContext";
-import { getInitials } from "@/lib/helpers/functions";
+import { UserCard } from "@/components/userCards/UserCard";
 
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
@@ -14,7 +14,7 @@ export default function TransactionLayout() {
 
     return (
         <MerchantProvider>
-            <Stack screenOptions={{ 
+            <Stack screenOptions={{
                 headerShown: true,
                 statusBarHidden: true,
             }}
@@ -24,17 +24,11 @@ export default function TransactionLayout() {
                     options={{
                         headerTitle: "",
                         headerLeft: () => (
-                            <View className="flex flex-row space-x-2 items-center justify-start">
-                                {userData ?
-                                    <Avatar.Text label={getInitials(userData.firstname)} size={30} />
-                                    :
-                                    <Avatar.Text label="N/A" size={30} />
-                                }
-                                <View className="flex flex-col items-start justify-center">
-                                    <Text bodyLarge className="font-bold">{userData?.firstname || "N/A"}</Text>
-                                    <Text bodySmall>ID: 123123</Text>
-                                </View>
-                            </View>
+                            <UserCard
+                                idStyle={{ width: "50%" }}
+                                name={userData?.firstname || "N/A"}
+                                id={userData?.id || "123123"}
+                            />
                         ),
 
                     }}

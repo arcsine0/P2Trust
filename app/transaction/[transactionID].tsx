@@ -4,7 +4,7 @@ import { useWindowDimensions, Platform, KeyboardAvoidingView, ScrollView, Dimens
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme, Avatar, Divider, IconButton, TouchableRipple, ActivityIndicator } from "react-native-paper";
 
-import { Colors, View, Text, Card, Timeline, Dialog, TouchableOpacity, AnimatedImage, Image, Button } from "react-native-ui-lib";
+import { Colors, View, Text, Card, Timeline, Dialog, TouchableOpacity, AnimatedImage, Image, Button, Marquee, MarqueeDirections } from "react-native-ui-lib";
 
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
 import { setStringAsync } from "expo-clipboard";
@@ -183,12 +183,18 @@ export default function TransactionDetailsScreen() {
 
                     navigation.setOptions({
                         headerLeft: () => (
-                            <View className="flex flex-col mt-4 mb-2 items-start justify-center">
-                                <Text bodyLarge className="font-bold">Transaction Details</Text>
-                                <TouchableOpacity onPress={async () => await setStringAsync(data[0].id)}>
-                                    <Text bodySmall>ID: {data[0].id}</Text>
-                                </TouchableOpacity>
-                                <Text bodySmall>{formatISODate(data[0].created_at.toLocaleString())}</Text>
+                            <View className="flex flex-col w-full mt-4 mb-2 items-start justify-center">
+                                <View className="flex flex-col w-1/2 justify-center">
+                                    <Text bodyLarge className="font-bold">Transaction Details</Text>
+                                    <TouchableOpacity onPress={async () => await setStringAsync(data[0].id)}>
+                                        <Marquee
+                                            label={`ID: ${data[0].id}`}
+                                            direction={MarqueeDirections.LEFT}
+                                            duration={30000}
+                                        />
+                                    </TouchableOpacity>
+                                    <Text bodySmall>{formatISODate(data[0].created_at.toLocaleString())}</Text>
+                                </View>
                             </View>
                         ),
                     });
@@ -320,7 +326,12 @@ export default function TransactionDetailsScreen() {
                                             <Avatar.Text label={getInitials(transactionData.merchantName)} size={35} />
                                             <View className="flex flex-col w-1/2">
                                                 <Text body className="font-bold">{transactionData.merchantName}</Text>
-                                                <Text bodySmall gray400>ID: 123123</Text>
+                                                <Marquee
+                                                    label={`ID: ${transactionData.merchantID}`}
+                                                    labelStyle={{ color: Colors.gray400 }}
+                                                    direction={MarqueeDirections.LEFT}
+                                                    duration={30000}
+                                                />
                                                 <View className="flex flex-row space-x-1 items-center">
                                                     <Ionicons name="thumbs-up-sharp" size={10} color={Colors.success500} />
                                                     <Text bodySmall>{merchantRating ? merchantRating.positive : 0}</Text>
@@ -343,7 +354,12 @@ export default function TransactionDetailsScreen() {
                                             <Avatar.Text label={getInitials(transactionData.clientName)} size={35} />
                                             <View className="flex flex-col w-1/2">
                                                 <Text body className="font-bold">{transactionData.clientName}</Text>
-                                                <Text bodySmall gray400>ID: 123123</Text>
+                                                <Marquee
+                                                    label={`ID: ${transactionData.clientID}`}
+                                                    labelStyle={{ color: Colors.gray400 }}
+                                                    direction={MarqueeDirections.LEFT}
+                                                    duration={30000}
+                                                />
                                                 <View className="flex flex-row space-x-1 items-center">
                                                     <Ionicons name="thumbs-up-sharp" size={10} color={Colors.success500} />
                                                     <Text bodySmall>{userRating ? userRating.positive : 0}</Text>
