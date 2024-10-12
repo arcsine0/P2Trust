@@ -5,6 +5,8 @@ import { useTheme, Avatar, Snackbar, ActivityIndicator, IconButton } from "react
 
 import { Colors, View, Text, Card, Button } from "react-native-ui-lib";
 
+import { PieChart, LineChart } from "react-native-gifted-charts";
+
 import { BottomSheetModal, BottomSheetView } from "@gorhom/bottom-sheet";
 
 import { router, useNavigation, useLocalSearchParams } from "expo-router";
@@ -14,9 +16,10 @@ import { supabase } from "@/supabase/config";
 import { useUserData } from "@/lib/context/UserContext";
 import { useMerchantData } from "@/lib/context/MerchantContext";
 import { getInitials, formatISODate } from "@/lib/helpers/functions";
-import { TransactionListItem } from "@/lib/helpers/types";
+import { Transaction } from "@/lib/helpers/types";
 
 import RatingsBar from "@/components/analytics/RatingBar";
+import { HistoryCard } from "@/components/transactionCards/HistoryCard";
 
 import { MaterialCommunityIcons, Octicons } from "@expo/vector-icons";
 
@@ -25,10 +28,11 @@ import { Float } from "react-native/Libraries/Types/CodegenTypes";
 export default function TransactionLobbyScreen() {
     const [roomID, setRoomID] = useState("");
 
+    const [lastActive, setLastActive] = useState<Date | undefined>(undefined);
     const [totalTransactions, setTotalTransactions] = useState<number>(0);
     const [averageVolume, setAverageVolume] = useState<Float>(0);
 
-    const [transactionList, setTransactionList] = useState<TransactionListItem[] | undefined>(undefined)
+    const [transactionList, setTransactionList] = useState<Transaction[] | undefined>(undefined)
     const [ratings, setRatings] = useState<{
         positive: number,
         negative: number,
@@ -54,6 +58,18 @@ export default function TransactionLobbyScreen() {
     const navigation = useNavigation();
 
     const requestsChannel = supabase.channel(`requests_channel_${merchantID}`);
+
+    const renderDot = (size: number, color: string) => (
+        <View
+            style={{
+                height: size,
+                width: size,
+                borderRadius: 10,
+                backgroundColor: color,
+            }}
+
+        />
+    )
 
     const requestTransaction = async () => {
         if (userData && merchantData) {
@@ -152,15 +168,16 @@ export default function TransactionLobbyScreen() {
 
     const loadMerchantTransactions = async () => {
         if (merchantID) {
-            const { data, error } = await supabase
+            const { data: transactionData, error } = await supabase
                 .from("transactions")
-                .select("id, created_at, clientName, total_amount, status")
-                .eq(`merchantID`, merchantID);
+                .select("*")
+                .or(`merchantID.eq.${merchantID},clientID.eq.${merchantID}`)
+                .order("created_at", { ascending: false });
 
-            if (!error && data) {
-                setTransactionList(data);
-                setTotalTransactions(data ? data.length : 0);
-                setAverageVolume(data && data.length > 0 ? parseFloat((data.filter(transaction => transaction.status === "completed").reduce((a, b) => a + b.total_amount, 0) / data.length).toFixed(2)) : 0);
+            if (!error && transactionData) {
+                setTransactionList(transactionData);
+                setTotalTransactions(transactionData ? transactionData.length : 0);
+                setAverageVolume(transactionData && transactionData.length > 0 ? parseFloat((transactionData.filter(transaction => transaction.status === "completed").reduce((a, b) => a + b.total_amount, 0) / transactionData.length).toFixed(2)) : 0);
 
             } else {
                 console.log(error)
@@ -188,10 +205,24 @@ export default function TransactionLobbyScreen() {
         }
     }
 
+    const getMerchantLastActive = async () => {
+        // if (merchantID) {
+        //     const { data, error } = await supabase.auth.getSession()
+
+        //     if (!error && data) {
+        //         console.log(data);
+        //     } else {
+        //         console.log(error);
+        //     }
+        // }
+    }
+
     useEffect(() => {
         loadMerchantData();
         loadMerchantTransactions();
+
         getMerchantRatings();
+        getMerchantLastActive();
 
         navigation.setOptions({
             headerRight: () => (
@@ -263,7 +294,7 @@ export default function TransactionLobbyScreen() {
                                 elevation={10}
                             >
                                 <Text bodyLarge className="font-bold">Merchant Analytics</Text>
-                                <View className="flex flex-row items-center justify-center">
+                                {/* <View className="flex flex-row items-center justify-center">
                                     <View className="flex flex-col w-1/2 items-start justify-center">
                                         <Text bodySmall>Transactions</Text>
                                         <Text bodyLarge className="font-bold">{totalTransactions}</Text>
@@ -272,7 +303,101 @@ export default function TransactionLobbyScreen() {
                                         <Text bodySmall>Avg. Amount Vol.</Text>
                                         <Text bodyLarge className="font-bold">{averageVolume}</Text>
                                     </View>
-                                </View>
+                                </View> */}
+                                <Text body className="font-bold">Transactions</Text>
+                                {transactionList && (
+                                    <View className="flex flex-row space-x-4 items-center justify-center">
+                                        <PieChart
+                                            data={[
+                                                { value: transactionList.filter(transaction => transaction.status === "completed").length, color: Colors.success400 },
+                                                { value: transactionList.filter(transaction => transaction.status === "cancelled").length, color: Colors.error400 },
+                                            ]}
+                                            donut
+                                            sectionAutoFocus
+                                            radius={70}
+                                            innerRadius={45}
+                                            innerCircleColor={Colors.bgDefault}
+                                            centerLabelComponent={() => (
+                                                <View className="flex flex-col space-y-1 items-center justify-center">
+                                                    <Text h2 className="font-bold">{transactionList.length}</Text>
+                                                    <Text caption className="font-bold">Total</Text>
+                                                </View>
+                                            )}
+                                        />
+                                        <View className="flex flex-col space-y-2">
+                                            <View className="flex flex-row space-x-2 items-center">
+                                                {renderDot(10, Colors.success400)}
+                                                <Text bodySmall className="font-semibold">Completed</Text>
+                                            </View>
+                                            <View className="flex flex-row space-x-2 items-center">
+                                                {renderDot(10, Colors.error400)}
+                                                <Text bodySmall className="font-semibold">Cancelled</Text>
+                                            </View>
+                                            <View className="flex flex-row space-x-2 items-center">
+                                                {renderDot(10, Colors.warning400)}
+                                                <Text bodySmall className="font-semibold">Flagged</Text>
+                                            </View>
+                                        </View>
+                                    </View>
+                                )}
+                                <Text body className="font-bold">Transaction Volume in PHP</Text>
+                                {transactionList && (
+                                    <LineChart
+                                        data={transactionList.map(transaction => ({ value: transaction.total_amount, dataPointText: transaction.total_amount.toString() }))}
+                                        width={250}
+                                        height={150}
+                                        color={Colors.primary500}
+                                        thickness={3}
+                                        dataPointsColor={Colors.primary700}
+                                        isAnimated
+                                        areaChart
+                                        noOfSections={3}
+                                        startFillColor={Colors.primary200}
+                                        hideYAxisText
+                                        maxValue={Math.max(...transactionList.map(transaction => transaction.total_amount)) + 100}
+                                        focusEnabled
+                                    />
+                                )}
+                                <Text body className="font-bold">Daily Activity</Text>
+                                {transactionList && (
+                                    <LineChart
+                                        data={transactionList.reduce((acc, transaction) => {
+                                            const date = new Date(transaction.created_at).toLocaleDateString();
+                                            const existingDate = acc.find(item => item.date === date);
+
+                                            if (existingDate) {
+                                                existingDate.value++;
+                                            } else {
+                                                acc.push({ date, value: 1 });
+                                            }
+
+                                            return acc;
+                                        }, [] as { date: string, value: number }[]).map(item => ({ value: item.value, dataPointText: item.value.toString() }))}
+                                        width={250}
+                                        height={100}
+                                        color={Colors.primary500}
+                                        thickness={3}
+                                        dataPointsColor={Colors.primary700}
+                                        isAnimated
+                                        areaChart
+                                        noOfSections={3}
+                                        startFillColor={Colors.primary200}
+                                        hideYAxisText
+                                        maxValue={Math.max(...transactionList.reduce((acc, transaction) => {
+                                            const date = new Date(transaction.created_at).toLocaleDateString();
+                                            const existingDate = acc.find(item => item.date === date);
+
+                                            if (existingDate) {
+                                                existingDate.value++;
+                                            } else {
+                                                acc.push({ date, value: 1 });
+                                            }
+
+                                            return acc;
+                                        }, [] as { date: string, value: number }[]).map(item => item.value)) + 2}
+                                        focusEnabled
+                                    />
+                                )}
                             </Card>
                             <Card
                                 style={{ backgroundColor: Colors.bgDefault }}
@@ -280,32 +405,24 @@ export default function TransactionLobbyScreen() {
                                 elevation={10}
                             >
                                 <Text bodyLarge className="font-bold">Transaction History</Text>
-                                {transactionList ? transactionList.map((transaction) => (
-                                    <Card
-                                        key={transaction.id}
-                                        style={{ backgroundColor: Colors.bgDefault }}
-                                        onPress={() => {
-                                            console.log("routing to: ", transaction.id)
-                                            router.navigate(`/transaction/${transaction.id}`);
-                                        }}
-                                        className="flex flex-row p-4 w-full items-center justify-between rounded-lg"
-                                        elevation={10}
-                                    >
-                                        <View className="flex flex-row space-x-2 items-center justify-start">
-                                            <Avatar.Text label={getInitials(transaction.clientName)} size={25} />
-                                            <View className="flex flex-col items-start justify-center">
-                                                <Text body className="font-bold">{transaction.clientName}</Text>
-                                                <Text caption style={{ color: Colors.gray500 }}>{new Date(transaction.created_at).toLocaleDateString()}</Text>
-                                            </View>
+                                <View className="flex flex-col w-full space-y-2">
+                                    {userData && transactionList && transactionList.map((transaction) => (
+                                        <HistoryCard
+                                            transactionData={transaction}
+                                            userID={userData.id}
+                                            elevation={0}
+                                            onPress={() => router.navigate(`/transaction/${transaction.id}`)}
+                                        />
+                                    ))}
+                                    {transactionList && transactionList.length <= 0 && (
+                                        <View
+                                            style={{ backgroundColor: Colors.gray200 }}
+                                            className="flex flex-col w-full px-10 py-20 space-y-1 items-center justify-center rounded-lg"
+                                        >
+                                            <Text bodyLarge black className="font-semibold">No Transactions Yet</Text>
                                         </View>
-                                        <View className="flex flex-row items-center justify-end">
-                                            <View className="flex flex-col items-end justify-center">
-                                                <Text caption>Amount</Text>
-                                                <Text body className="font-bold">{transaction.total_amount}</Text>
-                                            </View>
-                                        </View>
-                                    </Card>
-                                )) : null}
+                                    )}
+                                </View>
                             </Card>
                         </View>
                         : null}
@@ -320,7 +437,10 @@ export default function TransactionLobbyScreen() {
                 >
                     Invite Request Rejected or Expired
                 </Snackbar>
-                <View className="w-full px-4 pt-2 flex flex-row space-x-1">
+                <View
+                    className="w-full px-4 pt-2 flex flex-row space-x-1"
+                    style={{ backgroundColor: Colors.bgDefault }}
+                >
                     <Button
                         className="rounded-lg grow"
                         onPress={() => transactModalRef.current?.present()}
