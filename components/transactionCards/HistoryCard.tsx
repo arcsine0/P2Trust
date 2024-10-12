@@ -6,7 +6,7 @@ import { Float } from "react-native/Libraries/Types/CodegenTypes";
 
 import { Transaction } from "@/lib/helpers/types";
 
-import { FontAwesome6, MaterialCommunityIcons } from "@expo/vector-icons";
+import { FontAwesome6 } from "@expo/vector-icons";
 
 interface HistoryCardProps {
     transactionData: Transaction;

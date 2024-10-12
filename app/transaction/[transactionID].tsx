@@ -7,6 +7,7 @@ import { useTheme, Avatar, Divider, IconButton, TouchableRipple, ActivityIndicat
 import { Colors, View, Text, Card, Timeline, Dialog, TouchableOpacity, AnimatedImage, Image, Button } from "react-native-ui-lib";
 
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
+import { setStringAsync } from "expo-clipboard";
 
 import { supabase } from "@/supabase/config";
 
@@ -174,7 +175,7 @@ export default function TransactionDetailsScreen() {
                         endTime: Date.parse(timeline[timeline.length - 1].timestamp),
                     });
 
-                    if (data[0].flagged_by.includes(userData.id)) {
+                    if (data[0].flagged_by && data[0].flagged_by.includes(userData.id)) {
                         setIsFlagged(true);
                     } else {
                         setIsFlagged(false)
@@ -184,7 +185,9 @@ export default function TransactionDetailsScreen() {
                         headerLeft: () => (
                             <View className="flex flex-col mt-4 mb-2 items-start justify-center">
                                 <Text bodyLarge className="font-bold">Transaction Details</Text>
-                                <Text bodySmall>ID: {data[0].id}</Text>
+                                <TouchableOpacity onPress={async () => await setStringAsync(data[0].id)}>
+                                    <Text bodySmall>ID: {data[0].id}</Text>
+                                </TouchableOpacity>
                                 <Text bodySmall>{formatISODate(data[0].created_at.toLocaleString())}</Text>
                             </View>
                         ),

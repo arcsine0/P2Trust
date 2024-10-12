@@ -1,59 +1,39 @@
 import { useState, useEffect } from "react";
 import { ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme, Avatar, IconButton, Icon } from "react-native-paper";
 
-import { Colors, View, Text, Card, Chip, Fader } from "react-native-ui-lib";
+import { Searchbar, IconButton, ActivityIndicator } from "react-native-paper";
+import { Colors, View, Text, Fader, Dialog, Picker, PickerModes, Card } from "react-native-ui-lib";
 
 import { useIsFocused } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import { router, useNavigation } from "expo-router";
 
 import { supabase } from "@/supabase/config";
 
 import { useUserData } from "@/lib/context/UserContext";
-import { Transaction } from "@/lib/helpers/types";
-import { formatISODate } from "@/lib/helpers/functions";
+import { Transaction, UserData } from "@/lib/helpers/types";
+import { SearchFilterOptions } from "@/lib/helpers/collections";
+
+import { LiveFeedCard } from "@/components/transactionCards/LiveFeedCard";
+import { UserCard } from "@/components/userCards/UserCard";
 
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-type TabParamList = {
-	Home: undefined;
-	History: { name: string };
-	Settings: { name: string };
-};
-
-type HomeScreenNavigationProp = NativeStackNavigationProp<TabParamList, "Home">;
-type Props = {
-	navigation: HomeScreenNavigationProp;
-};
-
-
-const getInitials = (name: string) => {
-	if (name) {
-		const words = name.trim().split(" ");
-		let initials = "";
-
-		for (let i = 0; i < Math.min(words.length, 2); i++) {
-			if (words[i].length > 0) {
-				initials += words[i][0].toUpperCase();
-			}
-		}
-
-		return initials;
-	} else {
-		return "N/A"
-	}
-}
-
 export default function HomeScreen() {
 	const [transactions, setTransactions] = useState<Transaction[]>([]);
+	const [searchResults, setSearchResults] = useState<Transaction | UserData | undefined>(undefined);
+
+	const [searchQuery, setSearchQuery] = useState<string>("");
+	const [filterOption, setFilterOption] = useState<string | undefined>("Transactions")
+
+	const [isSearching, setIsSearching] = useState<boolean>(false);
+
+	const [showSearchModal, setShowSearchModal] = useState<boolean>(false);
 
 	const { userData } = useUserData();
 
 	const isFocused = useIsFocused();
-	const theme = useTheme();
 	const navigation = useNavigation();
 
 	const getTransactions = async () => {
@@ -68,12 +48,55 @@ export default function HomeScreen() {
 		}
 	}
 
+	const searchTransaction = async () => {
+		setIsSearching(true);
+
+		const { data, error } = await supabase
+			.from("transactions")
+			.select()
+			.eq("id", searchQuery)
+			.neq("status", "pending");
+
+		if (!error && data) {
+			setIsSearching(false);
+			setSearchResults(data[0]);
+		} else {
+			setIsSearching(false);
+			setSearchResults(undefined);
+		}
+	}
+
+	const searchMerchant = async () => {
+		setIsSearching(true);
+
+		const { data, error } = await supabase
+			.from("accounts")
+			.select()
+			.eq("id", searchQuery);
+
+		if (!error && data) {
+			setIsSearching(false);
+			setSearchResults(data[0]);
+		} else {
+			setIsSearching(false);
+			setSearchResults(undefined);
+		}
+	}
+
+	const isTransaction = (data: Transaction | UserData): data is Transaction => {
+		return (data as Transaction).total_amount !== undefined;
+	}
+
 	useEffect(() => {
 		getTransactions();
 
 		navigation.setOptions({
 			headerRight: () => (
 				<View className="flex flex-row">
+					<IconButton
+						icon="magnify"
+						onPress={() => setShowSearchModal(true)}
+					/>
 					<IconButton
 						icon="dots-vertical"
 						onPress={() => console.log("Dots Pressed")}
@@ -100,68 +123,117 @@ export default function HomeScreen() {
 			<ScrollView className="w-full">
 				<View className="flex flex-col px-4 mb-40 space-y-4">
 					{transactions && transactions.map((transaction: Transaction, i) => (
-						<Card
-							key={i}
-							onPress={() => router.navigate(`/transaction/${transaction.id}`)}
-							style={{
-								backgroundColor: Colors.bgDefault,
-								borderBottomWidth: 8,
-								borderColor: transaction.status === "completed" ? Colors.success400 : Colors.error400,
-							}}
-							elevation={10}
-							className="flex flex-col p-4 space-y-2"
-						>
-							{transaction.flags > 0 && (
-								<View className="flex w-1/3">
-									<Chip
-										label={"flagged"}
-										borderRadius={8}
-										backgroundColor={Colors.warning200}
-										containerStyle={{ borderWidth: 0 }}
-									/>
-								</View>
-							)}
-							<View className="flex flex-row w-full justify-between items-center">
-								<Text bodySmall gray400 className="font-semibold">{formatISODate(transaction.created_at.toLocaleString())}</Text>
-								{transaction.status === "completed" ?
-									<Chip
-										label={transaction.status}
-										borderRadius={8}
-										backgroundColor={Colors.success200}
-										containerStyle={{ borderWidth: 0 }}
-									/>
-									:
-									<Chip
-										label={transaction.status}
-										borderRadius={8}
-										backgroundColor={Colors.error200}
-										containerStyle={{ borderWidth: 0 }}
-									/>
-								}
-							</View>
-							<View className="flex flex-col space-y-2">
-								<View className="flex flex-row space-x-2 items-center justify-start">
-									<Icon source="store" size={20} color={"#60a5fa"} />
-									<Avatar.Text label={getInitials(transaction.merchantName)} size={20} />
-									<Text body className="font-semibold">{transaction.merchantName}</Text>
-								</View>
-								<View className="flex flex-row space-x-2 items-center justify-start">
-									<Icon source="account" size={20} color={"#4ade80"} />
-									<Avatar.Text label={getInitials(transaction.clientName)} size={20} />
-									<Text body className="font-semibold">{transaction.clientName}</Text>
-								</View>
-							</View>
-							<View className="flex flex-row items-center justify-between">
-								<View className="flex flex-row space-x-2 items-center justify-start">
-									<Text body className="font-semibold text-slate-400">Total Amount:</Text>
-									<Text body className="font-bold">{transaction.total_amount}</Text>
-								</View>
-								<Icon source="chevron-right" size={20} color={"#94a3b8"} />
-							</View>
-						</Card>
+						<View>
+							<LiveFeedCard
+								key={transaction.id}
+								transactionData={transaction}
+								elevation={10}
+								onPress={() => router.navigate(`/transaction/${transaction.id}`)}
+							/>
+						</View>
 					))}
 				</View>
 			</ScrollView>
+			<Dialog
+				visible={showSearchModal}
+				panDirection="up"
+				top={true}
+				onDismiss={() => {
+					setSearchQuery("");
+					setSearchResults(undefined);
+					setShowSearchModal(false);
+				}}
+				containerStyle={{ backgroundColor: Colors.bgDefault, borderRadius: 8, padding: 4, marginTop: 16 }}
+			>
+				<View className="flex flex-col w-full p-2 space-y-2">
+					<View>
+						<Searchbar
+							placeholder="Search ID..."
+							onChangeText={setSearchQuery}
+							onSubmitEditing={() => {
+								switch (filterOption) {
+									case "Transactions": searchTransaction(); break;
+									case "Merchants": searchMerchant(); break;
+									default: break;
+								}
+							}}
+							value={searchQuery}
+							className="rounded-lg"
+							style={{
+								backgroundColor: Colors.gray100,
+								height: 50
+							}}
+							inputStyle={{
+								minHeight: 0
+							}}
+							elevation={1}
+						/>
+					</View>
+					<View style={{ backgroundColor: Colors.gray100, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 13, elevation: 2 }}>
+						<Picker
+							value={filterOption}
+							mode={PickerModes.SINGLE}
+							useDialog={true}
+							customPickerProps={{ migrateDialog: true, }}
+							trailingAccessory={<MaterialCommunityIcons name="chevron-down" size={20} color={Colors.gray900} />}
+							onChange={value => setFilterOption(value?.toString())}
+						>
+							{SearchFilterOptions.map((pl, i) => (
+								<Picker.Item key={i} label={pl.label} value={pl.value} />
+							))}
+						</Picker>
+					</View>
+					<View className="w-full">
+						{isSearching ?
+							<View
+								style={{ backgroundColor: Colors.gray200 }}
+								className="flex flex-col w-full px-10 py-10 space-y-1 items-center justify-center rounded-lg"
+							>
+								<ActivityIndicator animating={true} size={20} color={Colors.gray900} />
+							</View>
+							:
+							<>
+								{!searchResults ?
+									<View
+										style={{ backgroundColor: Colors.gray200 }}
+										className="flex flex-col w-full px-10 py-10 space-y-1 items-center justify-center rounded-lg"
+									>
+										<Text bodyLarge gray900 className="font-semibold">No Results</Text>
+									</View>
+									:
+									<>
+										{isTransaction(searchResults) ?
+											<LiveFeedCard
+												transactionData={searchResults}
+												elevation={5}
+												onPress={() => {
+													setSearchQuery("");
+													setSearchResults(undefined);
+													setShowSearchModal(false);
+
+													router.navigate(`/transaction/${searchResults.id}`)
+												}}
+											/>
+											:
+											<Card
+												style={{ backgroundColor: Colors.bgDefault }}
+												onPress={() => router.navigate(`/(transactionRoom)/merchant/${searchResults.id}`)}
+												className="flex flex-col p-4 space-y-2"
+												elevation={10}
+											>
+												<UserCard
+													name={searchResults.firstname}
+													id={"123123"}
+												/>
+											</Card>
+										}
+									</>
+								}
+							</>
+						}
+					</View>
+				</View>
+			</Dialog>
 		</SafeAreaView>
 	);
 }

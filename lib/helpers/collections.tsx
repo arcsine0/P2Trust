@@ -15,6 +15,11 @@ export const FilterOptions = [
 	{ label: "Cancelled", value: "Cancelled" },
 ];
 
+export const SearchFilterOptions = [
+	{ label: "Transactions", value: "Transactions" },
+	{ label: "Merchants", value: "Merchants" },
+]
+
 export const PositiveTags = [
 	"Fast Replies",
 	"Easy Transaction",

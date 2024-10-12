@@ -17,6 +17,8 @@ import HistoryScreen from "./history";
 import { useUserData } from "@/lib/context/UserContext";
 import { getInitials } from "@/lib/helpers/functions";
 
+import { UserCard } from "@/components/userCards/UserCard";
+
 export default function TabLayout() {
 	const theme = useTheme();
 	const { userData } = useUserData();
@@ -118,17 +120,11 @@ export default function TabLayout() {
 					tabBarLabel: "Home",
 					headerTitle: "",
 					headerLeft: () => (
-						<View className="flex flex-row gap-2 ml-2 items-center justify-start">
-							{userData ?
-								<Avatar.Text label={getInitials(userData.firstname)} size={30} />
-								:
-								<Avatar.Text label="N/A" size={30} />
-							}
-							<View className="flex flex-col items-start justify-center">
-								<Text bodyLarge className="font-bold">{userData?.firstname || "N/A"}</Text>
-								<Text bodySmall>ID: 123123</Text>
-							</View>
-						</View>
+						<UserCard 
+							style={{ marginLeft: 8 }}
+							name={userData?.firstname || "N/A"}
+							id={userData?.id || "123123"}
+						/>
 					),
 				}}
 			/>
@@ -140,29 +136,14 @@ export default function TabLayout() {
 					tabBarLabel: "History",
 					headerTitle: "",
 					headerLeft: () => (
-						<View className="flex flex-row gap-2 ml-2 items-center justify-start">
-							{userData ?
-								<Avatar.Text label={getInitials(userData.firstname)} size={30} />
-								:
-								<Avatar.Text label="N/A" size={30} />
-							}
-							<View className="flex flex-col items-start justify-center">
-								<Text bodyLarge className="font-bold">{userData?.firstname || "N/A"}</Text>
-								<Text bodySmall>ID: 123123</Text>
-							</View>
-						</View>
+						<UserCard 
+							style={{ marginLeft: 8 }}
+							name={userData?.firstname || "N/A"}
+							id={"123123"}
+						/>
 					),
 				}}
 			/>
-			{/* <CurvedBottomBarExpo.Screen
-					name="Settings"
-					component={SettingsScreen}
-					position="RIGHT"
-					options={{
-						tabBarLabel: "Settings",
-						headerTitle: () => <Text variant="headlineSmall" className="font-bold">Settings</Text>,
-					}}
-				/> */}
 		</CurvedBottomBarExpo.Navigator>
 
 	);

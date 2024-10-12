@@ -293,17 +293,7 @@ export default function TransactionLobbyScreen() {
                                 className="flex flex-col w-full p-4 space-y-2 justify-center items-start"
                                 elevation={10}
                             >
-                                <Text bodyLarge className="font-bold">Merchant Analytics</Text>
-                                {/* <View className="flex flex-row items-center justify-center">
-                                    <View className="flex flex-col w-1/2 items-start justify-center">
-                                        <Text bodySmall>Transactions</Text>
-                                        <Text bodyLarge className="font-bold">{totalTransactions}</Text>
-                                    </View>
-                                    <View className="flex flex-col w-1/2 items-start justify-center">
-                                        <Text bodySmall>Avg. Amount Vol.</Text>
-                                        <Text bodyLarge className="font-bold">{averageVolume}</Text>
-                                    </View>
-                                </View> */}
+                                <Text bodyLarge className="font-bold">User Analytics</Text>
                                 <Text body className="font-bold">Transactions</Text>
                                 {transactionList && (
                                     <View className="flex flex-row space-x-4 items-center justify-center">
@@ -408,6 +398,7 @@ export default function TransactionLobbyScreen() {
                                 <View className="flex flex-col w-full space-y-2">
                                     {userData && transactionList && transactionList.map((transaction) => (
                                         <HistoryCard
+                                            key={transaction.id}
                                             transactionData={transaction}
                                             userID={userData.id}
                                             elevation={0}
