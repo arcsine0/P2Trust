@@ -138,9 +138,9 @@ export default function TabLayout() {
 					headerLeft: () => (
 						<UserCard 
 							style={{ marginLeft: 8 }}
-							idStyle={{ width: "75%" }}
+							idStyle={{ width: "50%" }}
 							name={userData?.firstname || "N/A"}
-							id={"123123"}
+							id={userData?.id || "123123"}
 						/>
 					),
 				}}
