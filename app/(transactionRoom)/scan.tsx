@@ -62,13 +62,13 @@ export default function TransactionScanScreen() {
 	}
 
 	useEffect(() => {
-		if (permission && !permission.granted) {
+		if (permission && permission.granted === false) {
 			setVisible(true);
 		} else {
 			setVisible(false);
 		}
 	}, []);
-
+	
 	return (
 		<SafeAreaView className="flex flex-col w-screen h-screen items-start justify-start">
 			{permission && permission.granted && (

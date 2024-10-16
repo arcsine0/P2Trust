@@ -187,11 +187,15 @@ export default function TransactionDetailsScreen() {
                                 <View className="flex flex-col w-1/2 justify-center">
                                     <Text bodyLarge className="font-bold">Transaction Details</Text>
                                     <TouchableOpacity onPress={async () => await setStringAsync(data[0].id)}>
-                                        <Marquee
-                                            label={`ID: ${data[0].id}`}
-                                            direction={MarqueeDirections.LEFT}
-                                            duration={30000}
-                                        />
+                                        <View className="flex flex-row space-x-1 items-center">
+                                            <Text bodySmall>ID: </Text>
+                                            <Marquee
+                                                label={`${data[0].id}`}
+                                                labelStyle={{ color: Colors.gray400 }}
+                                                direction={MarqueeDirections.LEFT}
+                                                duration={30000}
+                                            />
+                                        </View>
                                     </TouchableOpacity>
                                     <Text bodySmall>{formatISODate(data[0].created_at.toLocaleString())}</Text>
                                 </View>
@@ -324,14 +328,17 @@ export default function TransactionDetailsScreen() {
                                     <TouchableRipple onPress={() => router.navigate(`/(transactionRoom)/merchant/${transactionData.merchantID}`)}>
                                         <View className="flex flex-row items-center space-x-3">
                                             <Avatar.Text label={getInitials(transactionData.merchantName)} size={35} />
-                                            <View className="flex flex-col w-1/2">
+                                            <View className="flex flex-col w-2/3">
                                                 <Text body className="font-bold">{transactionData.merchantName}</Text>
-                                                <Marquee
-                                                    label={`ID: ${transactionData.merchantID}`}
-                                                    labelStyle={{ color: Colors.gray400 }}
-                                                    direction={MarqueeDirections.LEFT}
-                                                    duration={30000}
-                                                />
+                                                <View className="flex flex-row w-2/3 space-x-1 items-center">
+                                                    <Text bodySmall>ID: </Text>
+                                                    <Marquee
+                                                        label={`${transactionData.merchantID}`}
+                                                        labelStyle={{ color: Colors.gray400 }}
+                                                        direction={MarqueeDirections.LEFT}
+                                                        duration={30000}
+                                                    />
+                                                </View>
                                                 <View className="flex flex-row space-x-1 items-center">
                                                     <Ionicons name="thumbs-up-sharp" size={10} color={Colors.success500} />
                                                     <Text bodySmall>{merchantRating ? merchantRating.positive : 0}</Text>
@@ -352,14 +359,17 @@ export default function TransactionDetailsScreen() {
                                     <TouchableRipple onPress={() => router.navigate(`/(transactionRoom)/merchant/${transactionData.clientID}`)}>
                                         <View className="flex flex-row items-center space-x-3">
                                             <Avatar.Text label={getInitials(transactionData.clientName)} size={35} />
-                                            <View className="flex flex-col w-1/2">
+                                            <View className="flex flex-col w-2/3">
                                                 <Text body className="font-bold">{transactionData.clientName}</Text>
-                                                <Marquee
-                                                    label={`ID: ${transactionData.clientID}`}
-                                                    labelStyle={{ color: Colors.gray400 }}
-                                                    direction={MarqueeDirections.LEFT}
-                                                    duration={30000}
-                                                />
+                                                <View className="flex flex-row w-2/3 space-x-1 items-center">
+                                                    <Text bodySmall>ID: </Text>
+                                                    <Marquee
+                                                        label={`${transactionData.clientID}`}
+                                                        labelStyle={{ color: Colors.gray400 }}
+                                                        direction={MarqueeDirections.LEFT}
+                                                        duration={30000}
+                                                    />
+                                                </View>
                                                 <View className="flex flex-row space-x-1 items-center">
                                                     <Ionicons name="thumbs-up-sharp" size={10} color={Colors.success500} />
                                                     <Text bodySmall>{userRating ? userRating.positive : 0}</Text>

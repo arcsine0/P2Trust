@@ -3,7 +3,7 @@ import { FlatList, ScrollView, Platform, KeyboardAvoidingView } from "react-nati
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme, Avatar, Snackbar, ActivityIndicator, IconButton } from "react-native-paper";
 
-import { Colors, View, Text, Card, Button } from "react-native-ui-lib";
+import { Colors, View, Text, Card, Button, Marquee, MarqueeDirections } from "react-native-ui-lib";
 
 import { PieChart, LineChart } from "react-native-gifted-charts";
 
@@ -255,7 +255,15 @@ export default function TransactionLobbyScreen() {
                                     <Avatar.Text label={getInitials(merchantData.firstname)} size={50} />
                                     <View className="flex">
                                         <Text h4>{merchantData.firstname} {merchantData.lastname}</Text>
-                                        <Text bodySmall className="text-ellipsis">Merchant ID: 123123</Text>
+                                        <View className="flex flex-row w-1/2 space-x-1 items-center">
+                                            <Text bodySmall>ID: </Text>
+                                            <Marquee
+                                                label={`${merchantData.id}`}
+                                                labelStyle={{ color: Colors.gray400 }}
+                                                direction={MarqueeDirections.LEFT}
+                                                duration={30000}
+                                            />
+                                        </View>
                                         <View className="flex flex-row space-x-2 items-center justify-start">
                                             <Octicons name="clock" size={10} />
                                             <Text bodySmall>Online 5 mins ago</Text>

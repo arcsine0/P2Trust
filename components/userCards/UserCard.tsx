@@ -24,8 +24,8 @@ export const UserCard: FC<UserCardProps> = ({ style, idStyle, name, id }) => {
                 <Avatar.Text label="N/A" size={30} />
             }
             <View className="flex flex-col items-start justify-center">
-                <Text 
-                    bodyLarge 
+                <Text
+                    bodyLarge
                     className="font-bold"
                     numberOfLines={1}
                     ellipsizeMode={"tail"}
@@ -33,19 +33,17 @@ export const UserCard: FC<UserCardProps> = ({ style, idStyle, name, id }) => {
                     {name || "N/A"}
                 </Text>
                 <TouchableOpacity onPress={async () => await setStringAsync(id)}>
-                    {/* <Text 
-                        bodySmall
-                        numberOfLines={1}
-                        ellipsizeMode={"tail"}
+                    <View 
+                        className="flex flex-row space-x-1 items-center justify-start"
+                        style={idStyle}
                     >
-                        ID: {id}
-                    </Text> */}
-                    <Marquee 
-                        label={`ID: ${id}`}
-                        direction={MarqueeDirections.LEFT}
-                        duration={30000}
-                        containerStyle={idStyle}
-                    />
+                        <Text bodySmall>ID: </Text>
+                        <Marquee
+                            label={`${id}`}
+                            direction={MarqueeDirections.LEFT}
+                            duration={30000}
+                        />
+                    </View>
                 </TouchableOpacity>
             </View>
         </View>

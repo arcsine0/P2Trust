@@ -17,7 +17,7 @@ import { PhoneCountryCodes } from "@/lib/helpers/collections";
 
 export default function LoginScreen() {
     const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("test1234");
+    const [password, setPassword] = useState("p2trustuser1234");
 
     const [countryCode, setCountryCode] = useState<string | undefined>("+63");
     const [phoneNumber, setPhoneNumber] = useState<string>("");
@@ -31,7 +31,7 @@ export default function LoginScreen() {
 
     const [isEmailLogin, setIsEmailLogin] = useState<boolean>(true);
 
-    const { userData, setUserData } = useUserData();
+    const { setUserData, setRequests, setQueue } = useUserData();
 
     const theme = useTheme();
 
@@ -57,6 +57,8 @@ export default function LoginScreen() {
                 if (!error && data && data.length > 0) {
                     setDefaultLoginLoading(false);
                     setUserData(data[0]);
+                    setRequests(null);
+                    setQueue(null);
 
                     router.push("/(tabs)");
                 } else {

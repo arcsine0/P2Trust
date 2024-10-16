@@ -120,7 +120,8 @@ export default function TabLayout() {
 					headerTitle: "",
 					headerLeft: () => (
 						<UserCard 
-							style={{ width: "60%", marginLeft: 8 }}
+							style={{ marginLeft: 8 }}
+							idStyle={{ width: "50%" }}
 							name={userData?.firstname || "N/A"}
 							id={userData?.id || "123123"}
 						/>
@@ -137,6 +138,7 @@ export default function TabLayout() {
 					headerLeft: () => (
 						<UserCard 
 							style={{ marginLeft: 8 }}
+							idStyle={{ width: "75%" }}
 							name={userData?.firstname || "N/A"}
 							id={"123123"}
 						/>
