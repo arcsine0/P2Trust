@@ -60,14 +60,6 @@ export default function TransactionScanScreen() {
 			loadMerchantData(result.data);
 		}
 	}
-
-	useEffect(() => {
-		if (permission && permission.granted === false) {
-			setVisible(true);
-		} else {
-			setVisible(false);
-		}
-	}, []);
 	
 	return (
 		<SafeAreaView className="flex flex-col w-screen h-screen items-start justify-start">
@@ -89,44 +81,6 @@ export default function TransactionScanScreen() {
 					</View>
 				</CameraView>
 			)}
-			<Dialog
-                visible={visible}
-                ignoreBackgroundPress={true}
-                panDirection="up"
-                containerStyle={{ backgroundColor: Colors.bgDefault, borderRadius: 8, padding: 4 }}
-            >
-                <View
-                    className="flex flex-col w-full p-4 space-y-8"
-                >
-                    <View className="flex flex-col w-full space-y-2">
-                        <Text h3>Notice</Text>
-                        <Text body>P2Trust needs permission to use camera</Text>
-                    </View>
-                    <View className="flex flex-row w-full items-center justify-end space-x-2">
-                        <Button
-                            className="rounded-lg"
-                            onPress={() => router.back()}
-                        >
-                            <View className="flex flex-row space-x-2 items-center">
-                                <MaterialCommunityIcons name="arrow-left" size={20} color={"white"} />
-                                <Text buttonSmall white>Back</Text>
-                            </View>
-                        </Button>
-                        <Button
-                            className="rounded-lg"
-                            onPress={() => {
-								requestPermission();
-								setVisible(false);
-							}}
-                        >
-                            <View className="flex flex-row space-x-2 items-center">
-                                <MaterialCommunityIcons name="thumb-up-outline" size={20} color={"white"} />
-                                <Text buttonSmall white>Verify now</Text>
-                            </View>
-                        </Button>
-                    </View>
-                </View>
-            </Dialog>
 		</SafeAreaView>
 	);
 }

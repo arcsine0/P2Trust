@@ -6,6 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Colors, View, Text, Card, Button, ActionSheet, Dialog, Toast } from "react-native-ui-lib";
 
 import { router, useNavigation } from "expo-router";
+import { useCameraPermissions } from "expo-camera";
 
 import { BottomSheetModal, BottomSheetView } from "@gorhom/bottom-sheet";
 
@@ -66,6 +67,7 @@ export default function TransactionHomeScreen() {
     const helpButtonRef = useRef<any>(null);
 
     const navigation = useNavigation();
+    const [permission, requestPermission] = useCameraPermissions();
 
     const requestsModalRef = useRef<BottomSheetModal>(null);
 
@@ -192,6 +194,18 @@ export default function TransactionHomeScreen() {
         }
     }
 
+    const scanQR = () => {
+        if (permission && !permission.granted) {
+            requestPermission().then(() => {
+                if (permission.granted) {
+                    router.navigate("/(transactionRoom)/scan");
+                }
+            });
+        } else {
+            router.navigate("/(transactionRoom)/scan");
+        }
+    }
+
     const pickImage = async () => {
         let result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -312,7 +326,7 @@ export default function TransactionHomeScreen() {
                                 style={{ backgroundColor: Colors.gray50 }}
                                 outline={true}
                                 outlineColor={Colors.gray900}
-                                onPress={() => router.navigate("/(transactionRoom)/scan")}
+                                onPress={() => scanQR()}
                             >
                                 <View className="flex flex-row space-x-2 items-center">
                                     <MaterialCommunityIcons name="qrcode-scan" size={20} color={"black"} />
