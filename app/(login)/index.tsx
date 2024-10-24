@@ -1,5 +1,5 @@
-import { useContext, useState } from "react";
-import { ScrollView, TouchableOpacity } from "react-native";
+import { useState } from "react";
+import { TouchableOpacity } from "react-native";
 import { useTheme, TextInput, Divider, ActivityIndicator } from "react-native-paper";
 import { Colors, View, Text, Button, Picker, PickerModes } from "react-native-ui-lib";
 
@@ -17,7 +17,7 @@ import { PhoneCountryCodes } from "@/lib/helpers/collections";
 
 export default function LoginScreen() {
     const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("p2trustuser1234");
+    const [password, setPassword] = useState("test1234");
 
     const [countryCode, setCountryCode] = useState<string | undefined>("+63");
     const [phoneNumber, setPhoneNumber] = useState<string>("");

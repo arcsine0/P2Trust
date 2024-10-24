@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from "react";
-import { FlatList, ScrollView, Platform, KeyboardAvoidingView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+
+import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
+
+import { Platform, KeyboardAvoidingView, StyleSheet, StatusBar } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+
 import { useTheme, Avatar, Snackbar, ActivityIndicator, IconButton } from "react-native-paper";
 
 import { Colors, View, Text, Card, Button, Marquee, MarqueeDirections, TouchableOpacity } from "react-native-ui-lib";
-
-import { PieChart, LineChart } from "react-native-gifted-charts";
 
 import { BottomSheetModal, BottomSheetView } from "@gorhom/bottom-sheet";
 
@@ -19,14 +21,17 @@ import { useMerchantData } from "@/lib/context/MerchantContext";
 import { getInitials, formatISODate } from "@/lib/helpers/functions";
 import { Transaction } from "@/lib/helpers/types";
 
-import RatingsBar from "@/components/analytics/RatingBar";
-import { HistoryCard } from "@/components/transactionCards/HistoryCard";
+import { UserCard } from "@/components/userCards/UserCard";
+
+import { MerchantAnalytics } from "./MerchantAnalytics";
+import { MerchantRatings } from "./MerchantRatings";
+import { MerchantHistory } from "./MerchantHistory";
 
 import { MaterialCommunityIcons, Octicons } from "@expo/vector-icons";
 
 import { Float } from "react-native/Libraries/Types/CodegenTypes";
 
-export default function TransactionLobbyScreen() {
+export default function MerchantInfoScreen() {
     const [roomID, setRoomID] = useState("");
 
     const [lastActive, setLastActive] = useState<Date | undefined>(undefined);
@@ -55,10 +60,24 @@ export default function TransactionLobbyScreen() {
 
     const transactModalRef = useRef<BottomSheetModal>(null);
 
-    const theme = useTheme();
+    const insets = useSafeAreaInsets();
     const navigation = useNavigation();
 
     const requestsChannel = supabase.channel(`requests_channel_${merchantID}`);
+
+    const Tab = createMaterialTopTabNavigator();
+
+    const MerchantAnalyticsScreen = () => (
+        <MerchantAnalytics transactionList={transactionList} />
+    )
+
+    const MerchantRatingsScreen = () => (
+        <MerchantRatings ratings={ratings} />
+    )
+
+    const MerchantHistoryScreen = () => (
+        <MerchantHistory userData={userData} transactionList={transactionList} />
+    )
 
     const renderDot = (size: number, color: string) => (
         <View
@@ -161,8 +180,31 @@ export default function TransactionLobbyScreen() {
                 .select("*")
                 .eq("id", merchantID);
 
-            if (!error) {
+            if (!error && data) {
                 setMerchantData(data[0]);
+
+                navigation.setOptions({
+                    header: () => (
+                        <View
+                            className="flex flex-row w-full px-4 items-center justify-between"
+                            style={styles.headerStyle}
+                        >
+                            <UserCard
+                                idStyle={{ width: "50%" }}
+                                name={data[0]?.firstname || "N/A"}
+                                id={data[0]?.id || "123123"}
+                            />
+                            <View className="flex flex-row">
+                                <IconButton
+                                    icon="dots-vertical"
+                                    onPress={() => {}}
+                                />
+                            </View>
+                        </View>
+                    ),
+                });
+            } else {
+                console.log(error);
             }
         }
     }
@@ -223,19 +265,16 @@ export default function TransactionLobbyScreen() {
         loadMerchantTransactions();
 
         getMerchantRatings();
-        getMerchantLastActive();
-
-        navigation.setOptions({
-            headerRight: () => (
-                <View className="flex flex-row">
-                    <IconButton
-                        icon="dots-vertical"
-                        onPress={() => console.log("Dots Pressed")}
-                    />
-                </View>
-            )
-        });
+        // getMerchantLastActive();
     }, []);
+
+    const styles = StyleSheet.create({
+        headerStyle: {
+            backgroundColor: Colors.bgDefault,
+            paddingTop: insets.top + 4,
+            paddingBottom: 4,
+        }
+    });
 
     return (
         <SafeAreaView className="flex flex-col w-full h-full pb-2 items-center justify-start">
@@ -244,192 +283,11 @@ export default function TransactionLobbyScreen() {
                 keyboardVerticalOffset={100}
                 className="flex flex-col w-full h-full justify-between"
             >
-                <ScrollView className="w-full">
-                    {merchantData ?
-                        <View className="flex flex-col px-4 py-1 w-full h-full space-y-2 items-center justify-start">
-                            <Card
-                                style={{ backgroundColor: Colors.bgDefault }}
-                                className="flex flex-col w-full p-4 space-y-2 justify-center items-start"
-                                elevation={10}
-                            >
-                                <View className="flex flex-row items-center gap-5">
-                                    <Avatar.Text label={getInitials(merchantData.firstname)} size={50} />
-                                    <View className="flex">
-                                        <Text h4>{merchantData.firstname} {merchantData.lastname}</Text>
-                                        <TouchableOpacity onPress={async () => await setStringAsync(merchantData.id)}>
-                                            <View className="flex flex-row w-1/2 space-x-1 items-center">
-                                                <Text bodySmall>ID: </Text>
-                                                <Marquee
-                                                    label={`${merchantData.id}`}
-                                                    labelStyle={{ color: Colors.gray400 }}
-                                                    direction={MarqueeDirections.LEFT}
-                                                    duration={30000}
-                                                />
-                                            </View>
-                                        </TouchableOpacity>
-
-                                        <View className="flex flex-row space-x-2 items-center justify-start">
-                                            <Octicons name="clock" size={10} />
-                                            <Text bodySmall>Online 5 mins ago</Text>
-                                        </View>
-                                    </View>
-                                </View>
-                            </Card>
-                            <Card
-                                style={{ backgroundColor: Colors.bgDefault }}
-                                className="flex flex-col w-full p-4 space-y-2"
-                                elevation={10}
-                            >
-                                <Text bodyLarge className="font-bold">Client Ratings</Text>
-                                <View className="flex items-center justify-center">
-                                    {ratings && ratings.total > 0 ?
-                                        <RatingsBar
-                                            positive={ratings.positive}
-                                            negative={ratings.negative}
-                                            total={ratings.total}
-                                            height={20}
-                                        />
-                                        :
-                                        <View
-                                            className="flex w-full px-2 py-4 space-y-1 items-center justify-center"
-                                            style={{ backgroundColor: Colors.gray200 }}
-                                        >
-                                            <Text bodyLarge black className="font-semibold">No Ratings Yet</Text>
-                                            <Text bodySmall black className="text-center">Only users who have transacted with the merchant can rate them.</Text>
-                                        </View>
-                                    }
-                                </View>
-                            </Card>
-                            <Card
-                                style={{ backgroundColor: Colors.bgDefault }}
-                                className="flex flex-col w-full p-4 space-y-2 justify-center items-start"
-                                elevation={10}
-                            >
-                                <Text bodyLarge className="font-bold">User Analytics</Text>
-                                <Text body className="font-bold">Transactions</Text>
-                                {transactionList && (
-                                    <View className="flex flex-row space-x-4 items-center justify-center">
-                                        <PieChart
-                                            data={[
-                                                { value: transactionList.filter(transaction => transaction.status === "completed").length, color: Colors.success400 },
-                                                { value: transactionList.filter(transaction => transaction.status === "cancelled").length, color: Colors.error400 },
-                                            ]}
-                                            donut
-                                            sectionAutoFocus
-                                            radius={70}
-                                            innerRadius={45}
-                                            innerCircleColor={Colors.bgDefault}
-                                            centerLabelComponent={() => (
-                                                <View className="flex flex-col space-y-1 items-center justify-center">
-                                                    <Text h2 className="font-bold">{transactionList.length}</Text>
-                                                    <Text caption className="font-bold">Total</Text>
-                                                </View>
-                                            )}
-                                        />
-                                        <View className="flex flex-col space-y-2">
-                                            <View className="flex flex-row space-x-2 items-center">
-                                                {renderDot(10, Colors.success400)}
-                                                <Text bodySmall className="font-semibold">Completed</Text>
-                                            </View>
-                                            <View className="flex flex-row space-x-2 items-center">
-                                                {renderDot(10, Colors.error400)}
-                                                <Text bodySmall className="font-semibold">Cancelled</Text>
-                                            </View>
-                                            <View className="flex flex-row space-x-2 items-center">
-                                                {renderDot(10, Colors.warning400)}
-                                                <Text bodySmall className="font-semibold">Flagged</Text>
-                                            </View>
-                                        </View>
-                                    </View>
-                                )}
-                                <Text body className="font-bold">Transaction Volume in PHP</Text>
-                                {transactionList && (
-                                    <LineChart
-                                        data={transactionList.map(transaction => ({ value: transaction.total_amount, dataPointText: transaction.total_amount.toString() }))}
-                                        width={250}
-                                        height={150}
-                                        color={Colors.primary500}
-                                        thickness={3}
-                                        dataPointsColor={Colors.primary700}
-                                        isAnimated
-                                        areaChart
-                                        noOfSections={3}
-                                        startFillColor={Colors.primary200}
-                                        hideYAxisText
-                                        maxValue={Math.max(...transactionList.map(transaction => transaction.total_amount)) + 100}
-                                        focusEnabled
-                                    />
-                                )}
-                                <Text body className="font-bold">Daily Activity</Text>
-                                {transactionList && (
-                                    <LineChart
-                                        data={transactionList.reduce((acc, transaction) => {
-                                            const date = new Date(transaction.created_at).toLocaleDateString();
-                                            const existingDate = acc.find(item => item.date === date);
-
-                                            if (existingDate) {
-                                                existingDate.value++;
-                                            } else {
-                                                acc.push({ date, value: 1 });
-                                            }
-
-                                            return acc;
-                                        }, [] as { date: string, value: number }[]).map(item => ({ value: item.value, dataPointText: item.value.toString() }))}
-                                        width={250}
-                                        height={100}
-                                        color={Colors.primary500}
-                                        thickness={3}
-                                        dataPointsColor={Colors.primary700}
-                                        isAnimated
-                                        areaChart
-                                        noOfSections={3}
-                                        startFillColor={Colors.primary200}
-                                        hideYAxisText
-                                        maxValue={Math.max(...transactionList.reduce((acc, transaction) => {
-                                            const date = new Date(transaction.created_at).toLocaleDateString();
-                                            const existingDate = acc.find(item => item.date === date);
-
-                                            if (existingDate) {
-                                                existingDate.value++;
-                                            } else {
-                                                acc.push({ date, value: 1 });
-                                            }
-
-                                            return acc;
-                                        }, [] as { date: string, value: number }[]).map(item => item.value)) + 2}
-                                        focusEnabled
-                                    />
-                                )}
-                            </Card>
-                            <Card
-                                style={{ backgroundColor: Colors.bgDefault }}
-                                className="flex flex-col w-full p-4 space-y-1 justify-center items-start"
-                                elevation={10}
-                            >
-                                <Text bodyLarge className="font-bold">Transaction History</Text>
-                                <View className="flex flex-col w-full space-y-2">
-                                    {userData && transactionList && transactionList.map((transaction) => (
-                                        <HistoryCard
-                                            key={transaction.id}
-                                            transactionData={transaction}
-                                            userID={userData.id}
-                                            elevation={0}
-                                            onPress={() => router.navigate(`/transaction/${transaction.id}`)}
-                                        />
-                                    ))}
-                                    {transactionList && transactionList.length <= 0 && (
-                                        <View
-                                            style={{ backgroundColor: Colors.gray200 }}
-                                            className="flex flex-col w-full px-10 py-20 space-y-1 items-center justify-center rounded-lg"
-                                        >
-                                            <Text bodyLarge black className="font-semibold">No Transactions Yet</Text>
-                                        </View>
-                                    )}
-                                </View>
-                            </Card>
-                        </View>
-                        : null}
-                </ScrollView>
+                <Tab.Navigator>
+                    <Tab.Screen name="Analytics" component={MerchantAnalyticsScreen} />
+                    <Tab.Screen name="Ratings" component={MerchantRatingsScreen} />
+                    <Tab.Screen name="History" component={MerchantHistoryScreen} />
+                </Tab.Navigator>
                 <Snackbar
                     visible={requestSnackVisible}
                     onDismiss={() => setRequestSnackVisible(false)}

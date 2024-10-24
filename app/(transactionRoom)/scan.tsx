@@ -37,7 +37,7 @@ export default function TransactionScanScreen() {
 						.eq("id", qrData.id);
 
 					if (!error) {
-						router.navigate(`/(transactionRoom)/merchant/${qrData.id}`)
+						router.navigate(`/(transactionRoom)/merchant/${qrData.id}`);
 					} else {
 						setQRError("Account of QR Code does not exist");
 						setHasScanned(false);

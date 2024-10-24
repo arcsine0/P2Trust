@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from "react";
-import { ScrollView } from "react-native";
-import { useTheme, Avatar, IconButton, ActivityIndicator } from "react-native-paper";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
+import { ScrollView, StyleSheet, Platform } from "react-native";
+import { Avatar, IconButton, ActivityIndicator } from "react-native-paper";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Colors, View, Text, Card, Button, ActionSheet, Dialog, Toast } from "react-native-ui-lib";
 
@@ -20,7 +20,9 @@ import { scanFromURLAsync } from "expo-camera";
 
 import { Request } from "@/lib/helpers/types";
 import { getInitials } from "@/lib/helpers/functions";
+
 import { Tutorial } from "@/components/extra";
+import { UserCard } from "@/components/userCards/UserCard";
 
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
@@ -68,6 +70,7 @@ export default function TransactionHomeScreen() {
 
     const navigation = useNavigation();
     const [permission, requestPermission] = useCameraPermissions();
+    const insets = useSafeAreaInsets();
 
     const requestsModalRef = useRef<BottomSheetModal>(null);
 
@@ -247,27 +250,6 @@ export default function TransactionHomeScreen() {
             })
             .subscribe();
 
-        navigation.setOptions({
-            headerRight: () => (
-                <View className="flex flex-row">
-                    <IconButton
-                        ref={r => tutorialRef.current?.addTarget(r, "0")}
-                        icon="account-plus-outline"
-                        onPress={() => {
-                            requestsModalRef.current?.present();
-                            setShowHint(false);
-                        }}
-                    />
-
-                    <IconButton
-                        ref={r => tutorialRef.current?.addTarget(r, "5")}
-                        icon="dots-vertical"
-                        onPress={() => setShowDotMenu(true)}
-                    />
-                </View>
-            )
-        });
-
         setTimeout(() => {
             setShowFTE(true);
         }, 1000);
@@ -276,6 +258,59 @@ export default function TransactionHomeScreen() {
             setShowVerifyModal(false);
         };
     }, []);
+
+    useLayoutEffect(() => {
+        navigation.setOptions({
+            header: () => (
+                <View
+                    className="flex flex-row w-full px-4 items-center justify-between"
+                    style={styles.headerStyle}
+                >
+                    <UserCard
+                        idStyle={{ width: "50%" }}
+                        name={userData?.firstname || "N/A"}
+                        id={userData?.id || "123123"}
+                    />
+                    <View className="flex flex-row">
+                        <IconButton
+                            ref={r => tutorialRef.current?.addTarget(r, "0")}
+                            icon="account-plus-outline"
+                            onPress={() => {
+                                requestsModalRef.current?.present();
+                                setShowHint(false);
+                            }}
+                        />
+
+                        <IconButton
+                            ref={r => tutorialRef.current?.addTarget(r, "5")}
+                            icon="dots-vertical"
+                            onPress={() => setShowDotMenu(true)}
+                        />
+                    </View>
+                </View>
+            ),
+        });
+    }, []);
+
+    const styles = StyleSheet.create({
+        headerStyle: {
+            backgroundColor: Colors.bgDefault,
+            paddingTop: insets.top + 4,
+            paddingBottom: 4,
+
+            ...Platform.select({
+                ios: {
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.2,
+                    shadowRadius: 4,
+                },
+                android: {
+                    elevation: 4,
+                },
+            }),
+        }
+    });
 
     return (
         <SafeAreaView className="flex flex-col w-full h-full pb-2 items-start justify-start">
@@ -496,6 +531,13 @@ export default function TransactionHomeScreen() {
                 visible={showHint}
                 message={"A user has sent you an invite request."}
                 position={'top'}
+                action={{
+                    label: "Open",
+                    onPress: () => {
+                        requestsModalRef.current?.present();
+                        setShowHint(false);
+                    },
+                }}
                 onDismiss={() => setShowHint(false)}
             />
             <Tutorial
@@ -509,3 +551,4 @@ export default function TransactionHomeScreen() {
         </SafeAreaView>
     );
 }
+

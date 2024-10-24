@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { useWindowDimensions, Platform, KeyboardAvoidingView, ScrollView, Dimensions } from "react-native";
+import { Platform, KeyboardAvoidingView, ScrollView, Dimensions, StyleSheet } from "react-native";
 
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme, Avatar, Divider, IconButton, TouchableRipple, ActivityIndicator } from "react-native-paper";
 
 import { Colors, View, Text, Card, Timeline, Dialog, TouchableOpacity, AnimatedImage, Image, Button, Marquee, MarqueeDirections } from "react-native-ui-lib";
@@ -62,6 +62,7 @@ export default function TransactionDetailsScreen() {
     const { userData } = useUserData();
 
     const navigation = useNavigation();
+    const insets = useSafeAreaInsets();
 
     const viewReceiptImage = (uri: string | undefined) => {
         setCurrentViewImage(uri);
@@ -182,8 +183,11 @@ export default function TransactionDetailsScreen() {
                     }
 
                     navigation.setOptions({
-                        headerLeft: () => (
-                            <View className="flex flex-col w-full mt-4 mb-2 items-start justify-center">
+                        header: () => (
+                            <View
+                                className="flex flex-row w-full px-4 items-center justify-between"
+                                style={styles.headerStyle}
+                            >
                                 <View className="flex flex-col w-1/2 justify-center">
                                     <Text bodyLarge className="font-bold">Transaction Details</Text>
                                     <TouchableOpacity onPress={async () => await setStringAsync(data[0].id)}>
@@ -199,6 +203,12 @@ export default function TransactionDetailsScreen() {
                                     </TouchableOpacity>
                                     <Text bodySmall>{formatISODate(data[0].created_at.toLocaleString())}</Text>
                                 </View>
+                                <View className="flex flex-row">
+                                    <IconButton
+                                        icon={isFlagged ? "flag" : "flag-outline"}
+                                        onPress={() => setShowFlagModal(true)}
+                                    />
+                                </View>
                             </View>
                         ),
                     });
@@ -213,18 +223,27 @@ export default function TransactionDetailsScreen() {
 
     useEffect(() => {
         getTransactionData();
-
-        navigation.setOptions({
-            headerRight: () => (
-                <View className="flex flex-row">
-                    <IconButton
-                        icon={isFlagged ? "flag" : "flag-outline"}
-                        onPress={() => setShowFlagModal(true)}
-                    />
-                </View>
-            )
-        });
     }, []);
+
+    const styles = StyleSheet.create({
+        headerStyle: {
+            backgroundColor: Colors.bgDefault,
+            paddingTop: insets.top + 4,
+            paddingBottom: 4,
+
+            ...Platform.select({
+                ios: {
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.2,
+                    shadowRadius: 4,
+                },
+                android: {
+                    elevation: 4,
+                },
+            }),
+        }
+    })
 
     const renderTimelineContent = (event: TimelineEvent, index: number, anchorRef?: any) => {
         if (transactionLength) {

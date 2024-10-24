@@ -24,6 +24,7 @@
     "@react-native-picker/picker": "2.7.5",
     "@react-native-vector-icons/material-icons": "^0.0.1-alpha.25",
     "@react-navigation/bottom-tabs": "^6.6.1",
+    "@react-navigation/material-top-tabs": "^6.6.14",
     "@react-navigation/native": "^6.1.18",
     "@react-navigation/native-stack": "^6.11.0",
     "@supabase/supabase-js": "^2.45.3",
@@ -34,6 +35,7 @@
     "expo-barcode-scanner": "~13.0.1",
     "expo-build-properties": "~0.12.5",
     "expo-camera": "~15.0.16",
+    "expo-clipboard": "~6.0.3",
     "expo-constants": "~16.0.2",
     "expo-dev-client": "~4.0.28",
     "expo-device": "~6.0.2",
@@ -73,8 +75,7 @@
     "react-native-ui-lib": "^7.32.0",
     "react-native-vector-icons": "^10.1.0",
     "react-native-web": "~0.19.10",
-    "react-qr-code": "^2.0.15",
-    "expo-clipboard": "~6.0.3"
+    "react-qr-code": "^2.0.15"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

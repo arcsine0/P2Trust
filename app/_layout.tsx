@@ -1,11 +1,10 @@
-import { Stack, useNavigation } from "expo-router";
-import { createContext, useContext, useState, Dispatch, SetStateAction } from "react";
+import { Stack } from "expo-router";
 
 import { useColorScheme, KeyboardAvoidingView, Platform } from "react-native";
-import { MD3LightTheme, MD3DarkTheme, PaperProvider, IconButton } from "react-native-paper";
 
 require("react-native-ui-lib/config").setConfig({ appScheme: "light" });
-import { View, Text, Colors } from "react-native-ui-lib"
+
+import { View, Text } from "react-native-ui-lib";
 
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
@@ -40,7 +39,10 @@ export default function RootLayout() {
 							options={{
 								headerTitle: "",
 								headerLeft: () => (
-									<View className="flex flex-col mt-4 mb-2 items-start justify-center">
+									<View 
+										className="flex flex-col mt-4 mb-2 items-start justify-center"
+										style={{ marginRight: Platform.OS === "ios" ? 200 : 0 }}
+									>
 										<Text bodyLarge className="font-bold">Transaction Details</Text>
 										<Text bodySmall>ID: </Text>
 										<Text bodySmall>{Date.now()}</Text>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useWindowDimensions, Platform, KeyboardAvoidingView, FlatList, Dimensions } from "react-native";
+import { useWindowDimensions, Platform, KeyboardAvoidingView, FlatList, Dimensions, StyleSheet } from "react-native";
 
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme, TextInput, Avatar, Chip, IconButton, Divider, ActivityIndicator } from "react-native-paper";
 
 import { Colors, View, Text, Button, ActionSheet, Dialog, ExpandableSection, Image, TouchableOpacity } from "react-native-ui-lib";
@@ -108,6 +108,7 @@ export default function TransactionRoomScreen() {
 	const { roomID } = useLocalSearchParams<{ roomID: string }>();
 	const theme = useTheme();
 	const navigation = useNavigation();
+	const insets = useSafeAreaInsets();
 
 	const interactionsChannel = supabase.channel(`room_${roomID}`);
 
@@ -843,28 +844,31 @@ export default function TransactionRoomScreen() {
 		setHasReceivedProduct(false);
 
 		navigation.setOptions({
-			headerLeft: () => (
-				<UserCard
-					idStyle={{ width: "50%" }}
-					name={merchantData?.firstname || "N/A"}
-					id={merchantData?.id || "123123"}
-				/>
-			),
-			headerRight: () => (
-				<View className="flex flex-row space-x-2 items-center">
-					<Button
-						className="rounded-lg"
-						onPress={() => setShowFinishDialog(true)}
-					>
-						<View className="flex flex-row space-x-2 items-center">
-							<MaterialCommunityIcons name="check-all" size={20} color={"white"} />
-							<Text buttonSmall white>Finish</Text>
-						</View>
-					</Button>
-					<IconButton
-						icon="dots-vertical"
-						onPress={() => console.log("Dots Pressed")}
+			header: () => (
+				<View
+					className="flex flex-row w-full px-4 items-center justify-between"
+					style={styles.headerStyle}
+				>
+					<UserCard
+						idStyle={{ width: "50%" }}
+						name={merchantData?.firstname || "N/A"}
+						id={merchantData?.id || "123123"}
 					/>
+					<View className="flex flex-row space-x-2 items-center">
+						<Button
+							className="rounded-lg"
+							onPress={() => setShowFinishDialog(true)}
+						>
+							<View className="flex flex-row space-x-2 items-center">
+								<MaterialCommunityIcons name="check-all" size={20} color={"white"} />
+								<Text buttonSmall white>Finish</Text>
+							</View>
+						</Button>
+						<IconButton
+							icon="dots-vertical"
+							onPress={() => console.log("Dots Pressed")}
+						/>
+					</View>
 				</View>
 			)
 		})
@@ -901,6 +905,26 @@ export default function TransactionRoomScreen() {
 			/>
 		), []
 	);
+
+	const styles = StyleSheet.create({
+        headerStyle: {
+            backgroundColor: Colors.bgDefault,
+            paddingTop: insets.top + 4,
+            paddingBottom: 4,
+
+            ...Platform.select({
+                ios: {
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.2,
+                    shadowRadius: 4,
+                },
+                android: {
+                    elevation: 4,
+                },
+            }),
+        }
+    })
 
 	return (
 		<SafeAreaView className="flex flex-col w-full h-full px-2 pb-2 items-start justify-start">
