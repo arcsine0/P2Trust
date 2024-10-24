@@ -5,21 +5,20 @@ import { createMaterialTopTabNavigator } from "@react-navigation/material-top-ta
 import { Platform, KeyboardAvoidingView, StyleSheet, StatusBar } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useTheme, Avatar, Snackbar, ActivityIndicator, IconButton } from "react-native-paper";
+import { Snackbar, ActivityIndicator, IconButton } from "react-native-paper";
 
-import { Colors, View, Text, Card, Button, Marquee, MarqueeDirections, TouchableOpacity } from "react-native-ui-lib";
+import { Colors, View, Text, Card, Button, Picker, PickerModes, TabController } from "react-native-ui-lib";
 
 import { BottomSheetModal, BottomSheetView } from "@gorhom/bottom-sheet";
 
 import { router, useNavigation, useLocalSearchParams } from "expo-router";
-import { setStringAsync } from "expo-clipboard";
 
 import { supabase } from "@/supabase/config";
 
 import { useUserData } from "@/lib/context/UserContext";
 import { useMerchantData } from "@/lib/context/MerchantContext";
-import { getInitials, formatISODate } from "@/lib/helpers/functions";
-import { Transaction } from "@/lib/helpers/types";
+import { Transaction, Ratings } from "@/lib/helpers/types";
+import { RequestRoles } from "@/lib/helpers/collections";
 
 import { UserCard } from "@/components/userCards/UserCard";
 
@@ -29,21 +28,12 @@ import { MerchantHistory } from "./MerchantHistory";
 
 import { MaterialCommunityIcons, Octicons } from "@expo/vector-icons";
 
-import { Float } from "react-native/Libraries/Types/CodegenTypes";
-
 export default function MerchantInfoScreen() {
     const [roomID, setRoomID] = useState("");
 
-    const [lastActive, setLastActive] = useState<Date | undefined>(undefined);
-    const [totalTransactions, setTotalTransactions] = useState<number>(0);
-    const [averageVolume, setAverageVolume] = useState<Float>(0);
-
     const [transactionList, setTransactionList] = useState<Transaction[] | undefined>(undefined)
-    const [ratings, setRatings] = useState<{
-        positive: number,
-        negative: number,
-        total: number,
-    } | undefined>(undefined);
+
+    const [requestRole, setRequestRole] = useState<string | undefined>("Buyer")
 
     const [requestState, setRequestState] = useState("Join Queue  ");
     const [requestDisabled, setRequestDisabled] = useState(false);
@@ -56,7 +46,7 @@ export default function MerchantInfoScreen() {
     const { merchantID } = useLocalSearchParams<{ merchantID: string }>();
 
     const { userData } = useUserData();
-    const { merchantData, setMerchantData, setRole } = useMerchantData();
+    const { merchantData, setTransactions, setRatings, setMerchantData, setRole } = useMerchantData();
 
     const transactModalRef = useRef<BottomSheetModal>(null);
 
@@ -67,30 +57,6 @@ export default function MerchantInfoScreen() {
 
     const Tab = createMaterialTopTabNavigator();
 
-    const MerchantAnalyticsScreen = () => (
-        <MerchantAnalytics transactionList={transactionList} />
-    )
-
-    const MerchantRatingsScreen = () => (
-        <MerchantRatings ratings={ratings} />
-    )
-
-    const MerchantHistoryScreen = () => (
-        <MerchantHistory userData={userData} transactionList={transactionList} />
-    )
-
-    const renderDot = (size: number, color: string) => (
-        <View
-            style={{
-                height: size,
-                width: size,
-                borderRadius: 10,
-                backgroundColor: color,
-            }}
-
-        />
-    )
-
     const requestTransaction = async () => {
         if (userData && merchantData) {
             requestsChannel
@@ -98,7 +64,7 @@ export default function MerchantInfoScreen() {
                     const payloadData = payload.payload;
 
                     if (payloadData.sender_id === userData.id) {
-                        transactModalRef.current?.snapToPosition("30%")
+                        transactModalRef.current?.snapToPosition("35%")
 
                         setRequestState("Queued");
                         setRequestDisabled(true);
@@ -142,6 +108,7 @@ export default function MerchantInfoScreen() {
                                 created_at: Date,
                                 sender_id: userData.id,
                                 sender_name: `${userData.firstname} ${userData.lastname}`,
+                                sender_role: requestRole === "Buyer" ? "client" : "merchant",
                             }
                         }).then(() => {
                             setRequestState("Waiting for Host...");
@@ -166,7 +133,7 @@ export default function MerchantInfoScreen() {
 
                 transactModalRef.current?.close();
 
-                setRole("client");
+                setRole(requestRole === "Buyer" ? "client" : "merchant");
 
                 router.navigate(`/(transactionRoom)/room/${roomID}`);
             }
@@ -197,7 +164,7 @@ export default function MerchantInfoScreen() {
                             <View className="flex flex-row">
                                 <IconButton
                                     icon="dots-vertical"
-                                    onPress={() => {}}
+                                    onPress={() => { }}
                                 />
                             </View>
                         </View>
@@ -218,9 +185,9 @@ export default function MerchantInfoScreen() {
                 .order("created_at", { ascending: false });
 
             if (!error && transactionData) {
-                setTransactionList(transactionData);
-                setTotalTransactions(transactionData ? transactionData.length : 0);
-                setAverageVolume(transactionData && transactionData.length > 0 ? parseFloat((transactionData.filter(transaction => transaction.status === "completed").reduce((a, b) => a + b.total_amount, 0) / transactionData.length).toFixed(2)) : 0);
+                setTransactions(transactionData);
+                // setTotalTransactions(transactionData ? transactionData.length : 0);
+                // setAverageVolume(transactionData && transactionData.length > 0 ? parseFloat((transactionData.filter(transaction => transaction.status === "completed").reduce((a, b) => a + b.total_amount, 0) / transactionData.length).toFixed(2)) : 0);
 
             } else {
                 console.log(error)
@@ -248,24 +215,11 @@ export default function MerchantInfoScreen() {
         }
     }
 
-    const getMerchantLastActive = async () => {
-        // if (merchantID) {
-        //     const { data, error } = await supabase.auth.getSession()
-
-        //     if (!error && data) {
-        //         console.log(data);
-        //     } else {
-        //         console.log(error);
-        //     }
-        // }
-    }
-
     useEffect(() => {
         loadMerchantData();
         loadMerchantTransactions();
 
         getMerchantRatings();
-        // getMerchantLastActive();
     }, []);
 
     const styles = StyleSheet.create({
@@ -283,11 +237,40 @@ export default function MerchantInfoScreen() {
                 keyboardVerticalOffset={100}
                 className="flex flex-col w-full h-full justify-between"
             >
-                <Tab.Navigator>
-                    <Tab.Screen name="Analytics" component={MerchantAnalyticsScreen} />
-                    <Tab.Screen name="Ratings" component={MerchantRatingsScreen} />
-                    <Tab.Screen name="History" component={MerchantHistoryScreen} />
+                <Tab.Navigator
+                    screenOptions={() => ({
+                        tabBarActiveTintColor: Colors.primary700,
+                        tabBarInactiveTintColor: Colors.gray500,
+                        tabBarPressColor: Colors.gray200,
+                        tabBarBounces: true,
+                    })}
+                >
+                    <Tab.Screen name="Analytics" component={MerchantAnalytics} />
+                    <Tab.Screen name="Ratings" component={MerchantRatings} />
+                    <Tab.Screen name="History" component={MerchantHistory} />
                 </Tab.Navigator>
+                {/* <TabController
+                    items={[{ label: "Analytics" }, { label: "Ratings" }, { label: "History" }]}
+                    asCarousel={true}
+                >
+                    <TabController.TabBar
+                        enableShadow={true}
+                        backgroundColor={Colors.bgDefault}
+                        selectedLabelColor={Colors.primary700}
+                        spreadItems={true}
+                    />
+                    <TabController.PageCarousel>
+                        <TabController.TabPage index={0}>
+                            <MerchantAnalytics transactionList={transactionList} />
+                        </TabController.TabPage>
+                        <TabController.TabPage index={1}>
+                            <MerchantRatings ratings={ratings} />
+                        </TabController.TabPage>
+                        <TabController.TabPage index={2}>
+                            <MerchantHistory userData={userData} transactionList={transactionList} />
+                        </TabController.TabPage>
+                    </TabController.PageCarousel>
+                </TabController> */}
                 <Snackbar
                     visible={requestSnackVisible}
                     onDismiss={() => setRequestSnackVisible(false)}
@@ -315,17 +298,32 @@ export default function MerchantInfoScreen() {
                 <BottomSheetModal
                     ref={transactModalRef}
                     index={0}
-                    snapPoints={["25%"]}
+                    snapPoints={["30%"]}
                     enablePanDownToClose={true}
                 >
                     <BottomSheetView className="w-full h-full">
-                        <View className="flex flex-col w-full px-4 py-2 items-start justify-start">
-                            <Text bodyLarge className="font-bold mb-2">Transaction with {merchantData?.firstname}</Text>
+                        <View className="flex flex-col w-full px-4 py-2 space-y-2 items-start justify-start">
+                            <Text bodyLarge className="font-bold">Transaction with {merchantData?.firstname}</Text>
+                            <Text bodySmall gray900 className="font-bold">Transact as a:</Text>
+                            <View className="w-full" style={{ backgroundColor: Colors.gray100, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 13, elevation: 2 }}>
+                                <Picker
+                                    value={requestRole}
+                                    mode={PickerModes.SINGLE}
+                                    useDialog={true}
+                                    customPickerProps={{ migrateDialog: true, disabled: requestDisabled }}
+                                    trailingAccessory={<MaterialCommunityIcons name="chevron-down" size={20} color={Colors.gray900} />}
+                                    onChange={value => setRequestRole(value?.toString())}
+                                >
+                                    {RequestRoles.map((pl, i) => (
+                                        <Picker.Item key={i} label={pl.label} value={pl.value} />
+                                    ))}
+                                </Picker>
+                            </View>
                             {!joinVisible ?
                                 <Button
                                     className="w-full rounded-lg"
                                     onPress={() => requestTransaction()}
-                                    disabled={requestDisabled}
+                                    disabled={requestDisabled || requestRole === undefined}
                                 >
                                     {!requestDisabled ?
                                         <View className="flex flex-row space-x-2 items-center">

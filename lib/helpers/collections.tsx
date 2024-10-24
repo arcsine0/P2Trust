@@ -20,6 +20,11 @@ export const SearchFilterOptions = [
 	{ label: "Merchants", value: "Merchants" },
 ]
 
+export const RequestRoles = [
+	{ label: "Buyer", value: "buyer" },
+	{ label: "Seller", value: "seller" },
+]
+
 export const PositiveTags = [
 	"Fast Replies",
 	"Easy Transaction",

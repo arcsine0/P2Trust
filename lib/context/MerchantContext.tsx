@@ -1,29 +1,39 @@
 import React, { createContext, useState, useContext, FC, Dispatch, SetStateAction, ReactNode } from 'react';
-import { UserData, Interaction } from "@/lib/helpers/types";
+import { UserData, Interaction, Transaction, Ratings } from "@/lib/helpers/types";
 
 const MerchantContext = createContext<{
     merchantData: UserData | null;
     role: "client" | "merchant";
     interactions: Interaction[] | undefined;
-    setInteractions: Dispatch<SetStateAction<Interaction[] | undefined>>;
+    transactions: Transaction[] | undefined;
+    ratings: Ratings | undefined;
     setMerchantData: Dispatch<SetStateAction<UserData | null>>;
     setRole: Dispatch<SetStateAction<"client" | "merchant">>;
+    setInteractions: Dispatch<SetStateAction<Interaction[] | undefined>>;
+    setTransactions: Dispatch<SetStateAction<Transaction[] | undefined>>;
+    setRatings: Dispatch<SetStateAction<Ratings | undefined>>;
 }>({ 
     merchantData: null, 
     role: "client",
     interactions: [],
-    setInteractions: () => {},
+    transactions: [],
+    ratings: undefined,
     setMerchantData: () => {},
     setRole: () => {},
+    setInteractions: () => {},
+    setTransactions: () => {},
+    setRatings: () => {},
 });
 
 export const MerchantProvider: FC<{ children: ReactNode }> = ({ children }) => { 
     const [merchantData, setMerchantData] = useState<UserData | null>(null);
     const [role, setRole] = useState<"client" | "merchant">("client");
     const [interactions, setInteractions] = useState<Interaction[] | undefined>([]);
+    const [transactions, setTransactions] = useState<Transaction[] | undefined>([]);
+    const [ratings, setRatings] = useState<Ratings | undefined>(undefined);
 
     return (
-        <MerchantContext.Provider value={{ merchantData, setMerchantData, role, setRole, interactions, setInteractions }}>
+        <MerchantContext.Provider value={{ merchantData, setMerchantData, role, setRole, interactions, setInteractions, transactions, setTransactions, ratings, setRatings }}>
             {children}
         </MerchantContext.Provider>
     );

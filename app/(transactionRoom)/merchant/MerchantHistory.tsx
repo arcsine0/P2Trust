@@ -7,12 +7,13 @@ import { Colors, View, Text, Card } from "react-native-ui-lib";
 import { UserData, Transaction } from "@/lib/helpers/types";
 import { HistoryCard } from "@/components/transactionCards/HistoryCard";
 
-interface MerchantHistoryProps {
-    userData: UserData | undefined | null;
-    transactionList: Transaction[] | undefined;
-}
+import { useUserData } from "@/lib/context/UserContext";
+import { useMerchantData } from "@/lib/context/MerchantContext";
 
-export const MerchantHistory: FC<MerchantHistoryProps> = ({ userData, transactionList }) => {
+export function MerchantHistory() {
+    const { transactions } = useMerchantData();
+    const { userData } = useUserData();
+
     return (
         <ScrollView className="w-full">
             <View className="flex flex-col px-4 pt-4 w-full h-full space-y-2 items-center justify-start">
@@ -23,7 +24,7 @@ export const MerchantHistory: FC<MerchantHistoryProps> = ({ userData, transactio
                 >
                     <Text bodyLarge className="font-bold">Transaction History</Text>
                     <View className="flex flex-col w-full space-y-2">
-                        {userData && transactionList && transactionList.map((transaction) => (
+                        {userData && transactions && transactions.map((transaction) => (
                             <HistoryCard
                                 key={transaction.id}
                                 transactionData={transaction}
@@ -32,7 +33,7 @@ export const MerchantHistory: FC<MerchantHistoryProps> = ({ userData, transactio
                                 onPress={() => router.navigate(`/transaction/${transaction.id}`)}
                             />
                         ))}
-                        {transactionList && transactionList.length <= 0 && (
+                        {transactions && transactions.length <= 0 && (
                             <View
                                 style={{ backgroundColor: Colors.gray200 }}
                                 className="flex flex-col w-full px-10 py-20 space-y-1 items-center justify-center rounded-lg"

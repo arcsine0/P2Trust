@@ -53,6 +53,8 @@ export default function TransactionHomeScreen() {
 
     const { userData, requests, setRequests, queue, setQueue } = useUserData();
     const { setMerchantData, setRole } = useMerchantData();
+    
+    const [ transactionRole, setTransactionRole ] = useState<string | undefined>("");
 
     const [joinRoomLoading, setJoinRoomLoading] = useState<boolean>(false);
 
@@ -158,7 +160,7 @@ export default function TransactionHomeScreen() {
                             room_id: transactionData[0].id,
                         }
                     }).then(async () => {
-                        setRole("merchant");
+                        setRole(currentRequest.sender_role === "client" ? "merchant" : "client");
                         setJoinRoomLoading(false);
 
                         router.navigate(`/(transactionRoom)/room/${transactionData[0].id}`);

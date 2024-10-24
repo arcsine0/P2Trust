@@ -7,11 +7,11 @@ import { PieChart, LineChart } from "react-native-gifted-charts";
 
 import { Transaction } from "@/lib/helpers/types";
 
-interface MerchantAnalyticsProps {
-    transactionList: Transaction[] | undefined;
-}
+import { useMerchantData } from "@/lib/context/MerchantContext";
 
-export const MerchantAnalytics: FC<MerchantAnalyticsProps> = ({ transactionList }) => {
+export function MerchantAnalytics() {
+    const { transactions } = useMerchantData();
+
     const renderDot = (size: number, color: string) => (
         <View
             style={{
@@ -26,7 +26,7 @@ export const MerchantAnalytics: FC<MerchantAnalyticsProps> = ({ transactionList 
 
     return (
         <ScrollView className="w-full">
-            {transactionList && transactionList.length > 0 ? 
+            {transactions && transactions.length > 0 ? 
                 <View className="flex flex-col px-4 pt-4 w-full h-full space-y-2 items-center justify-start">
                     <Card
                         style={{ backgroundColor: Colors.bgDefault }}
@@ -35,12 +35,12 @@ export const MerchantAnalytics: FC<MerchantAnalyticsProps> = ({ transactionList 
                     >
                         <Text bodyLarge className="font-bold">User Analytics</Text>
                         <Text body className="font-bold">Transactions</Text>
-                        {transactionList && (
+                        {transactions && (
                             <View className="flex flex-row space-x-4 items-center justify-center">
                                 <PieChart
                                     data={[
-                                        { value: transactionList.filter(transaction => transaction.status === "completed").length, color: Colors.success400 },
-                                        { value: transactionList.filter(transaction => transaction.status === "cancelled").length, color: Colors.error400 },
+                                        { value: transactions.filter(transaction => transaction.status === "completed").length, color: Colors.success400 },
+                                        { value: transactions.filter(transaction => transaction.status === "cancelled").length, color: Colors.error400 },
                                     ]}
                                     donut
                                     sectionAutoFocus
@@ -49,7 +49,7 @@ export const MerchantAnalytics: FC<MerchantAnalyticsProps> = ({ transactionList 
                                     innerCircleColor={Colors.bgDefault}
                                     centerLabelComponent={() => (
                                         <View className="flex flex-col space-y-1 items-center justify-center">
-                                            <Text h2 className="font-bold">{transactionList.length}</Text>
+                                            <Text h2 className="font-bold">{transactions.length}</Text>
                                             <Text caption className="font-bold">Total</Text>
                                         </View>
                                     )}
@@ -71,9 +71,9 @@ export const MerchantAnalytics: FC<MerchantAnalyticsProps> = ({ transactionList 
                             </View>
                         )}
                         <Text body className="font-bold">Transaction Volume in PHP</Text>
-                        {transactionList && (
+                        {transactions && (
                             <LineChart
-                                data={transactionList.map(transaction => ({ value: transaction.total_amount, dataPointText: transaction.total_amount.toString() }))}
+                                data={transactions.map(transaction => ({ value: transaction.total_amount, dataPointText: transaction.total_amount.toString() }))}
                                 width={250}
                                 height={150}
                                 color={Colors.primary500}
@@ -84,14 +84,14 @@ export const MerchantAnalytics: FC<MerchantAnalyticsProps> = ({ transactionList 
                                 noOfSections={3}
                                 startFillColor={Colors.primary200}
                                 hideYAxisText
-                                maxValue={Math.max(...transactionList.map(transaction => transaction.total_amount)) + 100}
+                                maxValue={Math.max(...transactions.map(transaction => transaction.total_amount)) + 100}
                                 focusEnabled
                             />
                         )}
                         <Text body className="font-bold">Daily Activity</Text>
-                        {transactionList && (
+                        {transactions && (
                             <LineChart
-                                data={transactionList.reduce((acc, transaction) => {
+                                data={transactions.reduce((acc, transaction) => {
                                     const date = new Date(transaction.created_at).toLocaleDateString();
                                     const existingDate = acc.find(item => item.date === date);
 
@@ -113,7 +113,7 @@ export const MerchantAnalytics: FC<MerchantAnalyticsProps> = ({ transactionList 
                                 noOfSections={3}
                                 startFillColor={Colors.primary200}
                                 hideYAxisText
-                                maxValue={Math.max(...transactionList.reduce((acc, transaction) => {
+                                maxValue={Math.max(...transactions.reduce((acc, transaction) => {
                                     const date = new Date(transaction.created_at).toLocaleDateString();
                                     const existingDate = acc.find(item => item.date === date);
 

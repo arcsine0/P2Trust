@@ -5,15 +5,11 @@ import { Colors, View, Text, Card } from "react-native-ui-lib";
 
 import RatingsBar from "@/components/analytics/RatingBar";
 
-interface MerchantRatingsProps {
-    ratings: {
-        positive: number,
-        negative: number,
-        total: number,
-    } | undefined;
-}
+import { useMerchantData } from "@/lib/context/MerchantContext";
 
-export const MerchantRatings: FC<MerchantRatingsProps> = ({ ratings }) => {
+export function MerchantRatings() {
+    const { ratings } = useMerchantData();
+    
     return (
         <ScrollView className="w-full">
                 <View className="flex flex-col px-4 pt-4 w-full h-full space-y-2 items-center justify-start">
@@ -22,7 +18,7 @@ export const MerchantRatings: FC<MerchantRatingsProps> = ({ ratings }) => {
                         className="flex flex-col w-full p-4 space-y-2"
                         elevation={10}
                     >
-                        <Text bodyLarge className="font-bold">Client Ratings</Text>
+                        <Text bodyLarge className="font-bold">Seller Rating</Text>
                         <View className="flex items-center justify-center">
                             {ratings && ratings.total > 0 ?
                                 <RatingsBar
