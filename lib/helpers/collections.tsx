@@ -21,25 +21,33 @@ export const SearchFilterOptions = [
 ]
 
 export const RequestRoles = [
-	{ label: "Buyer", value: "buyer" },
-	{ label: "Seller", value: "seller" },
+	{ label: "Buyer", value: "Buyer" },
+	{ label: "Seller", value: "Seller" },
 ]
 
 export const PositiveTags = [
-	"Fast Replies",
-	"Easy Transaction",
-	"Friendly",
-	"Professional",
-	"Fair Pricing",
+	{ label: "Fast Replies", type: "seller"},
+	{ label: "Easy Transaction", type: "seller" },
+	{ label: "Friendly", type: "seller" },
+	{ label: "Professional", type: "seller" },
+	{ label: "Fair Pricing", type: "seller" },
+
+	{ label: "Fast Replies", type: "buyer"},
+	{ label: "Friendly", type: "buyer" },
+	{ label: "Professional", type: "buyer" },
 ];
 
 export const NegativeTags = [
-	"Slow Replies",
-	"Difficult Transaction",
-	"Unprofessional",
-	"Overpriced",
-	"Scam",
-	"Impersonator",
+	{ label: "Slow Replies", type: "seller" },
+	{ label: "Difficult Transaction", type: "seller" },
+	{ label: "Unprofessional", type: "seller" },
+	{ label: "Overpriced", type: "seller" },
+	{ label: "Scam", type: "seller" },
+	{ label: "Impersonator", type: "seller" },
+
+	{ label: "Slow Replies", type: "buyer" },
+	{ label: "Rude", type: "buyer" },
+	{ label: "Unprofessional", type: "buyer" },
 ]
 
 export const IDTypes = [

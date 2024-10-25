@@ -80,8 +80,6 @@ export default function TransactionHomeScreen() {
 
     const acceptRequest = async (sender: string) => {
         if (requests) {
-            console.log("Accepting request of", sender);
-
             requestsChannel.send({
                 type: "broadcast",
                 event: "queued",
@@ -114,8 +112,6 @@ export default function TransactionHomeScreen() {
     }
 
     const rejectRequest = async (sender: string) => {
-        console.log("Rejecting request of", sender);
-
         requestsChannel.send({
             type: "broadcast",
             event: "rejected",
@@ -124,7 +120,13 @@ export default function TransactionHomeScreen() {
             }
         });
 
-        setRequests([...requests?.filter(req => req.sender_id !== sender) as Request[]]);
+        setRequests(prevRequests => {
+            if (prevRequests) {
+                return prevRequests.filter(req => req.sender_id !== sender)
+            } else {
+                return [];
+            }
+        });
     }
 
     const createRoom = async () => {
@@ -423,7 +425,10 @@ export default function TransactionHomeScreen() {
                                                 >
                                                     <View className="flex flex-row items-center space-x-3">
                                                         <Avatar.Text label={getInitials(req.sender_name)} size={35} />
-                                                        <Text bodyLarge className="font-bold">{req.sender_name}</Text>
+                                                        <View className="flex flex-col items-start justify-center">
+                                                            <Text bodyLarge className="font-bold">{req.sender_name}</Text>
+                                                            <Text caption className="font-bold">{req.sender_role === "client" ? "BUYER" : "SELLER"}</Text>
+                                                        </View>
                                                     </View>
                                                     <View className="flex flex-row items-center justify-center">
                                                         <IconButton

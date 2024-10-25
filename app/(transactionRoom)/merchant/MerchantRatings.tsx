@@ -20,11 +20,11 @@ export function MerchantRatings() {
                     >
                         <Text bodyLarge className="font-bold">Seller Rating</Text>
                         <View className="flex items-center justify-center">
-                            {ratings && ratings.total > 0 ?
+                            {ratings && ratings.merchant && ratings.merchant.total > 0 ?
                                 <RatingsBar
-                                    positive={ratings.positive}
-                                    negative={ratings.negative}
-                                    total={ratings.total}
+                                    positive={ratings.merchant.positive}
+                                    negative={ratings.merchant.negative}
+                                    total={ratings.merchant.total}
                                     height={20}
                                 />
                                 :
@@ -33,7 +33,32 @@ export function MerchantRatings() {
                                     style={{ backgroundColor: Colors.gray200 }}
                                 >
                                     <Text bodyLarge black className="font-semibold">No Ratings Yet</Text>
-                                    <Text bodySmall black className="text-center">Only users who have transacted with the merchant can rate them.</Text>
+                                    <Text bodySmall black className="text-center">This user has not transacted with any buyers yet.</Text>
+                                </View>
+                            }
+                        </View>
+                    </Card>
+                    <Card
+                        style={{ backgroundColor: Colors.bgDefault }}
+                        className="flex flex-col w-full p-4 space-y-2"
+                        elevation={10}
+                    >
+                        <Text bodyLarge className="font-bold">Buyer Rating</Text>
+                        <View className="flex items-center justify-center">
+                            {ratings && ratings.client && ratings.client.total > 0 ?
+                                <RatingsBar
+                                    positive={ratings.client.positive}
+                                    negative={ratings.client.negative}
+                                    total={ratings.client.total}
+                                    height={20}
+                                />
+                                :
+                                <View
+                                    className="flex w-full px-2 py-4 space-y-1 items-center justify-center"
+                                    style={{ backgroundColor: Colors.gray200 }}
+                                >
+                                    <Text bodyLarge black className="font-semibold">No Ratings Yet</Text>
+                                    <Text bodySmall black className="text-center">This user has not transacted with any sellers yet.</Text>
                                 </View>
                             }
                         </View>

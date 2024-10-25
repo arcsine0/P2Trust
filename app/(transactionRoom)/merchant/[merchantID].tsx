@@ -31,8 +31,6 @@ import { MaterialCommunityIcons, Octicons } from "@expo/vector-icons";
 export default function MerchantInfoScreen() {
     const [roomID, setRoomID] = useState("");
 
-    const [transactionList, setTransactionList] = useState<Transaction[] | undefined>(undefined)
-
     const [requestRole, setRequestRole] = useState<string | undefined>("Buyer")
 
     const [requestState, setRequestState] = useState("Join Queue  ");
@@ -64,7 +62,7 @@ export default function MerchantInfoScreen() {
                     const payloadData = payload.payload;
 
                     if (payloadData.sender_id === userData.id) {
-                        transactModalRef.current?.snapToPosition("35%")
+                        transactModalRef.current?.snapToPosition("40%")
 
                         setRequestState("Queued");
                         setRequestDisabled(true);
@@ -88,7 +86,7 @@ export default function MerchantInfoScreen() {
                     const payloadData = payload.payload;
 
                     if (payloadData.sender_id === userData.id) {
-                        transactModalRef.current?.snapToPosition("25%")
+                        transactModalRef.current?.snapToPosition("30%")
 
                         setRequestState("Join Queue  ");
                         setRequestDisabled(false);
@@ -97,6 +95,8 @@ export default function MerchantInfoScreen() {
                         setJoinVisible(false);
                         setJoinState("Waiting for Host...");
                         setJoinDisabled(true);
+
+                        requestsChannel.unsubscribe();
                     }
                 })
                 .subscribe((status) => {
@@ -201,13 +201,23 @@ export default function MerchantInfoScreen() {
             const { data, error } = await supabase
                 .from("ratings")
                 .select("*")
-                .eq(`merchant_id`, merchantID);
+                .eq("target_id", merchantID)
 
             if (!error && data) {
+                const merchantRatings = data.filter((rating) => rating.type === "seller");
+                const clientRatings = data.filter((rating) => rating.type === "buyer");
+
                 setRatings({
-                    positive: data.filter((rating) => rating.rating === "UP").length,
-                    negative: data.filter((rating) => rating.rating === "DOWN").length,
-                    total: data.length,
+                    merchant: {
+                        positive: merchantRatings.filter((rating) => rating.rating === "UP").length,
+                        negative: merchantRatings.filter((rating) => rating.rating === "DOWN").length,
+                        total: merchantRatings.length,
+                    },
+                    client: {
+                        positive: clientRatings.filter((rating) => rating.rating === "UP").length,
+                        negative: clientRatings.filter((rating) => rating.rating === "DOWN").length,
+                        total: clientRatings.length,
+                    },
                 });
             } else {
                 console.log("Ratings error: ", error);

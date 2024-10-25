@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { useWindowDimensions, Platform, KeyboardAvoidingView, FlatList, Dimensions, StyleSheet } from "react-native";
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
+import { Platform, KeyboardAvoidingView, FlatList, Dimensions, StyleSheet } from "react-native";
 
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme, TextInput, Avatar, Chip, IconButton, Divider, ActivityIndicator } from "react-native-paper";
@@ -87,7 +87,7 @@ export default function TransactionRoomScreen() {
 
 	const [showFinishDialog, setShowFinishDialog] = useState<boolean>(false);
 	const [showFinishConfirmationDialog, setShowFinishConfirmationDialog] = useState<boolean>(false);
-
+	
 	const [isPaymentRequestSending, setIsPaymentRequestSending] = useState<boolean>(false);
 	const [isPaymentRequestCancelling, setIsPaymentRequestCancelling] = useState<boolean>(false);
 	const [isPaymentSending, setIsPaymentSending] = useState<boolean>(false);
@@ -111,6 +111,9 @@ export default function TransactionRoomScreen() {
 	const insets = useSafeAreaInsets();
 
 	const interactionsChannel = supabase.channel(`room_${roomID}`);
+
+	// for iOS
+	const [isRequestOptionClicked, setIsRequestOptionClicked] = useState<boolean>(false);
 
 	const sendMessage = (message: string, sender: string) => {
 		setIsMessageSending(true);
@@ -516,14 +519,23 @@ export default function TransactionRoomScreen() {
 				.from("ratings")
 				.insert({
 					transaction_id: roomID,
-					merchant_id: merchantData.id,
-					client_id: userData.id,
+					target_id: merchantData.id,
+					sender_id: userData.id,
 					rating: ratings,
 					tags: selectedTags,
+					type: role === "client" ? "seller" : "buyer",
 				});
 
 			if (!error) {
 				setIsRatingSubmitting(false);
+
+				setQueue(prevQueue => {
+					if (prevQueue) {
+						return prevQueue.filter(req => req.sender_id !== merchantData?.id);
+					} else {
+						return [];
+					}
+				});
 
 				ratingsModalRef.current?.close();
 				router.navigate("/(transactionRoom)");
@@ -778,20 +790,8 @@ export default function TransactionRoomScreen() {
 							switch (payloadData.type) {
 								case "transaction_completed":
 									if (payloadData.data.id === userData?.id) {
-										if (role === "client") {
-											setShowFinishDialog(false);
-											ratingsModalRef.current?.present();
-										} else {
-											setQueue(prevQueue => {
-												if (prevQueue) {
-													return prevQueue.filter(req => req.sender_id !== merchantData?.id);
-												} else {
-													return [];
-												}
-											});
-
-											router.navigate("/(transactionRoom)");
-										}
+										setShowFinishDialog(false);
+										ratingsModalRef.current?.present();
 									} else {
 										setShowFinishConfirmationDialog(true);
 									}
@@ -843,6 +843,29 @@ export default function TransactionRoomScreen() {
 		setHasSentProduct(false);
 		setHasReceivedProduct(false);
 
+		return () => {
+			if (connectedUsers?.length < 2) {
+				interactionsChannel.unsubscribe();
+				// supabase.removeChannel(interactionsChannel);
+
+				setInteractions([])
+			}
+
+			interactionsChannel.send({
+				type: "broadcast",
+				event: "user",
+				payload: {
+					sender_id: userData?.id,
+					from: userData?.firstname,
+					type: "left"
+				}
+			}).then(() => {
+				interactionsChannel.unsubscribe();
+			});
+		}
+	}, []);
+
+	useLayoutEffect(() => {
 		navigation.setOptions({
 			header: () => (
 				<View
@@ -864,36 +887,15 @@ export default function TransactionRoomScreen() {
 								<Text buttonSmall white>Finish</Text>
 							</View>
 						</Button>
-						<IconButton
+						{/* <IconButton
 							icon="dots-vertical"
 							onPress={() => console.log("Dots Pressed")}
-						/>
+						/> */}
 					</View>
 				</View>
 			)
 		})
-
-		return () => {
-			if (connectedUsers?.length < 2) {
-				interactionsChannel.unsubscribe();
-				supabase.removeChannel(interactionsChannel);
-
-				setInteractions([])
-			}
-
-			interactionsChannel.send({
-				type: "broadcast",
-				event: "user",
-				payload: {
-					sender_id: userData?.id,
-					from: userData?.firstname,
-					type: "left"
-				}
-			}).then(() => {
-				interactionsChannel.unsubscribe();
-			});
-		}
-	}, []);
+	}, [])
 
 	const renderBackdrop = useCallback(
 		(props: BottomSheetBackdropProps) => (
@@ -907,24 +909,24 @@ export default function TransactionRoomScreen() {
 	);
 
 	const styles = StyleSheet.create({
-        headerStyle: {
-            backgroundColor: Colors.bgDefault,
-            paddingTop: insets.top + 4,
-            paddingBottom: 4,
+		headerStyle: {
+			backgroundColor: Colors.bgDefault,
+			paddingTop: insets.top + 4,
+			paddingBottom: 4,
 
-            ...Platform.select({
-                ios: {
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.2,
-                    shadowRadius: 4,
-                },
-                android: {
-                    elevation: 4,
-                },
-            }),
-        }
-    })
+			...Platform.select({
+				ios: {
+					shadowColor: '#000',
+					shadowOffset: { width: 0, height: 2 },
+					shadowOpacity: 0.2,
+					shadowRadius: 4,
+				},
+				android: {
+					elevation: 4,
+				},
+			}),
+		}
+	})
 
 	return (
 		<SafeAreaView className="flex flex-col w-full h-full px-2 pb-2 items-start justify-start">
@@ -1154,19 +1156,31 @@ export default function TransactionRoomScreen() {
 						visible={showActionsMenu}
 						title="Select Transaction Action"
 						onDismiss={() => setShowActionsMenu(false)}
+						onModalDismissed={() => {
+							if (isRequestOptionClicked) {
+								setIsRequestOptionClicked(false);
+								setShowRequestModal(true);
+							}
+						}}
 						options={[
 							{
-								label: activePaymentDetails?.id ? "Cancel Payment Request" : "Send Payment Request", onPress: () => {
+								label: activePaymentDetails?.id ? "Cancel Payment Request" : "Send Payment Request", 
+								onPress: () => {
 									if (activePaymentDetails) {
 										cancelPaymentRequest(activePaymentDetails.id)
 									} else {
 										setShowActionsMenu(false);
-										setShowRequestModal(true);
+
+										if (Platform.OS === "ios") {
+											setIsRequestOptionClicked(true);
+										} else {
+											setShowRequestModal(true);
+										}
 									}
 								}
 							},
-							{ label: "Show Payment Confirmation", onPress: () => { }, disabled: true },
-							{ label: "Show Product Confirmation", onPress: () => { }, disabled: true },
+							// { label: "Show Payment Confirmation", onPress: () => { }, disabled: true },
+							// { label: "Show Product Confirmation", onPress: () => { }, disabled: true },
 						]}
 						renderAction={(option, index, onOptionPress) => (
 							<View
@@ -1220,7 +1234,6 @@ export default function TransactionRoomScreen() {
 								<IconButton
 									icon="thumb-up-outline"
 									iconColor={ratings === "UP" ? "#22c55e" : "gray"}
-									// containerColor={ratings === "UP" ? "#bbf7d0" : "#gray"}
 									style={{ borderColor: ratings === "UP" ? "#22c55e" : "gray" }}
 									size={30}
 									mode="outlined"
@@ -1232,7 +1245,6 @@ export default function TransactionRoomScreen() {
 								<IconButton
 									icon="thumb-down-outline"
 									iconColor={ratings === "DOWN" ? "#ef4444" : "gray"}
-									// containerColor={ratings === "DOWN" ? "#fecaca" : "#gray"}
 									style={{ borderColor: ratings === "DOWN" ? "#ef4444" : "gray" }}
 									size={30}
 									mode="outlined"
@@ -1245,35 +1257,41 @@ export default function TransactionRoomScreen() {
 							<Text bodyLarge className="font-bold">Select tags that describe your experience:</Text>
 							<View className="flex flex-row items-center space-x-1 space-y-1 flex-wrap">
 								{ratings === "UP" ?
-									PositiveTags.map((tag, i) => (
+									PositiveTags.filter((tag) => {
+										const tagType = role === "client" ? "seller" : "buyer";
+										return tag.type === tagType;
+									}).map((tag, i) => (
 										<Chip
 											key={i}
 											compact={true}
-											selected={selectedTags.includes(tag) ? true : false}
-											selectedColor={selectedTags.includes(tag) ? "#22c55e" : "black"}
+											selected={selectedTags.includes(tag.label) ? true : false}
+											selectedColor={selectedTags.includes(tag.label) ? "#22c55e" : "black"}
 											showSelectedCheck={false}
-											style={{ backgroundColor: selectedTags.includes(tag) ? "#bbf7d0" : "#e2e8f0" }}
+											style={{ backgroundColor: selectedTags.includes(tag.label) ? "#bbf7d0" : "#e2e8f0" }}
 											onPress={() => setSelectedTags(prev =>
-												prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+												prev.includes(tag.label) ? prev.filter(t => t !== tag.label) : [...prev, tag.label]
 											)}
 										>
-											{tag}
+											{tag.label}
 										</Chip>
 									))
 									:
-									NegativeTags.map((tag, i) => (
+									NegativeTags.filter((tag) => {
+										const tagType = role === "client" ? "seller" : "buyer";
+										return tag.type === tagType;
+									}).map((tag, i) => (
 										<Chip
 											key={i}
 											compact={true}
-											selected={selectedTags.includes(tag) ? true : false}
-											selectedColor={selectedTags.includes(tag) ? "#ef4444" : "black"}
+											selected={selectedTags.includes(tag.label) ? true : false}
+											selectedColor={selectedTags.includes(tag.label) ? "#ef4444" : "black"}
 											showSelectedCheck={false}
-											style={{ backgroundColor: selectedTags.includes(tag) ? "#fecaca" : "#e2e8f0" }}
+											style={{ backgroundColor: selectedTags.includes(tag.label) ? "#fecaca" : "#e2e8f0" }}
 											onPress={() => setSelectedTags(prev =>
-												prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+												prev.includes(tag.label) ? prev.filter(t => t !== tag.label) : [...prev, tag.label]
 											)}
 										>
-											{tag}
+											{tag.label}
 										</Chip>
 									))
 								}
@@ -1301,8 +1319,8 @@ export default function TransactionRoomScreen() {
 				</BottomSheetModal>
 				<Dialog
 					visible={showRequestModal}
-					onDismiss={() => setShowRequestModal(false)}
 					panDirection="up"
+					onDismiss={() => setShowRequestModal(false)}
 					containerStyle={{ backgroundColor: Colors.bgDefault, borderRadius: 8, padding: 4 }}
 				>
 					<RequestPaymentRoute
@@ -1421,20 +1439,8 @@ export default function TransactionRoomScreen() {
 							<Button
 								className="rounded-lg"
 								onPress={() => {
-									if (role === "client") {
-										setShowFinishConfirmationDialog(false);
-										ratingsModalRef.current?.present();
-									} else {
-										setQueue(prevQueue => {
-											if (prevQueue) {
-												return prevQueue.filter(req => req.sender_id !== merchantData?.id);
-											} else {
-												return [];
-											}
-										});
-
-										router.navigate("/(transactionRoom)");
-									}
+									setShowFinishConfirmationDialog(false);
+									ratingsModalRef.current?.present();
 								}}
 							>
 								<View className="flex flex-row space-x-2 items-center">
