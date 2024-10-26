@@ -1,11 +1,10 @@
 import { FC } from "react";
 import { ScrollView } from "react-native";
 
-import { Colors, View, Text, Card, Button, ActionSheet, Dialog, Toast } from "react-native-ui-lib";
+import { Colors, View, Text, Card } from "react-native-ui-lib";
 
 import { PieChart, LineChart } from "react-native-gifted-charts";
-
-import { Transaction } from "@/lib/helpers/types";
+import { ContributionGraph } from "react-native-chart-kit";
 
 import { useMerchantData } from "@/lib/context/MerchantContext";
 
@@ -24,9 +23,22 @@ export function MerchantAnalytics() {
         />
     )
 
+    console.log(transactions?.reduce((acc, transaction) => {
+        const date = new Date(transaction.created_at).toISOString().split('T')[0];
+        const existingDate = acc.find(item => item.date === date);
+
+        if (existingDate) {
+            existingDate.value++;
+        } else {
+            acc.push({ date, value: 1 });
+        }
+
+        return acc;
+    }, [] as { date: string, value: number }[]).map(item => ({ date: item.date, count: item.value })))
+
     return (
         <ScrollView className="w-full">
-            {transactions && transactions.length > 0 ? 
+            {transactions && transactions.length > 0 ?
                 <View className="flex flex-col px-4 pt-4 w-full h-full space-y-2 items-center justify-start">
                     <Card
                         style={{ backgroundColor: Colors.bgDefault }}
@@ -130,10 +142,10 @@ export function MerchantAnalytics() {
                         )}
                     </Card>
                 </View>
-            :
+                :
                 null
             }
-            
+
         </ScrollView>
     )
 }

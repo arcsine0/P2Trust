@@ -148,12 +148,12 @@ export default function TransactionDetailsScreen() {
                     const { data: userRatings, error: userRatingsError } = await supabase
                         .from("ratings")
                         .select("rating")
-                        .eq("merchant_id", data[0].clientID);
+                        .eq("sender_id", data[0].clientID);
 
                     const { data: merchantRatings, error: merchantRatingsError } = await supabase
                         .from("ratings")
                         .select("rating")
-                        .eq("merchant_id", data[0].merchantID);
+                        .eq("target_id", data[0].merchantID);
 
                     if (!userRatingsError && userRatings) {
                         setUserRating({
@@ -343,8 +343,11 @@ export default function TransactionDetailsScreen() {
                                 elevation={10}
                             >
                                 <Text bodyLarge className="font-bold">Merchant</Text>
-                                <View className="flex flex-row items-center justify-between">
-                                    <TouchableRipple onPress={() => router.push(`/(transactionRoom)/merchant/${transactionData.merchantID}`)}>
+                                <View className="flex flex-row w-full items-center justify-between">
+                                    <TouchableRipple 
+                                        style={{ flex: 1 }}
+                                        onPress={() => router.push(`/(transactionRoom)/merchant/${transactionData.merchantID}`)}
+                                    >
                                         <View className="flex flex-row items-center space-x-3">
                                             <Avatar.Text label={getInitials(transactionData.merchantName)} size={35} />
                                             <View className="flex flex-col w-2/3">
@@ -367,7 +370,7 @@ export default function TransactionDetailsScreen() {
                                             </View>
                                         </View>
                                     </TouchableRipple>
-                                    <View className="flex flex-col items-end justify-center">
+                                    <View className="flex flex-col flex-1 items-end justify-center">
                                         <Text body success400 className="font-bold">PHP {transactionData.total_amount}</Text>
                                         <Text caption gray400>Received</Text>
                                     </View>
@@ -375,7 +378,10 @@ export default function TransactionDetailsScreen() {
                                 <Divider className="my-2" />
                                 <Text bodyLarge className="font-bold">Client</Text>
                                 <View className="flex flex-row items-center justify-between">
-                                    <TouchableRipple onPress={() => router.push(`/(transactionRoom)/merchant/${transactionData.clientID}`)}>
+                                    <TouchableRipple 
+                                        style={{ flex: 1 }}
+                                        onPress={() => router.push(`/(transactionRoom)/merchant/${transactionData.clientID}`)}
+                                    >
                                         <View className="flex flex-row items-center space-x-3">
                                             <Avatar.Text label={getInitials(transactionData.clientName)} size={35} />
                                             <View className="flex flex-col w-2/3">
@@ -400,7 +406,7 @@ export default function TransactionDetailsScreen() {
                                     </TouchableRipple>
 
                                     <View></View>
-                                    <View className="flex flex-col items-end justify-center">
+                                    <View className="flex flex-col flex-1 items-end justify-center">
                                         <Text body error400 className="font-bold">-PHP {transactionData.total_amount}</Text>
                                         <Text caption gray400>Sent</Text>
                                     </View>

@@ -197,7 +197,7 @@ export function MerchantRatings() {
                             <Text bodyLarge className="font-bold">Recent {ratingsRole} Ratings</Text>
                             {ratings && ratings.client && ratings.merchant && (ratingsRole === "Seller" ? ratings.merchant : ratings.client).list.length > 0 ?
                                 <View className="flex flex-col w-full space-y-2">
-                                    {(ratingsRole === "Seller" ? ratings.merchant : ratings.client)?.list.map(rating => (
+                                    {(ratingsRole === "Seller" ? ratings.merchant : ratings.client).list.map(rating => (
                                         <Card
                                             style={{ backgroundColor: Colors.bgDefault, borderWidth: 1, borderColor: Colors.gray200 }}
                                             className="flex flex-col w-full p-4 space-y-2 rounded-lg"
