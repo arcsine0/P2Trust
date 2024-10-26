@@ -42,10 +42,31 @@ export type TransactionListItem = {
     status: string;
 }
 
+export type Tag = {
+    tag: string, 
+    count: number, 
+    type: "Positive" | "Negative"
+}
+
 export type Ratings = {
     positive: number,
     negative: number,
     total: number,
+    tags: Tag[],
+    list: Rating[],
+}
+
+export type Rating = {
+    id: string;
+    created_at: Date;
+    rating: string;
+    tags: string[];
+    transaction_id: string;
+    target_id: string;
+    target_name: string;
+    sender_id: string;
+    sender_name: string;
+    type: string;
 }
 
 export type Request = {

@@ -520,7 +520,9 @@ export default function TransactionRoomScreen() {
 				.insert({
 					transaction_id: roomID,
 					target_id: merchantData.id,
+					target_name: merchantData.firstname,
 					sender_id: userData.id,
+					sender_name: userData.firstname,
 					rating: ratings,
 					tags: selectedTags,
 					type: role === "client" ? "seller" : "buyer",

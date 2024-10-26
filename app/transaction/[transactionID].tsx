@@ -344,7 +344,7 @@ export default function TransactionDetailsScreen() {
                             >
                                 <Text bodyLarge className="font-bold">Merchant</Text>
                                 <View className="flex flex-row items-center justify-between">
-                                    <TouchableRipple onPress={() => router.navigate(`/(transactionRoom)/merchant/${transactionData.merchantID}`)}>
+                                    <TouchableRipple onPress={() => router.push(`/(transactionRoom)/merchant/${transactionData.merchantID}`)}>
                                         <View className="flex flex-row items-center space-x-3">
                                             <Avatar.Text label={getInitials(transactionData.merchantName)} size={35} />
                                             <View className="flex flex-col w-2/3">
@@ -375,7 +375,7 @@ export default function TransactionDetailsScreen() {
                                 <Divider className="my-2" />
                                 <Text bodyLarge className="font-bold">Client</Text>
                                 <View className="flex flex-row items-center justify-between">
-                                    <TouchableRipple onPress={() => router.navigate(`/(transactionRoom)/merchant/${transactionData.clientID}`)}>
+                                    <TouchableRipple onPress={() => router.push(`/(transactionRoom)/merchant/${transactionData.clientID}`)}>
                                         <View className="flex flex-row items-center space-x-3">
                                             <Avatar.Text label={getInitials(transactionData.clientName)} size={35} />
                                             <View className="flex flex-col w-2/3">

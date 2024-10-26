@@ -108,7 +108,7 @@ export default function TransactionHistoryScreen() {
 									<Card
 										key={trans.id}
 										style={{ backgroundColor: Colors.bgDefault }}
-										onPress={() => router.navigate(`/transaction/${trans.id}`)}
+										onPress={() => router.push(`/transaction/${trans.id}`)}
 										className="flex flex-col p-4 space-y-2"
 										elevation={10}
 									>

@@ -30,7 +30,7 @@ export function MerchantHistory() {
                                 transactionData={transaction}
                                 userID={userData.id}
                                 elevation={0}
-                                onPress={() => router.navigate(`/transaction/${transaction.id}`)}
+                                onPress={() => router.push(`/transaction/${transaction.id}`)}
                             />
                         ))}
                         {transactions && transactions.length <= 0 && (

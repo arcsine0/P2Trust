@@ -2,12 +2,12 @@ import { useState, useEffect, useRef } from "react";
 
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 
-import { Platform, KeyboardAvoidingView, StyleSheet, StatusBar } from "react-native";
+import { Platform, KeyboardAvoidingView, StyleSheet } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Snackbar, ActivityIndicator, IconButton } from "react-native-paper";
 
-import { Colors, View, Text, Card, Button, Picker, PickerModes, TabController } from "react-native-ui-lib";
+import { Colors, View, Text, Button, Picker, PickerModes } from "react-native-ui-lib";
 
 import { BottomSheetModal, BottomSheetView } from "@gorhom/bottom-sheet";
 
@@ -17,7 +17,6 @@ import { supabase } from "@/supabase/config";
 
 import { useUserData } from "@/lib/context/UserContext";
 import { useMerchantData } from "@/lib/context/MerchantContext";
-import { Transaction, Ratings } from "@/lib/helpers/types";
 import { RequestRoles } from "@/lib/helpers/collections";
 
 import { UserCard } from "@/components/userCards/UserCard";
@@ -26,7 +25,8 @@ import { MerchantAnalytics } from "./MerchantAnalytics";
 import { MerchantRatings } from "./MerchantRatings";
 import { MerchantHistory } from "./MerchantHistory";
 
-import { MaterialCommunityIcons, Octicons } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ratings, Rating } from "@/lib/helpers/types";
 
 export default function MerchantInfoScreen() {
     const [roomID, setRoomID] = useState("");
@@ -135,7 +135,7 @@ export default function MerchantInfoScreen() {
 
                 setRole(requestRole === "Buyer" ? "client" : "merchant");
 
-                router.navigate(`/(transactionRoom)/room/${roomID}`);
+                router.push(`/(transactionRoom)/room/${roomID}`);
             }
         }
     }
@@ -204,19 +204,43 @@ export default function MerchantInfoScreen() {
                 .eq("target_id", merchantID)
 
             if (!error && data) {
-                const merchantRatings = data.filter((rating) => rating.type === "seller");
-                const clientRatings = data.filter((rating) => rating.type === "buyer");
+                const merchantRatings: Rating[] = data.filter((rating) => rating.type === "seller");
+                const clientRatings: Rating[] = data.filter((rating) => rating.type === "buyer");
 
                 setRatings({
                     merchant: {
                         positive: merchantRatings.filter((rating) => rating.rating === "UP").length,
                         negative: merchantRatings.filter((rating) => rating.rating === "DOWN").length,
                         total: merchantRatings.length,
+                        tags: merchantRatings.reduce((acc, curr) => {
+                            curr.tags.forEach((tag: string) => {
+                                const existingTag = acc.find(t => t.tag === tag);
+                                if (existingTag) {
+                                    existingTag.count++;
+                                } else {
+                                    acc.push({ tag, count: 1, type: curr.rating === "UP" ? "Positive" : "Negative" });
+                                }
+                            });
+                            return acc;
+                        }, [] as { tag: string; count: number; type: "Positive" | "Negative" }[]),
+                        list: merchantRatings.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
                     },
                     client: {
                         positive: clientRatings.filter((rating) => rating.rating === "UP").length,
                         negative: clientRatings.filter((rating) => rating.rating === "DOWN").length,
                         total: clientRatings.length,
+                        tags: clientRatings.reduce((acc, curr) => {
+                            curr.tags.forEach((tag: string) => {
+                                const existingTag = acc.find(t => t.tag === tag);
+                                if (existingTag) {
+                                    existingTag.count++;
+                                } else {
+                                    acc.push({ tag, count: 1, type: curr.rating === "UP" ? "Positive" : "Negative" });
+                                }
+                            });
+                            return acc;
+                        }, [] as { tag: string; count: number; type: "Positive" | "Negative" }[]),
+                        list: clientRatings.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
                     },
                 });
             } else {
