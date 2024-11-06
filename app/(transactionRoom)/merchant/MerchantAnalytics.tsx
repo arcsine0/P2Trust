@@ -23,18 +23,18 @@ export function MerchantAnalytics() {
         />
     )
 
-    console.log(transactions?.reduce((acc, transaction) => {
-        const date = new Date(transaction.created_at).toISOString().split('T')[0];
-        const existingDate = acc.find(item => item.date === date);
+    // console.log(transactions?.reduce((acc, transaction) => {
+    //     const date = new Date(transaction.created_at).toISOString().split('T')[0];
+    //     const existingDate = acc.find(item => item.date === date);
 
-        if (existingDate) {
-            existingDate.value++;
-        } else {
-            acc.push({ date, value: 1 });
-        }
+    //     if (existingDate) {
+    //         existingDate.value++;
+    //     } else {
+    //         acc.push({ date, value: 1 });
+    //     }
 
-        return acc;
-    }, [] as { date: string, value: number }[]).map(item => ({ date: item.date, count: item.value })))
+    //     return acc;
+    // }, [] as { date: string, value: number }[]).map(item => ({ date: item.date, count: item.value })))
 
     return (
         <ScrollView className="w-full">

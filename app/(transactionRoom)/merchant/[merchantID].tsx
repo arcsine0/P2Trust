@@ -43,7 +43,7 @@ export default function MerchantInfoScreen() {
 
     const { merchantID } = useLocalSearchParams<{ merchantID: string }>();
 
-    const { userData } = useUserData();
+    const { userData, transactionIDs } = useUserData();
     const { merchantData, setTransactions, setRatings, setMerchantData, setRole } = useMerchantData();
 
     const transactModalRef = useRef<BottomSheetModal>(null);
@@ -184,7 +184,7 @@ export default function MerchantInfoScreen() {
                 .or(`merchantID.eq.${merchantID},clientID.eq.${merchantID}`)
                 .order("created_at", { ascending: false });
 
-            if (!error && transactionData) {
+            if (!error && transactionData && transactionIDs) {
                 setTransactions(transactionData);
                 // setTotalTransactions(transactionData ? transactionData.length : 0);
                 // setAverageVolume(transactionData && transactionData.length > 0 ? parseFloat((transactionData.filter(transaction => transaction.status === "completed").reduce((a, b) => a + b.total_amount, 0) / transactionData.length).toFixed(2)) : 0);
@@ -200,12 +200,13 @@ export default function MerchantInfoScreen() {
         if (merchantID) {
             const { data, error } = await supabase
                 .from("ratings")
-                .select("*")
-                .eq("target_id", merchantID)
+                .select(`*`)
+                .eq("target_id", merchantID);
 
-            if (!error && data) {
-                const merchantRatings: Rating[] = data.filter((rating) => rating.type === "seller");
-                const clientRatings: Rating[] = data.filter((rating) => rating.type === "buyer");
+            if (!error && data && transactionIDs) {
+                const filteredData: Rating[] = data.filter((rating) => rating.transaction_id !== null && transactionIDs.includes(rating.transaction_id));
+                const merchantRatings: Rating[] = filteredData.filter((rating) => rating.type === "seller");
+                const clientRatings: Rating[] = filteredData.filter((rating) => rating.type === "buyer");
 
                 setRatings({
                     merchant: {
@@ -283,28 +284,6 @@ export default function MerchantInfoScreen() {
                     <Tab.Screen name="Ratings" component={MerchantRatings} />
                     <Tab.Screen name="History" component={MerchantHistory} />
                 </Tab.Navigator>
-                {/* <TabController
-                    items={[{ label: "Analytics" }, { label: "Ratings" }, { label: "History" }]}
-                    asCarousel={true}
-                >
-                    <TabController.TabBar
-                        enableShadow={true}
-                        backgroundColor={Colors.bgDefault}
-                        selectedLabelColor={Colors.primary700}
-                        spreadItems={true}
-                    />
-                    <TabController.PageCarousel>
-                        <TabController.TabPage index={0}>
-                            <MerchantAnalytics transactionList={transactionList} />
-                        </TabController.TabPage>
-                        <TabController.TabPage index={1}>
-                            <MerchantRatings ratings={ratings} />
-                        </TabController.TabPage>
-                        <TabController.TabPage index={2}>
-                            <MerchantHistory userData={userData} transactionList={transactionList} />
-                        </TabController.TabPage>
-                    </TabController.PageCarousel>
-                </TabController> */}
                 <Snackbar
                     visible={requestSnackVisible}
                     onDismiss={() => setRequestSnackVisible(false)}
@@ -315,20 +294,23 @@ export default function MerchantInfoScreen() {
                 >
                     Invite Request Rejected or Expired
                 </Snackbar>
-                <View
-                    className="w-full px-4 pt-2 flex flex-row space-x-1"
-                    style={{ backgroundColor: Colors.bgDefault }}
-                >
-                    <Button
-                        className="rounded-lg grow"
-                        onPress={() => transactModalRef.current?.present()}
+                {userData && merchantID !== userData.id &&
+                    <View
+                        className="w-full px-4 pt-2 flex flex-row space-x-1"
+                        style={{ backgroundColor: Colors.bgDefault }}
                     >
-                        <View className="flex flex-row space-x-2 items-center">
-                            <MaterialCommunityIcons name="cash-fast" size={20} color={"white"} />
-                            <Text buttonSmall white>Transact</Text>
-                        </View>
-                    </Button>
-                </View>
+                        <Button
+                            className="rounded-lg grow"
+                            onPress={() => transactModalRef.current?.present()}
+                        >
+                            <View className="flex flex-row space-x-2 items-center">
+                                <MaterialCommunityIcons name="cash-fast" size={20} color={"white"} />
+                                <Text buttonSmall white>Transact</Text>
+                            </View>
+                        </Button>
+                    </View>
+                }
+
                 <BottomSheetModal
                     ref={transactModalRef}
                     index={0}

@@ -31,7 +31,7 @@ export default function HomeScreen() {
 
 	const [showSearchModal, setShowSearchModal] = useState<boolean>(false);
 
-	const { userData } = useUserData();
+	const { setTransactionIDs } = useUserData();
 
 	const isFocused = useIsFocused();
 	const navigation = useNavigation();
@@ -45,6 +45,7 @@ export default function HomeScreen() {
 
 		if (!error) {
 			setTransactions(data);
+			setTransactionIDs(data.map(d => d.id));
 		}
 	}
 
