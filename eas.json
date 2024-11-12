@@ -1,11 +1,16 @@
 {
   "cli": {
-    "version": ">= 10.2.4"
+    "version": ">= 10.2.4",
+    "promptToConfigurePushNotifications": false,
+    "appVersionSource": "remote"
   },
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
     },
     "preview": {
       "distribution": "internal"
@@ -16,8 +21,9 @@
       }
     },
     "production": {
+      "autoIncrement": "true",
       "android": {
-        "buildType": "apk"
+        "buildType": "app-bundle"
       }
     }
   },

@@ -11,7 +11,17 @@ export type UserData = {
     verified_at: Date;
     verifiedID_type: "Passport" | "DriversLicence" | "NationalID";
     verifiedID_number: string;
-    [key: string]: any;
+    wallets: WalletData[] | undefined;
+}
+
+export type WalletData = {
+    id: string;
+    created_at: Date;
+    account_name: string;
+    account_number: string;
+    current_owners?: string[];
+    previous_owners?: string[];
+    platform: string;
 }
 
 export type RoomData = {
@@ -29,6 +39,7 @@ export type Transaction = {
     total_amount: number;
     status: string;
     platforms: string[];
+    wallets_used: string[];
     timeline: string;
     flags: number;
     flagged_by: string[];
@@ -43,8 +54,8 @@ export type TransactionListItem = {
 }
 
 export type Tag = {
-    tag: string, 
-    count: number, 
+    tag: string,
+    count: number,
     type: "Positive" | "Negative"
 }
 
@@ -81,8 +92,9 @@ export type RequestDetails = {
     amount: number;
     currency?: string;
     platform?: string;
-    accountNumber?: string;
     accountName?: string;
+    accountNumber?: string;
+    wallet_id?: string | undefined;
 }
 
 export type Interaction =
@@ -100,6 +112,7 @@ export type Interaction =
             id: string;
             amount: Float;
             currency: string;
+            wallet_id: string;
             platform: string;
             accountName: string;
             accountNumber: string;
@@ -124,6 +137,7 @@ export type Interaction =
             id: string;
             amount: Float;
             currency: string;
+            wallet_id: string;
             platform: string;
             receiptURL: string;
             receiptPath: string;
@@ -172,6 +186,7 @@ export type TimelineEvent = {
         id?: string | undefined;
         amount?: number | undefined;
         currency?: string | undefined;
+        wallet_id?: string | undefined;
         platform?: string | undefined;
         merchantName?: string | undefined;
         merchantNumber?: string | undefined;

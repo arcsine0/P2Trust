@@ -72,3 +72,31 @@ export const interpolateColor = (color1: string, color2: string, factor: number)
     ).toString(16).padStart(6, "0");
     return `#${result}`;
 };
+
+export const sendVerification = async (phone: string) => {
+    try {
+        const response = await fetch(`https://verify.twilio.com/v2/Services/VA48473a827b30a0eab12db376bba0bb13/Verifications/To=${phone}/Channel=sms`, {
+            method: "POST",
+        });
+
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.log(error);
+        return undefined;
+    }
+}
+
+export const checkVerification = async (phone: string, code: string) => {
+    try {
+        const response = await fetch(`https://verify.twilio.com/v2/Services/VA48473a827b30a0eab12db376bba0bb13/VerificationCheck/To=${phone}/Code=${code}`, {
+            method: "POST",
+        });
+
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.log(error);
+        return undefined;
+    }
+}

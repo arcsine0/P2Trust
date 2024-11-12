@@ -1,10 +1,12 @@
-import { FC, forwardRef, ForwardRefRenderFunction } from "react";
+import { useState, useEffect, forwardRef, ForwardRefRenderFunction } from "react";
 import { ViewStyle } from "react-native";
 
-import { Colors, View, Text, Card, Button } from "react-native-ui-lib";
+import { Colors, View, Text, Card, Button, Hint, TouchableOpacity } from "react-native-ui-lib";
 import { Float } from "react-native/Libraries/Types/CodegenTypes";
 
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { WalletData } from "@/lib/helpers/types";
+
+import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 
 interface TransactionEventProps {
     type: string;
@@ -24,6 +26,7 @@ interface PaymentEventProps {
     sender: string;
     recipient: string | undefined;
     amount: Float | undefined;
+    wallet: WalletData | undefined;
     currency: string | undefined;
     platform: string | undefined;
     proof?: string | undefined;
@@ -57,10 +60,13 @@ const TransactionEventTemp: ForwardRefRenderFunction<typeof View, TransactionEve
             title = "Transaction Cancelled";
             break;
     }
-    
+
     return (
         <Card padding-page ref={ref}>
-            <View marginT-5 padding-8 bg-grey70 br30>
+            <View 
+                style={{ backgroundColor: Colors.gray100 }}
+                className="flex flex-col w-full p-2 space-y-1 rounded-lg"
+            >
                 <Text body className="font-bold">{title}</Text>
                 <Text bodySmall gray400>{created_at}</Text>
                 <Text bodySmall>Initiated by: <Text className="font-bold">{sender}</Text></Text>
@@ -72,7 +78,10 @@ const TransactionEventTemp: ForwardRefRenderFunction<typeof View, TransactionEve
 const UserEventTemp: ForwardRefRenderFunction<typeof View, UserEventProps> = ({ type, created_at, sender }, ref) => {
     return (
         <Card padding-page ref={ref}>
-            <View marginT-5 padding-8 bg-grey70 br30>
+            <View 
+                style={{ backgroundColor: Colors.gray100 }}
+                className="flex flex-col w-full p-2 space-y-1 rounded-lg"
+            >
                 <Text body className="font-bold">
                     {type === "user_joined" ? "User Joined the Transaction" : "User Left the Transaction"}
                 </Text>
@@ -90,7 +99,10 @@ const UserEventTemp: ForwardRefRenderFunction<typeof View, UserEventProps> = ({ 
     )
 }
 
-const PaymentEventTemp: ForwardRefRenderFunction<typeof View, PaymentEventProps> = ({ type, created_at, sender, recipient, amount, currency, platform, proof, onViewImage }, ref) => {
+const PaymentEventTemp: ForwardRefRenderFunction<typeof View, PaymentEventProps> = ({ type, created_at, sender, wallet, amount, currency, platform, proof, onViewImage }, ref) => {
+    const [warnings, setWarnings] = useState<string[]>([]);
+    const [showWarning, setShowWarning] = useState<boolean>(false);
+
     let currencySymbol;
 
     switch (currency) {
@@ -100,16 +112,83 @@ const PaymentEventTemp: ForwardRefRenderFunction<typeof View, PaymentEventProps>
         case "EUR": currencySymbol = "€"; break;
     }
 
+    useEffect(() => {
+        if (wallet && wallet.current_owners && wallet.previous_owners) {
+            let tempWarnings: string[] = [];
+            if (wallet.current_owners.length > 1) { tempWarnings.push("Wallet has more than one concurrent owners"); }
+            if (wallet.previous_owners.length > 1) { tempWarnings.push("Wallet has more than one past owners"); }
+
+            setWarnings(tempWarnings);
+        }
+    }, [])
+
     return (
-        <Card padding-page ref={ref}>
-            <View marginT-5 padding-8 bg-grey70 br30>
+        <Card padding-page ref={ref} className="w-full">
+            <View 
+                style={{ backgroundColor: Colors.gray100 }}
+                className="flex flex-col w-full p-2 space-y-1 rounded-lg"
+            >
                 <Text body className="font-bold">
                     {type === "payment_requested" ? "Payment Request Sent" : "Payment Sent"}
                 </Text>
                 <Text bodySmall gray400>{created_at}</Text>
                 <Text bodySmall>Sender: <Text className="font-bold">{sender}</Text></Text>
                 <Text bodySmall>Amount: <Text className="font-bold">{currencySymbol}{amount}</Text></Text>
-                <Text bodySmall>Platform: <Text className="font-bold">{platform}</Text></Text>
+                <Card
+                    style={{ backgroundColor: Colors.bgDefault }}
+                    className="flex flex-col w-full p-2 space-y-2"
+                >
+                    <View className="flex flex-row w-full space-x-1 items-center justify-between">
+                        <View className="flex flex-col">
+                            <Text bodySmall className="font-bold">Using Wallet</Text>
+                            <Text bodySmall>Wallet ID: <Text className="font-bold">{wallet?.id || "123"}</Text></Text>
+                            <Text bodySmall>Platform: <Text className="font-bold">{wallet?.platform || "GCash"}</Text></Text>
+                        </View>
+                        {wallet && wallet.current_owners && wallet.previous_owners && (wallet.current_owners.length > 1 || wallet.previous_owners.length > 1) && (
+                            <View className="flex items-center justify-center">
+                                <Hint
+                                    visible={showWarning}
+                                    message={
+                                        <View className="flex flex-col items-start justify-center">
+                                            {warnings.map((warning, i) => (
+                                                <Text
+                                                    key={i}
+                                                    caption
+                                                    bgDefault
+                                                >
+                                                    - {warning}
+                                                </Text>
+                                            ))}
+                                        </View>
+                                    }
+                                    color={Colors.gray700}
+                                    onBackgroundPress={() => setShowWarning(false)}
+                                >
+                                    <TouchableOpacity
+                                        className="w-full"
+                                        onPress={() => setShowWarning(!showWarning)}
+                                    >
+                                        <Ionicons
+                                            name="warning-outline"
+                                            size={20}
+                                            color={Colors.warning400}
+                                        />
+                                    </TouchableOpacity>
+                                </Hint>
+                            </View>
+                        )}
+                    </View>
+                    <Button
+                        className="flex-1 rounded-lg"
+                        backgroundColor={Colors.gray900}
+                        onPress={() => {}}
+                    >
+                        <View className="flex flex-row space-x-2 items-center">
+                            <MaterialCommunityIcons name="chevron-right" size={20} color={Colors.bgDefault} />
+                            <Text buttonSmall bgDefault>See full details</Text>
+                        </View>
+                    </Button>
+                </Card>
                 {proof && (
                     <View className="flex flex-col space-y-2">
                         <Text bodySmall>Proof of Payment: <Text className="font-bold">{platform}</Text></Text>
@@ -151,7 +230,10 @@ const PaymentStatusEventTemp: ForwardRefRenderFunction<typeof View, PaymentStatu
 
     return (
         <Card padding-page ref={ref}>
-            <View marginT-5 padding-8 bg-grey70 br30>
+            <View 
+                style={{ backgroundColor: Colors.gray100 }}
+                className="flex flex-col w-full p-2 space-y-1 rounded-lg"
+            >
                 <Text body className="font-bold">{title}</Text>
                 <Text bodySmall gray400>{created_at}</Text>
                 <Text bodySmall>{desc}<Text className="font-bold">{sender}</Text></Text>
@@ -174,10 +256,13 @@ const ProductStatusEventTemp: ForwardRefRenderFunction<typeof View, ProductStatu
             desc = "Receiver: ";
             break;
     }
-    
+
     return (
         <Card padding-page ref={ref}>
-            <View marginT-5 padding-8 bg-grey70 br30>
+            <View 
+                style={{ backgroundColor: Colors.gray100 }}
+                className="flex flex-col w-full p-2 space-y-1 rounded-lg"
+            >
                 <Text body className="font-bold">{title}</Text>
                 <Text bodySmall gray400>{created_at}</Text>
                 <Text bodySmall>{desc}<Text className="font-bold">{sender}</Text></Text>

@@ -61,17 +61,19 @@ export default function TransactionRoomScreen() {
 	const [requestDetails, setRequestDetails] = useState<RequestDetails>({
 		amount: 50,
 		currency: "PHP",
-		platform: "GCash",
-		accountNumber: "",
+		wallet_id: "",
+		platform: "",
 		accountName: "",
+		accountNumber: "",
 	});
 
 	const [paymentDetails, setPaymentDetails] = useState<RequestDetails>({
 		amount: 0 as Float,
 		currency: undefined as string | undefined,
-		platform: undefined as string | undefined,
-		accountNumber: undefined as string | undefined,
-		accountName: undefined as string | undefined,
+		wallet_id: undefined as string | undefined,
+		platform: undefined,
+		accountName: undefined,
+		accountNumber: undefined,
 	});
 
 	const [receipt, setReceipt] = useState<ImagePicker.ImagePickerAsset | undefined>(undefined);
@@ -87,7 +89,7 @@ export default function TransactionRoomScreen() {
 
 	const [showFinishDialog, setShowFinishDialog] = useState<boolean>(false);
 	const [showFinishConfirmationDialog, setShowFinishConfirmationDialog] = useState<boolean>(false);
-	
+
 	const [isPaymentRequestSending, setIsPaymentRequestSending] = useState<boolean>(false);
 	const [isPaymentRequestCancelling, setIsPaymentRequestCancelling] = useState<boolean>(false);
 	const [isPaymentSending, setIsPaymentSending] = useState<boolean>(false);
@@ -139,58 +141,63 @@ export default function TransactionRoomScreen() {
 		setIsPaymentRequestSending(true);
 
 		try {
-			const { data, error } = await supabase
-				.from("payments")
-				.insert({
-					sender_id: userData?.id,
-					receiver_id: merchantData?.id,
-					amount: requestDetails.amount,
-					currency: requestDetails.currency,
-					platform: requestDetails.platform,
-					transaction_id: roomID,
-				})
-				.select();
+			if (userData && userData.wallets) {
+				const walletDetails = userData.wallets.filter(wallet => wallet.id === requestDetails.wallet_id);
 
-			if (!error) {
-				interactionsChannel.send({
-					type: "broadcast",
-					event: "payment",
-					payload: {
-						type: "payment_requested",
-						data: {
-							id: data[0].id,
-							sender_id: userData?.id,
-							from: userData?.firstname || "N/A",
-							amount: requestDetails.amount,
-							currency: requestDetails.currency,
-							platform: requestDetails.platform,
-							merchantName: requestDetails.accountName,
-							merchantNumber: requestDetails.accountNumber,
+				const { data, error } = await supabase
+					.from("payments")
+					.insert({
+						sender_id: userData?.id,
+						receiver_id: merchantData?.id,
+						amount: requestDetails.amount,
+						currency: requestDetails.currency,
+						platform: requestDetails.platform,
+						transaction_id: roomID,
+					})
+					.select();
+
+				if (!error) {
+					interactionsChannel.send({
+						type: "broadcast",
+						event: "payment",
+						payload: {
+							type: "payment_requested",
+							data: {
+								id: data[0].id,
+								sender_id: userData?.id,
+								from: userData?.firstname || "N/A",
+								amount: requestDetails.amount,
+								currency: requestDetails.currency,
+								wallet_id: requestDetails.wallet_id,
+								platform: requestDetails.platform,
+								merchantName: requestDetails.accountName,
+								merchantNumber: requestDetails.accountNumber,
+							}
 						}
-					}
-				}).then(() => {
-					setActivePaymentDetails({
-						id: data[0].id,
-						created_at: data[0].created_at,
-						amount: data[0].amount,
-						currency: data[0].currency,
-						platform: data[0].platform,
-					});
-					setIsPaymentRequestSending(false);
+					}).then(() => {
+						setActivePaymentDetails({
+							id: data[0].id,
+							created_at: data[0].created_at,
+							amount: data[0].amount,
+							currency: data[0].currency,
+							platform: data[0].platform,
+						});
+						setIsPaymentRequestSending(false);
 
-					// commented out for testing
-					setRequestDetails({
-						amount: 0,
-						currency: "PHP",
-						platform: "GCash",
-						accountNumber: "",
-						accountName: "",
-					});
+						// commented out for testing
+						setRequestDetails({
+							amount: 0,
+							currency: "PHP",
+							platform: "GCash",
+							accountNumber: "",
+							accountName: "",
+						});
 
-					setShowRequestModal(false);
-				});
-			} else {
-				console.log(error);
+						setShowRequestModal(false);
+					});
+				} else {
+					console.log(error);
+				}
 			}
 		} catch (error) {
 			console.log(error);
@@ -286,6 +293,7 @@ export default function TransactionRoomScreen() {
 											sender_id: userData?.id,
 											from: userData?.firstname,
 											amount: currentPayment?.data.amount,
+											wallet_id: currentPayment?.data.wallet_id,
 											currency: currentPayment?.data.currency,
 											platform: currentPayment?.data.platform,
 											receiptURL: receiptURL.publicUrl,
@@ -479,6 +487,14 @@ export default function TransactionRoomScreen() {
 				}
 			}).filter((value, index, self) => self.indexOf(value) === index) as string[];
 
+			const wallets_used = interactions?.filter(inter => inter.type === "payment_requested" && inter.data.status === "completed").map((inter) => {
+				if (inter.type === "payment_requested") {
+					return inter.data.wallet_id;
+				} else {
+					return null;
+				}
+			}).filter((value, index, self) => self.indexOf(value) === index) as string[];
+
 			if (totalTradedAmount !== undefined) {
 				const { error } = await supabase
 					.from("transactions")
@@ -486,6 +502,7 @@ export default function TransactionRoomScreen() {
 						total_amount: totalTradedAmount,
 						status: totalTradedAmount > 0 ? "completed" : "cancelled",
 						platforms: platforms,
+						wallets_used: wallets_used,
 						timeline: interactionsJSON,
 					})
 					.eq("id", roomID);
@@ -641,6 +658,7 @@ export default function TransactionRoomScreen() {
 											id: payloadData.data.id,
 											amount: payloadData.data.amount,
 											currency: payloadData.data.currency,
+											wallet_id: payloadData.data.wallet_id,
 											platform: payloadData.data.platform,
 											accountName: payloadData.data.merchantName,
 											accountNumber: payloadData.data.merchantNumber,
@@ -665,6 +683,7 @@ export default function TransactionRoomScreen() {
 											id: payloadData.data.id,
 											amount: payloadData.data.amount,
 											currency: payloadData.data.currency,
+											wallet_id: payloadData.data.wallet_id,
 											platform: payloadData.data.platform,
 											receiptURL: payloadData.data.receiptURL,
 											receiptPath: payloadData.data.receiptPath,
@@ -1166,7 +1185,7 @@ export default function TransactionRoomScreen() {
 						}}
 						options={[
 							{
-								label: activePaymentDetails?.id ? "Cancel Payment Request" : "Send Payment Request", 
+								label: activePaymentDetails?.id ? "Cancel Payment Request" : "Send Payment Request",
 								onPress: () => {
 									if (activePaymentDetails) {
 										cancelPaymentRequest(activePaymentDetails.id)

@@ -11,7 +11,7 @@ import { setStringAsync } from "expo-clipboard";
 
 import { supabase } from "@/supabase/config";
 
-import { Transaction, TimelineEvent } from "@/lib/helpers/types";
+import { Transaction, TimelineEvent, WalletData } from "@/lib/helpers/types";
 import { CrucialSteps } from "@/lib/helpers/collections";
 import { getInitials, formatISODate, formatTimeDifference } from "@/lib/helpers/functions";
 import { useUserData } from "@/lib/context/UserContext";
@@ -30,6 +30,7 @@ export default function TransactionDetailsScreen() {
 
     const [transactionData, setTransactionData] = useState<Transaction | undefined>(undefined)
     const [transactionTimeline, setTransactionTimeline] = useState<TimelineEvent[] | undefined>(undefined);
+    const [walletsUsed, setWalletsUsed] = useState<WalletData[] | undefined>(undefined);
 
     const [missingSteps, setMissingSteps] = useState<{
         event: string,
@@ -128,90 +129,100 @@ export default function TransactionDetailsScreen() {
                     .eq("id", transactionID);
 
                 if (!error && data) {
-                    const timeline: TimelineEvent[] = JSON.parse(data[0].timeline);
+                    const { data: walletData, error: walletError } = await supabase
+                        .from("wallets")
+                        .select("*");
 
-                    const paymentSentCount = timeline.filter(event => event.type === "payment_sent").length;
-                    const paymentConfirmationCount = timeline.filter(event =>
-                        event.type === "payment_confirmed" || event.type === "payment_denied"
-                    ).length;
+                    if (!walletError && walletData) {
+                        setWalletsUsed(walletData.filter(wallet => data[0].wallets_used.includes(wallet.id)));
 
-                    const missingSteps = CrucialSteps.filter(crucialEvent => {
-                        if (crucialEvent.label === "Confirmation of Payment") {
-                            return paymentConfirmationCount < paymentSentCount;
-                        } else {
-                            return !timeline.some(event => event.type === crucialEvent.event);
+                        const timeline: TimelineEvent[] = JSON.parse(data[0].timeline);
+
+                        const paymentSentCount = timeline.filter(event => event.type === "payment_sent").length;
+                        const paymentConfirmationCount = timeline.filter(event =>
+                            event.type === "payment_confirmed" || event.type === "payment_denied"
+                        ).length;
+
+                        const missingSteps = CrucialSteps.filter(crucialEvent => {
+                            if (crucialEvent.label === "Confirmation of Payment") {
+                                return paymentConfirmationCount < paymentSentCount;
+                            } else {
+                                return !timeline.some(event => event.type === crucialEvent.event);
+                            }
+                        }).map(event => ({ event: event.event, label: event.label }));
+
+                        setMissingSteps(missingSteps);
+
+                        const { data: userRatings, error: userRatingsError } = await supabase
+                            .from("ratings")
+                            .select("rating")
+                            .eq("sender_id", data[0].clientID);
+
+                        const { data: merchantRatings, error: merchantRatingsError } = await supabase
+                            .from("ratings")
+                            .select("rating")
+                            .eq("target_id", data[0].merchantID);
+
+                        if (!userRatingsError && userRatings) {
+                            setUserRating({
+                                positive: userRatings.filter(rating => rating.rating === "UP").length,
+                                negative: userRatings.filter(rating => rating.rating === "DOWN").length,
+                            })
                         }
-                    }).map(event => ({ event: event.event, label: event.label }));
 
-                    setMissingSteps(missingSteps);
+                        if (!merchantRatingsError && merchantRatings) {
+                            setMerchantRating({
+                                positive: merchantRatings.filter(rating => rating.rating === "UP").length,
+                                negative: merchantRatings.filter(rating => rating.rating === "DOWN").length,
+                            })
+                        }
 
-                    const { data: userRatings, error: userRatingsError } = await supabase
-                        .from("ratings")
-                        .select("rating")
-                        .eq("sender_id", data[0].clientID);
+                        setTransactionData(data[0]);
+                        setTransactionTimeline(timeline);
+                        setTransactionLength({
+                            startTime: Date.parse(timeline[0].timestamp),
+                            endTime: Date.parse(timeline[timeline.length - 1].timestamp),
+                        });
 
-                    const { data: merchantRatings, error: merchantRatingsError } = await supabase
-                        .from("ratings")
-                        .select("rating")
-                        .eq("target_id", data[0].merchantID);
+                        if (data[0].flagged_by && data[0].flagged_by.includes(userData.id)) {
+                            setIsFlagged(true);
+                        } else {
+                            setIsFlagged(false)
+                        }
 
-                    if (!userRatingsError && userRatings) {
-                        setUserRating({
-                            positive: userRatings.filter(rating => rating.rating === "UP").length,
-                            negative: userRatings.filter(rating => rating.rating === "DOWN").length,
-                        })
-                    }
-
-                    if (!merchantRatingsError && merchantRatings) {
-                        setMerchantRating({
-                            positive: merchantRatings.filter(rating => rating.rating === "UP").length,
-                            negative: merchantRatings.filter(rating => rating.rating === "DOWN").length,
-                        })
-                    }
-
-                    setTransactionData(data[0]);
-                    setTransactionTimeline(timeline);
-                    setTransactionLength({
-                        startTime: Date.parse(timeline[0].timestamp),
-                        endTime: Date.parse(timeline[timeline.length - 1].timestamp),
-                    });
-
-                    if (data[0].flagged_by && data[0].flagged_by.includes(userData.id)) {
-                        setIsFlagged(true);
+                        navigation.setOptions({
+                            header: () => (
+                                <View
+                                    className="flex flex-row w-full px-4 items-center justify-between"
+                                    style={styles.headerStyle}
+                                >
+                                    <View className="flex flex-col w-1/2 justify-center">
+                                        <Text bodyLarge className="font-bold">Transaction Details</Text>
+                                        <TouchableOpacity onPress={async () => await setStringAsync(data[0].id)}>
+                                            <View className="flex flex-row space-x-1 items-center">
+                                                <Text bodySmall>ID: </Text>
+                                                <Marquee
+                                                    label={`${data[0].id}`}
+                                                    labelStyle={{ color: Colors.gray400 }}
+                                                    direction={MarqueeDirections.LEFT}
+                                                    duration={30000}
+                                                />
+                                            </View>
+                                        </TouchableOpacity>
+                                        <Text bodySmall>{formatISODate(data[0].created_at.toLocaleString())}</Text>
+                                    </View>
+                                    <View className="flex flex-row">
+                                        <IconButton
+                                            icon={isFlagged ? "flag" : "flag-outline"}
+                                            onPress={() => setShowFlagModal(true)}
+                                        />
+                                    </View>
+                                </View>
+                            ),
+                        });
                     } else {
-                        setIsFlagged(false)
+                        console.log(walletError);
                     }
-
-                    navigation.setOptions({
-                        header: () => (
-                            <View
-                                className="flex flex-row w-full px-4 items-center justify-between"
-                                style={styles.headerStyle}
-                            >
-                                <View className="flex flex-col w-1/2 justify-center">
-                                    <Text bodyLarge className="font-bold">Transaction Details</Text>
-                                    <TouchableOpacity onPress={async () => await setStringAsync(data[0].id)}>
-                                        <View className="flex flex-row space-x-1 items-center">
-                                            <Text bodySmall>ID: </Text>
-                                            <Marquee
-                                                label={`${data[0].id}`}
-                                                labelStyle={{ color: Colors.gray400 }}
-                                                direction={MarqueeDirections.LEFT}
-                                                duration={30000}
-                                            />
-                                        </View>
-                                    </TouchableOpacity>
-                                    <Text bodySmall>{formatISODate(data[0].created_at.toLocaleString())}</Text>
-                                </View>
-                                <View className="flex flex-row">
-                                    <IconButton
-                                        icon={isFlagged ? "flag" : "flag-outline"}
-                                        onPress={() => setShowFlagModal(true)}
-                                    />
-                                </View>
-                            </View>
-                        ),
-                    });
                 } else {
                     console.log(error);
                 }
@@ -281,6 +292,7 @@ export default function TransactionDetailsScreen() {
                             sender={event.from}
                             recipient={""}
                             amount={event.data.amount}
+                            wallet={walletsUsed?.find(wallet => wallet.id === event.data.wallet_id)}
                             currency={event.data.currency}
                             platform={event.data.platform}
                         />
@@ -295,6 +307,7 @@ export default function TransactionDetailsScreen() {
                             sender={event.from}
                             recipient={event.recipient}
                             amount={event.data.amount}
+                            wallet={walletsUsed?.find(wallet => wallet.id === event.data.wallet_id)}
                             currency={event.data.currency}
                             platform={event.data.platform}
                             proof={event.data.receiptURL}
@@ -344,7 +357,7 @@ export default function TransactionDetailsScreen() {
                             >
                                 <Text bodyLarge className="font-bold">Merchant</Text>
                                 <View className="flex flex-row w-full items-center justify-between">
-                                    <TouchableRipple 
+                                    <TouchableRipple
                                         style={{ flex: 1 }}
                                         onPress={() => router.push(`/(transactionRoom)/merchant/${transactionData.merchantID}`)}
                                     >
@@ -378,7 +391,7 @@ export default function TransactionDetailsScreen() {
                                 <Divider className="my-2" />
                                 <Text bodyLarge className="font-bold">Client</Text>
                                 <View className="flex flex-row items-center justify-between">
-                                    <TouchableRipple 
+                                    <TouchableRipple
                                         style={{ flex: 1 }}
                                         onPress={() => router.push(`/(transactionRoom)/merchant/${transactionData.clientID}`)}
                                     >

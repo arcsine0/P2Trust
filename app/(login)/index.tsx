@@ -55,8 +55,25 @@ export default function LoginScreen() {
                     .eq("id", session.user.id);
 
                 if (!error && data && data.length > 0) {
+                    if (data[0].wallets) {
+                        const { data: walletData, error: walletError } = await supabase
+                            .from("wallets")
+                            .select("id, created_at, account_name, account_number, platform")
+
+                        if (!walletError && walletData) { 
+                            const filteredWallets = walletData.filter(wallet => data[0].wallets.includes(wallet.id));
+                            setUserData({
+                                ...data[0],
+                                wallets: filteredWallets,
+                            });
+                        } else {
+                            console.log("Error getting user wallets: ", walletError);
+                        }
+                    } else {
+                        setUserData(data[0]);
+                    }
+
                     setDefaultLoginLoading(false);
-                    setUserData(data[0]);
                     setRequests(null);
                     setQueue(null);
 

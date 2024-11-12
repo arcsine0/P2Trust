@@ -8,6 +8,8 @@ import { Colors, View, Text, Button, Picker, PickerModes } from "react-native-ui
 import { RequestDetails } from "@/lib/helpers/types";
 import { PaymentPlatforms, Currencies } from "@/lib/helpers/collections";
 
+import { useUserData } from "@/lib/context/UserContext";
+
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 interface RequestPaymentRouteProps {
@@ -20,10 +22,40 @@ interface RequestPaymentRouteProps {
 }
 
 const RequestPaymentRoute: FC<RequestPaymentRouteProps> = ({ dropdownStyle, disabled, requestDetails, setRequestDetails, sendPaymentRequest, cancel }) => {
-    return (
+    const { userData } = useUserData();
+
+    if (userData) return (
         <View className="flex flex-col w-full p-4 items-center justify-start">
             <View className="flex flex-col w-full space-y-4">
                 <View className="flex flex-col w-full space-y-2">
+                    <Text bodyLarge className="font-bold">Using Wallet</Text>
+                    {userData.wallets && userData.wallets.length > 0 && (
+                        <View style={{ backgroundColor: Colors.gray100, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 13, elevation: 2 }}>
+                            <Picker
+                                value={requestDetails.wallet_id}
+                                mode={PickerModes.SINGLE}
+                                useDialog={true}
+                                customPickerProps={{ migrateDialog: true, }}
+                                trailingAccessory={<MaterialCommunityIcons name="chevron-down" size={20} color={Colors.gray900} />}
+                                onChange={value => {
+                                    if (userData && userData.wallets) {
+                                        const selectedWallet = userData.wallets.filter(wallet => wallet.id === value?.toString())[0];
+                                        setRequestDetails({
+                                            ...requestDetails,
+                                            wallet_id: value?.toString(),
+                                            platform: selectedWallet.platform,
+                                            accountName: selectedWallet.account_name,
+                                            accountNumber: selectedWallet.account_number,
+                                        })
+                                    }
+                                }}
+                            >
+                                {userData.wallets.map((wallet) => (
+                                    <Picker.Item key={wallet.id} label={`${wallet.platform} - ${wallet.account_number}`} value={wallet.id} />
+                                ))}
+                            </Picker>
+                        </View>
+                    )}
                     <Text bodyLarge className="font-bold">Transaction Details</Text>
                     <View className="flex flex-row w-full space-x-2">
                         <View style={{ backgroundColor: Colors.gray100, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 13, elevation: 2 }}>
@@ -50,40 +82,6 @@ const RequestPaymentRoute: FC<RequestPaymentRouteProps> = ({ dropdownStyle, disa
                             keyboardType="numeric"
                         />
                     </View>
-                    <View style={{ backgroundColor: Colors.gray100, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 13, elevation: 2 }}>
-                        <Picker
-                            value={requestDetails.platform}
-                            mode={PickerModes.SINGLE}
-                            useDialog={true}
-                            customPickerProps={{ migrateDialog: true, }}
-                            trailingAccessory={<MaterialCommunityIcons name="chevron-down" size={20} color={Colors.gray900} />}
-                            onChange={value => setRequestDetails({ ...requestDetails, platform: value?.toString() })}
-                        >
-                            {PaymentPlatforms.map((pl, i) => (
-                                <Picker.Item key={i} label={pl.label} value={pl.value} />
-                            ))}
-                        </Picker>
-                    </View>
-
-                </View>
-                <View className="flex flex-col w-full space-y-2">
-                    <Text bodyLarge className="font-bold">Your Account Details</Text>
-                    <TextInput
-                        className="rounded-lg overflow-scroll"
-                        style={{ backgroundColor: Colors.gray100 }}
-                        label="Name"
-                        value={requestDetails.accountName}
-                        onChangeText={text => setRequestDetails({ ...requestDetails, accountName: text })}
-                        keyboardType="default"
-                    />
-                    <TextInput
-                        className="rounded-lg overflow-scroll"
-                        style={{ backgroundColor: Colors.gray100 }}
-                        label="Account Number"
-                        value={requestDetails.accountNumber}
-                        onChangeText={text => setRequestDetails({ ...requestDetails, accountNumber: text })}
-                        keyboardType="default"
-                    />
                 </View>
                 <Divider />
                 <View className="flex flex-col w-full space-y-2">

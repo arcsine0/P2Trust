@@ -39,7 +39,6 @@ export default function UserVerifyScreen() {
     const [showVerifyDialog, setShowVerifyDialog] = useState<boolean>(false);
 
     const { userData, setUserData } = useUserData();
-
     const navigation = useNavigation();
 
     const goToPrevStep = () => {

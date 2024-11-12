@@ -101,6 +101,15 @@ export default function TransactionLayout() {
                         ),
                     }}
                 />
+                <Stack.Screen
+                    name="wallet"
+                    // component={TransactionVerifyScreen}
+                    options={{
+                        headerTitle: "Add Wallet to Account",
+                        headerTitleAlign: "center",
+                        headerShadowVisible: false,
+                    }}
+                />
             </Stack>
         </MerchantProvider>
     );

@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, Platform } from "react-native";
 import { Avatar, IconButton, ActivityIndicator } from "react-native-paper";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Colors, View, Text, Card, Button, ActionSheet, Dialog, Toast } from "react-native-ui-lib";
+import { Colors, View, Text, Card, Button, TouchableOpacity, Dialog, Toast } from "react-native-ui-lib";
 
 import { router, useNavigation } from "expo-router";
 import { useCameraPermissions } from "expo-camera";
@@ -21,8 +21,8 @@ import { scanFromURLAsync } from "expo-camera";
 import { Request } from "@/lib/helpers/types";
 import { getInitials } from "@/lib/helpers/functions";
 
-import { Tutorial } from "@/components/extra";
 import { UserCard } from "@/components/userCards/UserCard";
+import { WalletCard } from "@/components/userCards/WalletCard";
 
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
@@ -48,33 +48,25 @@ const messages = [
 
 export default function TransactionHomeScreen() {
     const [showHint, setShowHint] = useState(false);
+    const [showWalletsWarning, setShowWalletsWarning] = useState(false);
 
     const [QRError, setQRError] = useState<string>("");
 
     const { userData, requests, setRequests, queue, setQueue } = useUserData();
     const { setMerchantData, setRole } = useMerchantData();
-    
-    const [ transactionRole, setTransactionRole ] = useState<string | undefined>("");
 
     const [joinRoomLoading, setJoinRoomLoading] = useState<boolean>(false);
 
-    const [showDotMenu, setShowDotMenu] = useState<boolean>(false);
     const [showVerifyModal, setShowVerifyModal] = useState<boolean>(true);
 
-    const [showFTE, setShowFTE] = useState(false);
     const tutorialRef = useRef<any>(null);
-    const inviteRequestsButtonRef = useRef<any>(null);
-    const qrCodeViewRef = useRef<any>(null);
-    const scanQRCodeButtonRef = useRef<any>(null);
-    const uploadQRCodeButtonRef = useRef<any>(null);
-    const startTransactionButtonRef = useRef<any>(null);
-    const helpButtonRef = useRef<any>(null);
 
     const navigation = useNavigation();
     const [permission, requestPermission] = useCameraPermissions();
     const insets = useSafeAreaInsets();
 
     const requestsModalRef = useRef<BottomSheetModal>(null);
+    const walletsModalRef = useRef<BottomSheetModal>(null);
 
     const requestsChannel = supabase.channel(`requests_channel_${userData?.id}`);
 
@@ -254,10 +246,6 @@ export default function TransactionHomeScreen() {
             })
             .subscribe();
 
-        setTimeout(() => {
-            setShowFTE(true);
-        }, 1000);
-
         return () => {
             setShowVerifyModal(false);
         };
@@ -287,13 +275,19 @@ export default function TransactionHomeScreen() {
 
                         <IconButton
                             ref={r => tutorialRef.current?.addTarget(r, "5")}
-                            icon="dots-vertical"
-                            onPress={() => setShowDotMenu(true)}
+                            icon="wallet-outline"
+                            onPress={() => {
+                                walletsModalRef.current?.present();
+                            }}
                         />
                     </View>
                 </View>
             ),
         });
+
+        if (!userData?.wallets) {
+            setShowWalletsWarning(true);
+        }
     }, []);
 
     const styles = StyleSheet.create({
@@ -365,6 +359,7 @@ export default function TransactionHomeScreen() {
                                 style={{ backgroundColor: Colors.gray50 }}
                                 outline={true}
                                 outlineColor={Colors.gray900}
+                                disabled={!userData?.wallets}
                                 onPress={() => scanQR()}
                             >
                                 <View className="flex flex-row space-x-2 items-center">
@@ -378,6 +373,7 @@ export default function TransactionHomeScreen() {
                                 style={{ backgroundColor: Colors.gray50 }}
                                 outline={true}
                                 outlineColor={Colors.gray900}
+                                disabled={!userData?.wallets}
                                 onPress={() => pickImage()}
                             >
                                 <View className="flex flex-row space-x-2 items-center">
@@ -389,7 +385,7 @@ export default function TransactionHomeScreen() {
                         <Button
                             ref={r => tutorialRef.current?.addTarget(r, "4")}
                             className="rounded-lg"
-                            disabled={!joinRoomLoading && queue && queue.length > 0 ? false : true}
+                            disabled={!joinRoomLoading && queue && queue.length > 0 ? false : true || !userData?.wallets}
                             onPress={() => createRoom()}
                         >
                             {!joinRoomLoading ?
@@ -462,6 +458,55 @@ export default function TransactionHomeScreen() {
                             </View>
                         </BottomSheetView>
                     </BottomSheetModal>
+                    <BottomSheetModal
+                        ref={walletsModalRef}
+                        index={0}
+                        snapPoints={["45%"]}
+                        enablePanDownToClose={true}
+                    >
+                        <BottomSheetView>
+                            <View className="flex flex-col w-full px-4 py-2 space-y-2 items-start justify-start">
+                                <View className="flex flex-row w-full items-center justify-between">
+                                    <Text h3>Active Wallets</Text>
+                                    <View className="flex flex-row space-x-1 items-center">
+                                        <IconButton
+                                            icon="wallet-plus-outline"
+                                            onPress={() => {
+                                                walletsModalRef.current?.dismiss();
+                                                router.navigate("/(transactionRoom)/wallet");
+                                            }}
+                                        />
+
+                                        <IconButton
+                                            icon="trash-can-outline"
+                                            onPress={() => {}}
+                                        />
+                                    </View>
+                                </View>
+                                {userData.wallets ?
+                                    <ScrollView>
+                                        <View className="flex flex-col w-full space-y-2 ">
+                                            {userData.wallets.map((wallet, i) => (
+                                                <WalletCard
+                                                    key={wallet.id}
+                                                    walletData={wallet}
+                                                    onPress={() => { }}
+                                                />
+                                            ))}
+                                        </View>
+                                    </ScrollView>
+                                    :
+                                    <View
+                                        style={{ backgroundColor: Colors.gray200 }}
+                                        className="flex flex-col w-full px-10 py-20 space-y-1 items-center justify-center rounded-lg"
+                                    >
+                                        <Text bodyLarge black className="font-semibold">No Active Wallets</Text>
+                                        <Text bodySmall black className="text-center">Add wallets using the add button above to bind wallets to your account.</Text>
+                                    </View>
+                                }
+                            </View>
+                        </BottomSheetView>
+                    </BottomSheetModal>
                 </View>
                 : null}
             <Dialog
@@ -502,38 +547,7 @@ export default function TransactionHomeScreen() {
                     </View>
                 </View>
             </Dialog>
-            <ActionSheet
-                visible={showDotMenu}
-                onDismiss={() => setShowDotMenu(false)}
-                options={[
-                    { label: "Show Tutorial", onPress: () => setShowFTE(true) },
-                ]}
-                renderAction={(option, index, onOptionPress) => (
-                    <View
-                        key={index}
-                        className="w-full"
-                    >
-                        <Button
-                            className="w-full p-4"
-                            backgroundColor={Colors.bgDefault}
-                            fullWidth={true}
-                            disabledBackgroundColor={Colors.gray100}
-                            onPress={() => onOptionPress(index)}
-                        >
-                            <View className="flex flex-row w-full space-x-2 items-center">
-                                <MaterialCommunityIcons name="help-circle-outline" size={20} color={Colors.primary700} />
-                                <Text
-                                    body
-                                    className="font-bold"
-                                    color={option.disabled ? Colors.gray200 : Colors.gray900}
-                                >
-                                    {option.label}
-                                </Text>
-                            </View>
-                        </Button>
-                    </View>
-                )}
-            />
+
             <Toast
                 visible={showHint}
                 message={"A user has sent you an invite request."}
@@ -547,13 +561,18 @@ export default function TransactionHomeScreen() {
                 }}
                 onDismiss={() => setShowHint(false)}
             />
-            <Tutorial
-                ref={tutorialRef}
-                titles={titles}
-                messages={messages}
-                showFTE={showFTE}
-                setShowFTE={setShowFTE}
-                onClose={() => setShowFTE(false)}
+            <Toast
+                visible={showWalletsWarning}
+                backgroundColor={Colors.error600}
+                message={"No primary wallet set yet"}
+                position={'top'}
+                action={{
+                    label: "Set",
+                    onPress: () => {
+                        walletsModalRef.current?.present();
+                    },
+                }}
+                onDismiss={() => setShowHint(false)}
             />
         </SafeAreaView>
     );
