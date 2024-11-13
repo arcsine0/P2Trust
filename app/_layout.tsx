@@ -50,6 +50,22 @@ export default function RootLayout() {
 								),
 							}}
 						/>
+						<Stack.Screen
+							name="wallet/[walletID]"
+							options={{
+								headerTitle: "",
+								headerLeft: () => (
+									<View 
+										className="flex flex-col mt-4 mb-2 items-start justify-center"
+										style={{ marginRight: Platform.OS === "ios" ? 200 : 0 }}
+									>
+										<Text bodyLarge className="font-bold">Wallet Details</Text>
+										<Text bodySmall>ID: </Text>
+										<Text bodySmall>{Date.now()}</Text>
+									</View>
+								),
+							}}
+						/>
 						<Stack.Screen name="+not-found" />
 					</Stack>
 				</UserProvider>

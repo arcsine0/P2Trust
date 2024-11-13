@@ -218,7 +218,7 @@ export default function HomeScreen() {
 											:
 											<Card
 												style={{ backgroundColor: Colors.bgDefault }}
-												onPress={() => router.navigate(`/(transactionRoom)/merchant/${searchResults.id}`)}
+												onPress={() => router.push(`/(transactionRoom)/merchant/${searchResults.id}`)}
 												className="flex flex-col p-4 space-y-2"
 												elevation={10}
 											>

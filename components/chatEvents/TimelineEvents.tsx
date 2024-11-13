@@ -4,6 +4,8 @@ import { ViewStyle } from "react-native";
 import { Colors, View, Text, Card, Button, Hint, TouchableOpacity } from "react-native-ui-lib";
 import { Float } from "react-native/Libraries/Types/CodegenTypes";
 
+import { router } from "expo-router";
+
 import { WalletData } from "@/lib/helpers/types";
 
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
@@ -63,7 +65,7 @@ const TransactionEventTemp: ForwardRefRenderFunction<typeof View, TransactionEve
 
     return (
         <Card padding-page ref={ref}>
-            <View 
+            <View
                 style={{ backgroundColor: Colors.gray100 }}
                 className="flex flex-col w-full p-2 space-y-1 rounded-lg"
             >
@@ -78,7 +80,7 @@ const TransactionEventTemp: ForwardRefRenderFunction<typeof View, TransactionEve
 const UserEventTemp: ForwardRefRenderFunction<typeof View, UserEventProps> = ({ type, created_at, sender }, ref) => {
     return (
         <Card padding-page ref={ref}>
-            <View 
+            <View
                 style={{ backgroundColor: Colors.gray100 }}
                 className="flex flex-col w-full p-2 space-y-1 rounded-lg"
             >
@@ -122,9 +124,9 @@ const PaymentEventTemp: ForwardRefRenderFunction<typeof View, PaymentEventProps>
         }
     }, [])
 
-    return (
+    if (wallet) return (
         <Card padding-page ref={ref} className="w-full">
-            <View 
+            <View
                 style={{ backgroundColor: Colors.gray100 }}
                 className="flex flex-col w-full p-2 space-y-1 rounded-lg"
             >
@@ -138,14 +140,14 @@ const PaymentEventTemp: ForwardRefRenderFunction<typeof View, PaymentEventProps>
                     style={{ backgroundColor: Colors.bgDefault }}
                     className="flex flex-col w-full p-2 space-y-2"
                 >
-                    <View className="flex flex-row w-full space-x-1 items-center justify-between">
-                        <View className="flex flex-col">
+                    <View className="flex flex-row w-full space-x-2 items-center justify-between">
+                        <View className="flex flex-1 flex-col">
                             <Text bodySmall className="font-bold">Using Wallet</Text>
                             <Text bodySmall>Wallet ID: <Text className="font-bold">{wallet?.id || "123"}</Text></Text>
                             <Text bodySmall>Platform: <Text className="font-bold">{wallet?.platform || "GCash"}</Text></Text>
                         </View>
-                        {wallet && wallet.current_owners && wallet.previous_owners && (wallet.current_owners.length > 1 || wallet.previous_owners.length > 1) && (
-                            <View className="flex items-center justify-center">
+                        <View className="flex items-center justify-center">
+                            {wallet && wallet.current_owners && wallet.previous_owners && (wallet.current_owners.length > 1 || wallet.previous_owners.length > 1) && (
                                 <Hint
                                     visible={showWarning}
                                     message={
@@ -170,18 +172,18 @@ const PaymentEventTemp: ForwardRefRenderFunction<typeof View, PaymentEventProps>
                                     >
                                         <Ionicons
                                             name="warning-outline"
-                                            size={20}
+                                            size={30}
                                             color={Colors.warning400}
                                         />
                                     </TouchableOpacity>
                                 </Hint>
-                            </View>
-                        )}
+                            )}
+                        </View>
                     </View>
                     <Button
                         className="flex-1 rounded-lg"
                         backgroundColor={Colors.gray900}
-                        onPress={() => {}}
+                        onPress={() => router.push(`/wallet/${wallet.id}`)}
                     >
                         <View className="flex flex-row space-x-2 items-center">
                             <MaterialCommunityIcons name="chevron-right" size={20} color={Colors.bgDefault} />
@@ -230,7 +232,7 @@ const PaymentStatusEventTemp: ForwardRefRenderFunction<typeof View, PaymentStatu
 
     return (
         <Card padding-page ref={ref}>
-            <View 
+            <View
                 style={{ backgroundColor: Colors.gray100 }}
                 className="flex flex-col w-full p-2 space-y-1 rounded-lg"
             >
@@ -259,7 +261,7 @@ const ProductStatusEventTemp: ForwardRefRenderFunction<typeof View, ProductStatu
 
     return (
         <Card padding-page ref={ref}>
-            <View 
+            <View
                 style={{ backgroundColor: Colors.gray100 }}
                 className="flex flex-col w-full p-2 space-y-1 rounded-lg"
             >
