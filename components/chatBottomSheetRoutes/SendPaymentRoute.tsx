@@ -1,12 +1,13 @@
-import { FC, Dispatch, SetStateAction, useEffect } from "react";
+import { FC, Dispatch, SetStateAction, useState } from "react";
 import { Icon, TouchableRipple, ActivityIndicator, Divider } from "react-native-paper";
 
 import { Colors, View, Text, Button, Image } from "react-native-ui-lib";
 
 import { ImagePickerAsset } from "expo-image-picker";
 
+import TextRecognition from "@react-native-ml-kit/text-recognition";
+
 import { RequestDetails } from "@/lib/helpers/types";
-import { PaymentPlatforms } from "@/lib/helpers/collections";
 
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
@@ -21,7 +22,21 @@ interface SendPaymentRouteProps {
 }
 
 const SendPaymentRoute: FC<SendPaymentRouteProps> = ({ disabled, paymentDetails, receipt, setReceipt, pickReceipt, sendPayment, cancel }) => {
-    console.log(receipt?.uri);
+    const [loadingState, setLoadingState] = useState<string>("Verifying...");
+    const [isVerifying, setIsVerifying] = useState<boolean>(false);
+    
+    const verifyReceipt = async () => {
+        setIsVerifying(true);
+
+        if (receipt) {
+            const ocrResult = await TextRecognition.recognize(receipt.uri);
+            if (ocrResult) {
+                console.log(ocrResult);
+            }
+        }
+
+        setIsVerifying(false);
+    }
     
     return (
         <View className="flex flex-col space-y-2 p-4 items-start justify-start">
@@ -93,18 +108,18 @@ const SendPaymentRoute: FC<SendPaymentRouteProps> = ({ disabled, paymentDetails,
             <View className="flex flex-col w-full space-y-2">
                 <Button
                     className="w-full rounded-lg"
-                    onPress={sendPayment}
-                    disabled={disabled || !receipt}
+                    onPress={() => verifyReceipt()}
+                    disabled={disabled || isVerifying || !receipt}
                 >
-                    {!disabled ?
+                    {!disabled || isVerifying ?
                         <View className="flex flex-row space-x-2 items-center">
                             <MaterialCommunityIcons name="send" size={20} color={"white"} />
-                            <Text buttonSmall white>Send Payment</Text>
+                            <Text buttonSmall white>Verify</Text>
                         </View>
                         :
                         <View className="flex flex-row space-x-2 items-center">
                             <ActivityIndicator animating={true} color="gray" />
-                            <Text buttonSmall white>Sending Payment...</Text>
+                            <Text buttonSmall white>{loadingState}</Text>
                         </View>
                     }
                 </Button>

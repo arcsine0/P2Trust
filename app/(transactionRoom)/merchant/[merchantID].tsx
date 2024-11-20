@@ -7,7 +7,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 
 import { Snackbar, ActivityIndicator, IconButton } from "react-native-paper";
 
-import { Colors, View, Text, Button, Picker, PickerModes } from "react-native-ui-lib";
+import { Colors, View, Text, Button, Picker, PickerModes, Dialog } from "react-native-ui-lib";
 
 import { BottomSheetModal, BottomSheetView } from "@gorhom/bottom-sheet";
 
@@ -41,10 +41,12 @@ export default function MerchantInfoScreen() {
     const [joinDisabled, setJoinDisabled] = useState(true);
     const [joinVisible, setJoinVisible] = useState(false);
 
+    const [showWarningModal, setShowWarningModal] = useState<boolean>(false);
+
     const { merchantID } = useLocalSearchParams<{ merchantID: string }>();
 
     const { userData, transactionIDs } = useUserData();
-    const { merchantData, setTransactions, setRatings, setMerchantData, setRole } = useMerchantData();
+    const { merchantData, ratings, setTransactions, setRatings, setMerchantData, setRole } = useMerchantData();
 
     const transactModalRef = useRef<BottomSheetModal>(null);
 
@@ -55,8 +57,22 @@ export default function MerchantInfoScreen() {
 
     const Tab = createMaterialTopTabNavigator();
 
+    const sendRequest = () => {
+        if (ratings) {
+            const tags = ratings.merchant?.tags.map(tag => tag.tag);
+
+            if (tags?.includes("Scam")) {
+                setShowWarningModal(true);
+            } else {
+                requestTransaction();
+            }
+        }
+    }
+
     const requestTransaction = async () => {
         if (userData && merchantData) {
+            setShowWarningModal(false);
+            
             requestsChannel
                 .on("broadcast", { event: "queued" }, (payload) => {
                     const payloadData = payload.payload;
@@ -310,7 +326,41 @@ export default function MerchantInfoScreen() {
                         </Button>
                     </View>
                 }
-
+                <Dialog
+                    visible={showWarningModal}
+                    onDismiss={() => setShowWarningModal(false)}
+                    panDirection="up"
+                    containerStyle={{ backgroundColor: Colors.bgDefault, borderRadius: 8, padding: 4 }}
+                >
+                    <View
+                        className="flex flex-col w-full p-4 space-y-4"
+                    >
+                        <Text h3>Warning</Text>
+                        <Text body>This merchant has history of possibly fraudulent transactions.</Text>
+                        <View className="flex flex-row w-full items-center justify-end space-x-2">
+                            <Button
+                                className="rounded-lg"
+                                onPress={() => setShowWarningModal(false)}
+                            >
+                                <View className="flex flex-row space-x-2 items-center">
+                                    <Text buttonSmall white>Cancel</Text>
+                                </View>
+                            </Button>
+                            <Button
+                                className="rounded-lg"
+                                style={{ backgroundColor: Colors.gray50 }}
+                                outline={true}
+                                outlineColor={Colors.gray900}
+                                onPress={() => requestTransaction()}
+                            >
+                                <View className="flex flex-row space-x-2 items-center">
+                                    <MaterialCommunityIcons name="thumb-up-outline" size={20} color={Colors.gray900} />
+                                    <Text buttonSmall gray900>Continue</Text>
+                                </View>
+                            </Button>
+                        </View>
+                    </View>
+                </Dialog>
                 <BottomSheetModal
                     ref={transactModalRef}
                     index={0}
@@ -338,7 +388,7 @@ export default function MerchantInfoScreen() {
                             {!joinVisible ?
                                 <Button
                                     className="w-full rounded-lg"
-                                    onPress={() => requestTransaction()}
+                                    onPress={() => sendRequest()}
                                     disabled={requestDisabled || requestRole === undefined}
                                 >
                                     {!requestDisabled ?
