@@ -32,6 +32,7 @@
     "base64-arraybuffer": "^1.0.2",
     "d3": "^7.9.0",
     "d3-shape": "^3.2.0",
+    "eas-cli": "^12.6.2",
     "expo": "~51.0.37",
     "expo-barcode-scanner": "~13.0.1",
     "expo-build-properties": "~0.12.5",

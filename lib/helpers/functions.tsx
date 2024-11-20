@@ -100,3 +100,29 @@ export const checkVerification = async (phone: string, code: string) => {
         return undefined;
     }
 }
+
+export const parseDate = (dateString: string): Date | null => {
+    const months: { [key: string]: number } = {
+        Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5,
+        Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11
+    };
+
+    const dateRegex = /(\w{3})\s(\d{1,2}),\s(\d{4})\s(\d{1,2}):(\d{2})\s([APap][Mm])/;
+    const match = dateString.match(dateRegex);
+
+    if (match) {
+        const month = months[match[1]];
+        const day = parseInt(match[2]);
+        const year = parseInt(match[3]);
+        let hour = parseInt(match[4]);
+        const minute = parseInt(match[5]);
+        const ampm = match[6].toUpperCase();
+
+        if (ampm === "PM" && hour !== 12) hour += 12;
+        if (ampm === "AM" && hour === 12) hour = 0;
+
+        return new Date(year, month, day, hour, minute);
+    }
+
+    return null; 
+}

@@ -240,7 +240,7 @@ export default function TransactionRoomScreen() {
 		}
 	}
 
-	const sendPayment = async (id: string | undefined) => {
+	const sendPayment = async (id: string | undefined, ref: string) => {
 		setIsPaymentSending(true);
 
 		if (!id) {
@@ -277,6 +277,7 @@ export default function TransactionRoomScreen() {
 									status: "paid",
 									paid_at: new Date().toISOString(),
 									receipt: receiptData.fullPath,
+									reference_number: ref,
 								})
 								.eq("id", id);
 
@@ -1365,7 +1366,7 @@ export default function TransactionRoomScreen() {
 						receipt={receipt}
 						setReceipt={setReceipt}
 						pickReceipt={pickReceipt}
-						sendPayment={() => sendPayment(paymentDetails.id)}
+						sendPayment={(ref_num) => sendPayment(paymentDetails.id, ref_num)}
 						cancel={() => setShowPaymentModal(false)}
 					/>
 				</Dialog>

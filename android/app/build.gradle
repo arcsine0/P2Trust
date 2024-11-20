@@ -114,7 +114,7 @@ android {
         applicationId 'com.chopped.P2Trust'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 2
+        versionCode 1
         versionName "1.2.0"
     }
     signingConfigs {

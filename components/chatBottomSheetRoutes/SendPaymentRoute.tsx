@@ -1,15 +1,17 @@
 import { FC, Dispatch, SetStateAction, useState } from "react";
 import { Icon, TouchableRipple, ActivityIndicator, Divider } from "react-native-paper";
 
-import { Colors, View, Text, Button, Image } from "react-native-ui-lib";
+import { Colors, View, Text, Button, Image, Toast } from "react-native-ui-lib";
 
 import { ImagePickerAsset } from "expo-image-picker";
 
 import TextRecognition from "@react-native-ml-kit/text-recognition";
 
 import { RequestDetails } from "@/lib/helpers/types";
+import { parseDate } from "@/lib/helpers/functions";
 
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { supabase } from "@/supabase/config";
 
 interface SendPaymentRouteProps {
     disabled: boolean;
@@ -17,27 +19,86 @@ interface SendPaymentRouteProps {
     receipt: ImagePickerAsset | undefined;
     setReceipt: Dispatch<SetStateAction<ImagePickerAsset | undefined>>;
     pickReceipt: () => void;
-    sendPayment: () => void;
+    sendPayment: (ref_num: string) => void;
     cancel: () => void;
 }
 
 const SendPaymentRoute: FC<SendPaymentRouteProps> = ({ disabled, paymentDetails, receipt, setReceipt, pickReceipt, sendPayment, cancel }) => {
     const [loadingState, setLoadingState] = useState<string>("Verifying...");
     const [isVerifying, setIsVerifying] = useState<boolean>(false);
-    
+
+    const [receiptError, setReceiptError] = useState<string>("");
+    const [showReceiptError, setShowReceiptError] = useState<boolean>(false);
+
     const verifyReceipt = async () => {
+        setLoadingState("Verifying...");
         setIsVerifying(true);
 
         if (receipt) {
             const ocrResult = await TextRecognition.recognize(receipt.uri);
             if (ocrResult) {
-                console.log(ocrResult);
+                const detectedTexts = ocrResult.blocks.map(block => block.text);
+
+                const amountRegex = /P([1-9]\d{0,2}(?:,\d{3})?(?:\.\d{2})?)\b/;
+                const dateRegex = /[A-Za-z]{3}\s\d{1,2},\s\d{4}\s\d{1,2}:\d{2}\s[APap][Mm]/;
+                const refNumRegex = /\d{10}/;
+
+                let receiptData = {
+                    ref_num: "",
+                    created_at: "",
+                    amount: 0,
+                }
+
+                for (const text of detectedTexts) {
+                    if (amountRegex.test(text)) {
+                        const match = text.match(amountRegex);
+                        if (match && match[1]) {
+                            receiptData.amount = parseFloat(match[1].replace(",", ""));
+                        }
+                    } else if (dateRegex.test(text)) {
+                        receiptData.created_at = parseDate(text)?.toISOString() || new Date().toISOString();
+                    } else if (refNumRegex.test(text)) {
+                        receiptData.ref_num = text;
+                    }
+                }
+
+                // check date 
+                const xHours = 8766; // for testing
+                const timeDifferenceMs = Math.abs(new Date().getTime() - new Date(receiptData.created_at).getTime());
+                const xHoursMs = xHours * 60 * 60 * 1000;
+
+                if (timeDifferenceMs <= xHoursMs) {
+                    if (receiptData.amount === paymentDetails.amount) {
+                        const { data, error } = await supabase
+                            .from("payments")
+                            .select("id")
+                            .eq("reference_number", receiptData.ref_num);
+
+                        if (!error && data) {
+                            if (data.length === 0) {
+                                setLoadingState("Submitting...");
+                                sendPayment(receiptData.ref_num);
+                            } else {
+                                setReceiptError("Receipt already exists.");
+                                setShowReceiptError(true);
+                            }
+                        } else {
+                            console.log(error);
+                        }
+                    } else {
+                        setReceiptError("Receipt amount does not match with requested amount.");
+                        setShowReceiptError(true);
+                    }
+                 } else {
+                    setReceiptError("Receipt is too old.");
+                    setShowReceiptError(true);
+                }
             }
         }
 
         setIsVerifying(false);
     }
-    
+
     return (
         <View className="flex flex-col space-y-2 p-4 items-start justify-start">
             <View className="flex flex-col w-full space-y-2">
@@ -98,7 +159,7 @@ const SendPaymentRoute: FC<SendPaymentRouteProps> = ({ disabled, paymentDetails,
                             :
                             <Image
                                 className="w-full h-full"
-                                source={{ uri: receipt.uri}}
+                                source={{ uri: receipt.uri }}
                                 resizeMode="contain"
                             />
                         }
@@ -133,6 +194,14 @@ const SendPaymentRoute: FC<SendPaymentRouteProps> = ({ disabled, paymentDetails,
                     <Text buttonSmall gray900>Cancel</Text>
                 </Button>
             </View>
+            <Toast 
+                visible={showReceiptError}
+                message={receiptError}
+                autoDismiss={2000}
+                backgroundColor={Colors.error400}
+                containerStyle={{ borderRadius: 8 }}
+                onDismiss={() => setShowReceiptError(false)}
+            />
         </View>
     )
 }

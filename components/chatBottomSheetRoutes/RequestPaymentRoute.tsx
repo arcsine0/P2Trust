@@ -77,7 +77,7 @@ const RequestPaymentRoute: FC<RequestPaymentRouteProps> = ({ dropdownStyle, disa
                             className="rounded-lg flex-1 overflow-scroll"
                             style={{ backgroundColor: Colors.gray100 }}
                             label="Amount"
-                            value={requestDetails.amount?.toString()}
+                            value={requestDetails.amount?.toString() !== "NaN" ? requestDetails.amount?.toString() : "0"}
                             onChangeText={text => setRequestDetails({ ...requestDetails, amount: parseFloat(text) })}
                             keyboardType="numeric"
                         />
