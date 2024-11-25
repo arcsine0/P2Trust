@@ -12,7 +12,7 @@ interface WalletCardProps {
 }
 
 export const WalletCard: FC<WalletCardProps> = ({ walletData, onPress }) => {
-    console.log(walletData)
+    console.log("wallet data: ", walletData)
 
     return (
         <Card

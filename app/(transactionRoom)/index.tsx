@@ -18,7 +18,7 @@ import { useMerchantData } from "@/lib/context/MerchantContext";
 import * as ImagePicker from "expo-image-picker";
 import { scanFromURLAsync } from "expo-camera";
 
-import { Request } from "@/lib/helpers/types";
+import { Request, WalletData } from "@/lib/helpers/types";
 import { getInitials } from "@/lib/helpers/functions";
 
 import { UserCard } from "@/components/userCards/UserCard";
@@ -52,12 +52,14 @@ export default function TransactionHomeScreen() {
 
     const [QRError, setQRError] = useState<string>("");
 
-    const { userData, requests, setRequests, queue, setQueue } = useUserData();
+    const { userData, setUserData, requests, setRequests, queue, setQueue } = useUserData();
     const { setMerchantData, setRole } = useMerchantData();
 
     const [joinRoomLoading, setJoinRoomLoading] = useState<boolean>(false);
+    const [isWalletDeleting, setIsWalletDeleting] = useState<boolean>(false);
 
     const [showVerifyModal, setShowVerifyModal] = useState<boolean>(true);
+    const [showDeleteWalletModal, setShowDeleteWalletModal] = useState<boolean>(false);
 
     const tutorialRef = useRef<any>(null);
 
@@ -225,6 +227,56 @@ export default function TransactionHomeScreen() {
                 setQRError("No QR found in image");
             }
         }
+    }
+
+    const deleteWallet = async () => {
+        setIsWalletDeleting(true);
+
+        if (userData && userData.wallets) {
+            try {
+                const { data: walletDataTemp, error: walletError } = await supabase
+                    .from("wallets")
+                    .select("*")
+                    .eq("id", userData.wallets[0].id)
+
+                if (!walletError && walletDataTemp) {
+                    const walletData: WalletData = walletDataTemp[0];
+
+                    const { data: accountData, error: accountError } = await supabase
+                        .from("accounts")
+                        .update(
+                            {
+                                wallets: []
+                            }
+                        )
+                        .eq("id", userData?.id)
+                        .select();
+
+                    const { error: walletUpdateError } = await supabase
+                        .from("wallets")
+                        .update({
+                            current_owners: walletData.current_owners?.filter(id => id !== userData?.id) || [],
+                            previous_owners: walletData.previous_owners?.find(id => id === userData?.id) ? [...walletData.previous_owners, userData?.id] : [userData?.id],
+                        })
+                        .eq("id", walletData.id)
+
+                    if (!accountError && !walletUpdateError && accountData) {
+                        console.log(accountData);
+                        setUserData(accountData[0]);
+                        setShowDeleteWalletModal(false);
+                    } else {
+                        console.log(accountError);
+                        console.log(walletUpdateError)
+                    }
+                } else {
+                    console.log(walletError);
+                }
+            } catch (error) {
+                console.log(error);
+            }
+        }
+
+        setIsWalletDeleting(false);
     }
 
     useEffect(() => {
@@ -469,28 +521,36 @@ export default function TransactionHomeScreen() {
                                 <View className="flex flex-row w-full items-center justify-between">
                                     <Text h3>Active Wallets</Text>
                                     <View className="flex flex-row space-x-1 items-center">
-                                        <IconButton
-                                            icon="wallet-plus-outline"
-                                            onPress={() => {
-                                                walletsModalRef.current?.dismiss();
-                                                router.navigate("/(transactionRoom)/wallet");
-                                            }}
-                                        />
-
-                                        <IconButton
-                                            icon="trash-can-outline"
-                                            onPress={() => {}}
-                                        />
+                                        {userData.wallets && userData.wallets.length ?
+                                            <IconButton
+                                                icon="trash-can-outline"
+                                                onPress={() => { 
+                                                    walletsModalRef.current?.dismiss();
+                                                    setShowDeleteWalletModal(true);
+                                                }}
+                                            />
+                                            :
+                                            <IconButton
+                                                icon="wallet-plus-outline"
+                                                onPress={() => {
+                                                    walletsModalRef.current?.dismiss();
+                                                    router.navigate("/(transactionRoom)/wallet");
+                                                }}
+                                            />
+                                        }
                                     </View>
                                 </View>
-                                {userData.wallets ?
+                                {userData.wallets && userData.wallets.length > 0 ?
                                     <ScrollView>
                                         <View className="flex flex-col w-full space-y-2 ">
                                             {userData.wallets.map((wallet, i) => (
                                                 <WalletCard
                                                     key={wallet.id}
                                                     walletData={wallet}
-                                                    onPress={() => { }}
+                                                    onPress={() => {
+                                                        walletsModalRef.current?.dismiss();
+                                                        router.push(`/wallet/${wallet.id}`);
+                                                    }}
                                                 />
                                             ))}
                                         </View>
@@ -543,6 +603,53 @@ export default function TransactionHomeScreen() {
                                 <MaterialCommunityIcons name="thumb-up-outline" size={20} color={"white"} />
                                 <Text buttonSmall white>Verify now</Text>
                             </View>
+                        </Button>
+                    </View>
+                </View>
+            </Dialog>
+            <Dialog
+                visible={showDeleteWalletModal}
+                ignoreBackgroundPress={true}
+                panDirection="up"
+                containerStyle={{ backgroundColor: Colors.bgDefault, borderRadius: 8, padding: 4 }}
+            >
+                <View
+                    className="flex flex-col w-full p-4 space-y-8"
+                >
+                    <View className="flex flex-col w-full space-y-2">
+                        <Text h3>Warning</Text>
+                        <Text body>Are you sure that you want to unbind the wallet set to your account?</Text>
+                    </View>
+                    <View className="flex flex-row w-full items-center justify-end space-x-2">
+                    <Button
+                                className="rounded-lg"
+                                style={{ backgroundColor: Colors.gray50 }}
+                                outline={true}
+                                outlineColor={Colors.gray900}
+                                onPress={() => setShowDeleteWalletModal(false)}
+                            >
+                                <Text buttonSmall gray900>Cancel</Text>
+                            </Button>
+                        <Button
+                            className="rounded-lg"
+                            onPress={() => {
+                                setShowDeleteWalletModal(false);
+                                deleteWallet();
+                            }}
+                            disabled={isWalletDeleting}
+                        >
+                            {!isWalletDeleting ?
+                                <View className="flex flex-row space-x-2 items-center">
+                                    <MaterialCommunityIcons name="trash-can-outline" size={20} color={"white"} />
+                                    <Text buttonSmall white>Delete</Text>
+                                </View>
+                                :
+                                <View className="flex flex-row space-x-2 items-center">
+                                    <ActivityIndicator animating={true} size={20} color="white" />
+                                    <Text buttonSmall white>Deleting...</Text>
+                                </View>
+                            }
+
                         </Button>
                     </View>
                 </View>

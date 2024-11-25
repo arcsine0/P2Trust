@@ -14,6 +14,7 @@ import { PaymentPlatforms, PhoneCountryCodes } from "@/lib/helpers/collections";
 import { sendVerification, checkVerification } from "@/lib/helpers/functions";
 
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { WalletData } from "@/lib/helpers/types";
 
 export default function UserWalletScreen() {
     const [activeIndex, setActiveIndex] = useState<number>(0);
@@ -24,8 +25,8 @@ export default function UserWalletScreen() {
         platform: string | undefined;
         countryCode: string | undefined;
     }>({
-        accountName: "test",
-        accountNumber: "9673127888",
+        accountName: "",
+        accountNumber: "",
         platform: "GCash",
         countryCode: "+63",
     });
@@ -50,15 +51,15 @@ export default function UserWalletScreen() {
         setIsOTPSending(true);
 
         try {
-            // const { data, error } = await supabase.auth.signInWithOtp({
-            //     phone: `${walletDetails.countryCode?.trim()}${walletDetails.accountNumber.trim()}`
-            // });
+            const { data, error } = await supabase.auth.signInWithOtp({
+                phone: `${walletDetails.countryCode?.trim()}${walletDetails.accountNumber.trim()}`
+            });
 
-            // if (!error && data) {
-            //     setActiveIndex(1);
-            // } else {
-            //     console.log(error);
-            // }
+            if (!error && data) {
+                setActiveIndex(1);
+            } else {
+                console.log(error);
+            }
 
             setActiveIndex(1);
         } catch (error) {
@@ -73,87 +74,97 @@ export default function UserWalletScreen() {
 
         if (userData && OTP) {
             try {
-                // const { data, error } = await supabase.auth.verifyOtp({
-                //     phone: `${walletDetails.countryCode?.trim()}${walletDetails.accountNumber.trim()}`,
-                //     token: OTP,
-                //     type: "sms",
-                // });
+                const { data, error } = await supabase.auth.verifyOtp({
+                    phone: `${walletDetails.countryCode?.trim()}${walletDetails.accountNumber.trim()}`,
+                    token: OTP,
+                    type: "sms",
+                });
 
-                // if (!error && data) {
-                //     const { data: walletData, error: walletError } = await supabase
-                //         .from("wallets")
-                //         .select("id")
-                //         .eq("account_number", `${walletDetails.countryCode?.trim()}-${walletDetails.accountNumber.trim()}`);
+                if (!error && data) {
+                    console.log(`${walletDetails.countryCode?.trim()}-${walletDetails.accountNumber.trim()}`);
 
-                //     if (!walletError && walletData) {
+                    const { data: walletDataTemp, error: walletError } = await supabase
+                        .from("wallets")
+                        .select("*")
+                        .eq("account_number", `${walletDetails.countryCode?.trim()}-${walletDetails.accountNumber.trim()}`);
 
-                //     } else {
-                //         console.log(walletError);
-                //     }
+                    if (!walletError && walletDataTemp) {
+                        const walletData: WalletData[] = walletDataTemp;
+                        console.log("wallet data:", walletData);
 
-                //     console.log(walletData);
-                // } else {
-                //     console.log(error);
-                // }
-                const { data: walletData, error: walletError } = await supabase
-                    .from("wallets")
-                    .select("id")
-                    .eq("account_number", `${walletDetails.countryCode?.trim()}-${walletDetails.accountNumber.trim()}`);
-
-                if (!walletError && walletData) {
-                    if (walletData.length > 0) {
-                        let temp_wallets = userData.wallets || [];
-                        temp_wallets.push(walletData[0].id);
-
-                        const { data: updatedAccountData, error: updatedAccountError } = await supabase
-                            .from("accounts")
-                            .update({
-                                wallets: temp_wallets
-                            })
-                            .eq("id", userData?.id)
-                            .select();
-
-                        if (!updatedAccountError && updatedAccountData) {
-                            setUserData(updatedAccountData[0]);
-                            router.navigate("/(transactionRoom)/");
-                        } else {
-                            console.log(updatedAccountError);
-                        }
-                    } else {
-                        const { data: createWalletData, error: createWalletError } = await supabase
-                            .from("wallets")
-                            .insert({
-                                current_owners: [userData?.id],
-                                previous_owners: [userData?.id],
-                                account_name: walletDetails.accountName,
-                                account_number: `${walletDetails.countryCode?.trim()}-${walletDetails.accountNumber.trim()}`,
-                                platform: walletDetails.platform,
-                            })
-                            .select();
-
-                        if (!createWalletError && createWalletData) {
-                            console.log(createWalletData);
-
+                        if (walletData.length > 0) {
                             const { data: updatedAccountData, error: updatedAccountError } = await supabase
                                 .from("accounts")
                                 .update({
-                                    wallets: [...[userData.wallets], createWalletData[0].id]
+                                    wallets: [walletData[0].id]
                                 })
-                                .eq("id", userData?.id)
-                                .select();
+                                .eq("id", userData.id)
+                                .select("*");
 
                             if (!updatedAccountError && updatedAccountData) {
-                                setUserData(updatedAccountData[0]);
-                                router.navigate("/(transactionRoom)/");
+                                setUserData({
+                                    ...updatedAccountData[0],
+                                    wallets: [walletData[0]]
+                                });
                             } else {
                                 console.log(updatedAccountError);
                             }
                         } else {
-                            console.log(createWalletError);
+                            const { data: createWalletData, error: createWalletError } = await supabase
+                                .from("wallets")
+                                .insert({
+                                    current_owners: [userData?.id],
+                                    previous_owners: [userData?.id],
+                                    account_name: walletDetails.accountName,
+                                    account_number: `${walletDetails.countryCode?.trim()}-${walletDetails.accountNumber.trim()}`,
+                                    platform: walletDetails.platform,
+                                })
+                                .select("*");
+
+                            if (!createWalletError && createWalletData) {
+                                console.log(createWalletData);
+
+                                const { data: updatedAccountData, error: updatedAccountError } = await supabase
+                                    .from("accounts")
+                                    .update({
+                                        wallets: [...[userData.wallets], createWalletData[0].id]
+                                    })
+                                    .eq("id", userData?.id)
+                                    .select("*");
+
+                                if (!updatedAccountError && updatedAccountData) {
+                                    setUserData({
+                                        ...updatedAccountData[0],
+                                        wallets: [createWalletData[0]]
+                                    });
+                                } else {
+                                    console.log(updatedAccountError);
+                                }
+                            } else {
+                                console.log(createWalletError);
+                            }
                         }
+
+                        const { data: walletUpdateData, error: walletUpdateError } = await supabase
+                            .from("wallets")
+                            .update({
+                                current_owners: walletData[0].current_owners?.find(id => id === userData.id) ? [...walletData[0].current_owners] : [...(walletData[0].current_owners ?? []), userData.id],
+                                previous_owners: walletData[0].previous_owners?.filter(id => id !== userData.id) || [],
+                            })
+                            .eq("id", walletData[0].id)
+                            .select("*");
+
+                        if (!walletUpdateError && walletUpdateData) {
+                            console.log(walletUpdateData);
+                            router.navigate("/(transactionRoom)/");
+                        } else {
+                            console.log(walletUpdateError);
+                        }
+                    } else {
+                        console.log(walletError);
                     }
                 } else {
-                    console.log(walletError);
+                    console.log(error);
                 }
 
                 setIsOTPVerifying(false);
@@ -303,9 +314,9 @@ export default function UserWalletScreen() {
                             disabled={(() => {
                                 switch (activeIndex) {
                                     case 0:
-                                        return !walletDetails?.accountName || !walletDetails?.accountNumber || !walletDetails?.platform;
+                                        return !walletDetails?.accountName || !walletDetails?.accountNumber || !walletDetails?.platform || isOTPSending;
                                     case 1:
-                                        return !OTP;
+                                        return !OTP || isOTPVerifying;
                                 }
                             })()}
                             onPress={() => {

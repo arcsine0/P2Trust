@@ -63,7 +63,7 @@ const SendPaymentRoute: FC<SendPaymentRouteProps> = ({ disabled, paymentDetails,
                 }
 
                 // check date 
-                const xHours = 8766; // for testing
+                const xHours = 24; // for testing
                 const timeDifferenceMs = Math.abs(new Date().getTime() - new Date(receiptData.created_at).getTime());
                 const xHoursMs = xHours * 60 * 60 * 1000;
 
